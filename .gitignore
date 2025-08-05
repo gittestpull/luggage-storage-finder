@@ -1,0 +1,44 @@
+# 의존성 디렉토리
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# 환경 변수 파일
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 로그 파일
+logs
+*.log
+
+# 운영체제 파일
+.DS_Store
+Thumbs.db
+
+# 빌드 디렉토리
+/dist
+/build
+
+# 임시 파일
+.tmp
+.temp
+
+# 캐시 디렉토리
+.cache
+.npm
+
+# 업로드된 파일 (multer 사용 시)
+/uploads
+
+# 커버리지 보고서
+coverage/
+
+# IDE 설정
+.idea/
+.vscode/
+*.swp
+*.swo

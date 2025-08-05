@@ -48,9 +48,18 @@ async function findNearbyStorages(lat, lng, maxDistance = 5000) {
 // 새 짐보관소 제보하기
 async function submitStorageReport(formData) {
     try {
+        // FormData를 일반 객체로 변환
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+
         const response = await fetch('/api/storages', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
         });
         
         if (!response.ok) {

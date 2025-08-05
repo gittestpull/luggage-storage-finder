@@ -20,9 +20,15 @@ async function loadStorageList() {
         
         if (storages && storages.length > 0) {
             // 실제 데이터로 리스트 생성
-            storages.forEach(storage => {
+            storages.forEach((storage, index) => {
                 const storageCard = createStorageCard(storage);
                 listContainer.appendChild(storageCard);
+
+                // 3번째 아이템 뒤에 광고 카드 삽입
+                if (index === 2) {
+                    const adCard = createAdCard('list-ad');
+                    listContainer.appendChild(adCard);
+                }
             });
             
             // 더보기 버튼이 있다면 업데이트
@@ -80,6 +86,27 @@ function createStorageCard(storage) {
     }
     
     return card;
+}
+
+// 광고 카드 HTML 엘리먼트 생성
+function createAdCard(type) {
+    const adCard = document.createElement('div');
+    adCard.className = 'bg-gray-200 p-4 rounded-lg shadow-md text-center';
+    
+    if (type === 'list-ad') {
+        adCard.innerHTML = `
+            <h5 class="font-bold text-gray-800">광고</h5>
+            <p class="text-gray-600">이목을 집중시키는 광고를 여기에 넣어보세요!</p>
+            <a href="#" class="text-blue-600 hover:underline">더 알아보기</a>
+        `;
+    } else if (type === 'banner-ad') {
+        adCard.className = 'fixed bottom-0 left-0 right-0 bg-yellow-300 p-2 text-center shadow-lg z-50';
+        adCard.innerHTML = `
+            <p class="text-sm text-yellow-800">✨ 특별 할인 이벤트! 지금 예약하고 20% 할인 받으세요! <a href="#" class="font-bold underline">자세히 보기</a></p>
+        `;
+    }
+    
+    return adCard;
 }
 
 // 업데이트 시간 표시 형식 생성

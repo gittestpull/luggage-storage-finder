@@ -166,7 +166,9 @@ function createMarker(map, storage) {
             <p style="margin-bottom: 5px;">운영시간: ${hours}</p>
             <p style="margin-bottom: 5px;">소형: ${(storage.smallPrice || 0).toLocaleString()}원/일</p>
             <p style="margin-bottom: 5px;">대형: ${(storage.largePrice || 0).toLocaleString()}원/일</p>
-            <button style="background-color: #3b82f6; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
+            <hr style="margin: 5px 0;">
+            <p style="font-size: 0.8em; color: #666;">광고: 주변 맛집 추천! <a href="#" target="_blank">할인쿠폰 받기</a></p>
+            <button style="background-color: #3b82f6; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; margin-top: 5px;"
                 onclick="showStorageDetails('${storage._id || '0'}')">상세정보</button>
         </div>
     `;

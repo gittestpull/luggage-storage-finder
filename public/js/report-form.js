@@ -8,9 +8,6 @@ function initReportForm() {
     const reportForm = document.getElementById('reportForm');
     if (!reportForm) return;
     
-    // 위도/경도 입력 필드 추가
-    addHiddenFields(reportForm);
-    
     // 위치 선택 UI 추가
     addLocationSelectUI(reportForm);
     
@@ -18,16 +15,7 @@ function initReportForm() {
     setupFormSubmission(reportForm);
 }
 
-// 숨겨진 위도/경도 필드 추가
-function addHiddenFields(reportForm) {
-    const latLngContainer = document.createElement('div');
-    latLngContainer.className = 'hidden';
-    latLngContainer.innerHTML = `
-        <input type="hidden" id="lat" name="lat" value="">
-        <input type="hidden" id="lng" name="lng" value="">
-    `;
-    reportForm.appendChild(latLngContainer);
-}
+
 
 // 위치 선택 UI 추가
 function addLocationSelectUI(reportForm) {
@@ -209,3 +197,4 @@ function setupFormSubmission(reportForm) {
         }
     });
 }
+

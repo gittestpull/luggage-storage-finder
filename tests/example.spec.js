@@ -21,8 +21,11 @@ test('회원가입 폼이 표시되고 제출되는지 확인', async ({ page })
   // 회원가입 버튼 클릭
   await page.click('#registerForm button[type="submit"]');
 
-  // 성공 메시지 확인
-  await expect(page.locator('text=회원가입 성공! 이제 로그인해주세요.')).toBeVisible();
+  // 성공 메시지 확인 (alert 대화 상자 처리)
+  page.on('dialog', async dialog => {
+    expect(dialog.message()).toContain('회원가입 성공! 이제 로그인해주세요.');
+    await dialog.accept();
+  });
 
   // 로그인 폼으로 전환되었는지 확인
   await expect(page.locator('#login')).toBeVisible();

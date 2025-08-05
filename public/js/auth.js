@@ -3,11 +3,16 @@
  * 사용자 인증 및 로그인/로그아웃 기능을 담당합니다.
  */
 
-// 인증 관련 기능 초기화
-window.initAuthFeatures = function() {
+document.addEventListener('DOMContentLoaded', function() {
     // 카카오 SDK 초기화 (실제 사용 시 앱 키로 변경 필요)
-    Kakao.init('YOUR_KAKAO_APP_KEY');
-    console.log('Kakao SDK 초기화 상태:', Kakao.isInitialized());
+    try {
+        if (Kakao && !Kakao.isInitialized()) {
+            Kakao.init('YOUR_KAKAO_APP_KEY');
+            console.log('Kakao SDK 초기화 상태:', Kakao.isInitialized());
+        }
+    } catch (e) {
+        console.error("Kakao SDK 초기화 실패:", e);
+    }
 
     // 카카오 로그인 버튼 이벤트 연결
     const kakaoLoginBtn = document.getElementById('kakaoLoginBtn');
@@ -27,35 +32,38 @@ window.initAuthFeatures = function() {
         loginForm.addEventListener('submit', handleLoginFormSubmit);
     }
 
-    // 페이지 로드 시 로그인 상태 확인
-    checkLoginStatus();
-
     // 회원가입 폼 이벤트 연결
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegisterFormSubmit);
     }
 
-    // 회원가입/로그인 폼 전환
+    // 회원가입/로그인 폼 전환 로직
     const showRegisterFormBtn = document.getElementById('showRegisterForm');
     const showLoginFormBtn = document.getElementById('showLoginForm');
     const loginSection = document.getElementById('login');
     const registerSection = document.getElementById('register');
 
-    if (showRegisterFormBtn && showLoginFormBtn && loginSection && registerSection) {
+    if (showRegisterFormBtn && loginSection && registerSection) {
         showRegisterFormBtn.addEventListener('click', (e) => {
             e.preventDefault();
             loginSection.classList.add('hidden');
             registerSection.classList.remove('hidden');
         });
+    }
 
+    if (showLoginFormBtn && loginSection && registerSection) {
         showLoginFormBtn.addEventListener('click', (e) => {
             e.preventDefault();
             registerSection.classList.add('hidden');
             loginSection.classList.remove('hidden');
         });
     }
-}
+
+    // 페이지 로드 시 로그인 상태 확인
+    checkLoginStatus();
+});
+
 
 // 회원가입 폼 제출 처리
 async function handleRegisterFormSubmit(e) {
@@ -94,6 +102,10 @@ async function handleRegisterFormSubmit(e) {
 
 // 카카오 로그인 함수
 function kakaoLogin() {
+    if (!Kakao || !Kakao.isInitialized()) {
+        alert('카카오 로그인을 사용할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
     Kakao.Auth.login({
         success: function(authObj) {
             console.log('카카오 로그인 성공', authObj);
@@ -255,7 +267,7 @@ function updateLoginUI(isLoggedIn, nickname = '', points = 0) {
     
     if (isLoggedIn) {
         // 로그인 된 상태
-        if (loginLink) loginLink.classList.add('hidden');
+        if (loginLink) loginLink.parentElement.classList.add('hidden');
         if (userProfileArea) {
             userProfileArea.classList.remove('hidden');
             if (userNickname) userNickname.textContent = nickname;
@@ -263,7 +275,7 @@ function updateLoginUI(isLoggedIn, nickname = '', points = 0) {
         }
     } else {
         // 로그아웃 상태
-        if (loginLink) loginLink.classList.remove('hidden');
+        if (loginLink) loginLink.parentElement.classList.remove('hidden');
         if (userProfileArea) userProfileArea.classList.add('hidden');
     }
 }

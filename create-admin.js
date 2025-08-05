@@ -18,7 +18,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/luggage-s
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    isAdmin: { type: Boolean, default: false }
+    isAdmin: { type: Boolean, default: false },
+    points: { type: Number, default: 0 }
 });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);

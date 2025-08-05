@@ -29,7 +29,12 @@ async function loadAllComponents() {
         await loadComponent('footer-container', 'components/footer.html');
 
         // 모든 컴포넌트가 로드된 후 이벤트 발생시키기
-        window.dispatchEvent(new Event('componentsLoaded'));
+        // window.dispatchEvent(new Event('componentsLoaded')); // 더 이상 필요 없음
+
+        // auth.js의 초기화 함수 직접 호출
+        if (window.initAuthFeatures && typeof window.initAuthFeatures === 'function') {
+            window.initAuthFeatures();
+        }
     } catch (error) {
         console.error('컴포넌트 로딩 중 오류 발생:', error);
     }

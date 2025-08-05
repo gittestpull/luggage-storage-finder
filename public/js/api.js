@@ -54,6 +54,16 @@ async function submitStorageReport(formData) {
             data[key] = value;
         });
 
+        // 로그인한 사용자의 ID를 reportedBy 필드에 추가
+        const userId = localStorage.getItem('userId');
+        if (userId) {
+            data.reportedBy = userId;
+        } else {
+            // 로그인하지 않은 경우 제보 불가 또는 익명 처리
+            alert('제보를 위해 로그인해주세요.');
+            throw new Error('로그인이 필요합니다.');
+        }
+
         const response = await fetch('/api/storages', {
             method: 'POST',
             headers: {

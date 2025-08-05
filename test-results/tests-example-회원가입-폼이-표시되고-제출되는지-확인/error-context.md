@@ -1,0 +1,122 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - heading "짐보관소 찾기" [level=1]
+  - navigation:
+    - list:
+      - listitem:
+        - link "홈":
+          - /url: "#"
+      - listitem:
+        - link "지도":
+          - /url: "#map"
+      - listitem:
+        - link "리스트":
+          - /url: "#list"
+      - listitem:
+        - link "제보하기":
+          - /url: "#report"
+      - listitem:
+        - link "로그인":
+          - /url: "#login"
+- main:
+  - heading "짐보관소 검색" [level=2]
+  - textbox "지역명, 역 이름 등으로 검색"
+  - button "검색"
+  - heading "지도로 보기" [level=3]
+  - button "내 위치 찾기"
+  - button "Keyboard shortcuts"
+  - region "Map"
+  - button "테스트"
+  - button "테ㅐ스트2"
+  - menubar:
+    - menuitemradio "Show street map" [checked]: Map
+    - menuitemradio "Show satellite imagery": Satellite
+  - button "Toggle fullscreen view"
+  - button "Map camera controls"
+  - button "Drag Pegman onto the map to open Street View":
+    - img "Street View Pegman Control"
+  - link "Open this area in Google Maps (opens a new window)":
+    - /url: https://maps.google.com/maps?ll=37.5665,126.978&z=13&t=m&hl=en-US&gl=US&mapclient=apiv3
+    - img "Google"
+  - button "Keyboard shortcuts"
+  - text: Map data ©2025 TMap Mobility
+  - link "Terms":
+    - /url: https://www.google.com/intl/en-US_US/help/terms_maps.html
+  - heading "짐보관소 리스트" [level=3]
+  - heading "테스트" [level=4]
+  - paragraph: 경기 용인시 수지구 포은대로313번길 7-10
+  - text: "개방중 운영시간: 24시간 소형: 0원/일 대형: 0원/일"
+  - button "상세정보"
+  - text: 3시간 전
+  - heading "테ㅐ스트2" [level=4]
+  - paragraph: 경기 용인시 수지구 포은대로313번길 7-10
+  - text: "개방중 운영시간: 24시간 소형: 0원/일 대형: 0원/일"
+  - button "상세정보"
+  - text: 1시간 전
+  - paragraph: 광고 영역 - 귀하의 비즈니스를 홍보하세요!
+  - heading "짐보관소 제보하기" [level=3]
+  - paragraph: 새로운 짐보관소를 알고 계신가요? 제보해주시면 검토 후 적립금을 드립니다!
+  - text: 짐보관소 이름 *
+  - textbox "짐보관소 이름 *"
+  - text: 주소 *
+  - textbox "주소 *"
+  - text: 위치 선택
+  - button "지도에서 위치 선택하기"
+  - button "내 위치 사용하기"
+  - text: 개장 시간
+  - textbox "개장 시간"
+  - text: 폐장 시간
+  - textbox "폐장 시간"
+  - checkbox "24시간 운영"
+  - text: 24시간 운영 소형 가격 (원/일)
+  - spinbutton "소형 가격 (원/일)"
+  - text: 대형 가격 (원/일)
+  - spinbutton "대형 가격 (원/일)"
+  - paragraph: 위치 *
+  - paragraph: 지도를 클릭하거나 '내 위치 찾기' 버튼을 눌러 위치를 설정하세요.
+  - text: 추가 정보
+  - textbox "추가 정보"
+  - button "제보하기"
+  - heading "로그인" [level=3]
+  - button "카카오 계정으로 로그인"
+  - button "네이버 계정으로 로그인"
+  - text: 또는 이메일
+  - textbox "이메일"
+  - text: 비밀번호
+  - textbox "비밀번호"
+  - checkbox "로그인 상태 유지"
+  - text: 로그인 상태 유지
+  - link "비밀번호 찾기":
+    - /url: "#"
+  - button "로그인"
+  - text: 계정이 없으신가요?
+  - link "회원가입":
+    - /url: "#"
+- contentinfo:
+  - heading "짐보관소 찾기 서비스" [level=4]
+  - paragraph: 여행 중 짐을 안전하게 보관할 수 있는 장소를 쉽게 찾아보세요.
+  - heading "바로가기" [level=4]
+  - list:
+    - listitem:
+      - link "홈":
+        - /url: "#"
+    - listitem:
+      - link "지도로 보기":
+        - /url: "#map"
+    - listitem:
+      - link "짐보관소 리스트":
+        - /url: "#list"
+    - listitem:
+      - link "제보하기":
+        - /url: "#report"
+  - heading "고객센터" [level=4]
+  - paragraph: 문의사항이 있으시면 아래 연락처로 문의해주세요.
+  - paragraph: "이메일: support@example.com 전화: 02-123-4567"
+  - paragraph: © 2023 짐보관소 찾기 서비스. All rights reserved.
+- paragraph:
+  - text: ✨ 특별 할인 이벤트! 지금 예약하고 20% 할인 받으세요!
+  - link "자세히 보기":
+    - /url: "#"
+```

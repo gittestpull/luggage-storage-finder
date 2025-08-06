@@ -49,13 +49,21 @@ router.post('/admin/login', async (req, res) => {
 // 대시보드 데이터 (인증 필요)
 router.get('/admin/dashboard', auth, async (req, res) => {
     try {
-        const [storageCount, reportCount, regularUserCount, adminUserCount] = await Promise.all([
+        const [storageCount, reportCount, regularUserCount, adminUserCount, reportStats] = await Promise.all([
             Storage.countDocuments(),
             Report.countDocuments({ reportStatus: 'pending' }),
             User.countDocuments({ isAdmin: false }),
-            User.countDocuments({ isAdmin: true })
+            User.countDocuments({ isAdmin: true }),
+            Report.aggregate([
+                { $group: { _id: '$reportedBy', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 5 },
+                { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'reporter' } },
+                { $unwind: '$reporter' },
+                { $project: { _id: 0, username: '$reporter.username', count: 1 } }
+            ])
         ]);
-        res.json({ storageCount, reportCount, regularUserCount, adminUserCount });
+        res.json({ storageCount, reportCount, regularUserCount, adminUserCount, reportStats });
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 
@@ -210,7 +218,7 @@ router.post('/admin/storages/bulk-upload', auth, upload.single('csvFile'), async
 // 모든 제보 목록 가져오기 (인증 필요)
 router.get('/admin/reports', auth, async (req, res) => {
     try {
-        res.json(await Report.find().sort({ createdAt: -1 }));
+        res.json(await Report.find().populate('reportedBy', 'username').sort({ createdAt: -1 }));
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 

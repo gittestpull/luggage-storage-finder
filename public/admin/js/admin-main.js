@@ -51,10 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 mainContent.appendChild(script);
             } else if (hash === '#user-management') {
-                // 사용자 관리 컴포넌트 로드 후 데이터 로드
-                if (typeof initUserManagement === 'function') {
-                    initUserManagement();
-                }
+                const script = document.createElement('script');
+                script.src = '/admin/js/user-manager.js';
+                script.onload = () => {
+                    if (typeof initUserManagement === 'function') {
+                        initUserManagement();
+                    }
+                };
+                mainContent.appendChild(script);
             }
 
             // 대시보드인 경우 데이터 로드 함수 호출

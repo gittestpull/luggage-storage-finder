@@ -50,6 +50,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 };
                 mainContent.appendChild(script);
+            } else if (hash === '#user-management') {
+                // 사용자 관리 컴포넌트 로드 후 데이터 로드
+                try {
+                    const users = await fetchAllUsersAdmin();
+                    const usersTableBody = document.querySelector('#usersTable tbody');
+                    usersTableBody.innerHTML = '';
+
+                    users.forEach(user => {
+                        const row = usersTableBody.insertRow();
+                        row.insertCell().textContent = user._id;
+                        row.insertCell().textContent = user.username;
+                        row.insertCell().textContent = user.email;
+                        row.insertCell().textContent = new Date(user.createdAt).toLocaleDateString();
+                        row.insertCell().textContent = user.points || 0;
+                    });
+                } catch (error) {
+                    console.error('사용자 데이터를 불러오는 데 실패했습니다:', error);
+                    alert('사용자 데이터를 불러오는 데 실패했습니다.');
+                }
             }
 
             // 대시보드인 경우 데이터 로드 함수 호출

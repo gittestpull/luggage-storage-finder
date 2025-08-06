@@ -62,7 +62,7 @@ router.get('/admin/dashboard', auth, async (req, res) => {
 // 관리자용 짐보관소 목록 (인증 필요)
 router.get('/admin/storages', auth, async (req, res) => {
     try {
-        res.json(await Storage.find().sort({ createdAt: -1 }));
+        res.json(await Storage.find().populate({ path: 'report', populate: { path: 'reportedBy', select: 'username' } }).sort({ createdAt: -1 }));
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 

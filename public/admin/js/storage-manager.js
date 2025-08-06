@@ -71,6 +71,7 @@ function initStorageManagement() {
                     </select>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(storage.createdAt).toLocaleString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${storage.report && storage.report.reportedBy ? storage.report.reportedBy.username : 'N/A'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button class="text-indigo-600 hover:text-indigo-900 edit-btn" data-id="${storage._id}">수정</button>
                     <button class="text-red-600 hover:text-red-900 ml-4 delete-btn" data-id="${storage._id}">삭제</button>

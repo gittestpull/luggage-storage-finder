@@ -240,4 +240,11 @@ router.patch('/admin/reports/:id', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 
+// 모든 사용자 목록 가져오기 (인증 필요)
+router.get('/admin/users', auth, async (req, res) => {
+    try {
+        res.json(await User.find({ isAdmin: false }).select('-password').sort({ createdAt: -1 }));
+    } catch (e) { res.status(500).json({ message: '서버 오류' }); }
+});
+
 module.exports = router;

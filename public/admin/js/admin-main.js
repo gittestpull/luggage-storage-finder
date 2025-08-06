@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
             case '#report-management':
                 url = '/admin/components/report-management.html';
                 break;
+            case '#user-management':
+                url = '/admin/components/user-management.html';
+                break;
             case '#dashboard':
             default:
                 url = '/admin/components/dashboard.html';

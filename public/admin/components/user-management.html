@@ -1,0 +1,49 @@
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">사용자 관리</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">등록된 사용자 목록</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>사용자명</th>
+                            <th>이메일</th>
+                            <th>가입일</th>
+                            <th>포인트</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- User data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const users = await fetchAllUsersAdmin(); // admin-api.js에 정의된 함수
+            const usersTableBody = document.querySelector('#usersTable tbody');
+            usersTableBody.innerHTML = ''; // 기존 내용 초기화
+
+            users.forEach(user => {
+                const row = usersTableBody.insertRow();
+                row.insertCell().textContent = user._id;
+                row.insertCell().textContent = user.username;
+                row.insertCell().textContent = user.email;
+                row.insertCell().textContent = new Date(user.createdAt).toLocaleDateString();
+                row.insertCell().textContent = user.points || 0; // 포인트가 없으면 0으로 표시
+            });
+        } catch (error) {
+            console.error('사용자 데이터를 불러오는 데 실패했습니다:', error);
+            alert('사용자 데이터를 불러오는 데 실패했습니다.');
+        }
+    });
+</script>

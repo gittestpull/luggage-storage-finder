@@ -5,6 +5,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // 검색 기능 초기화
     initSearch();
 
+    // data-include 속성을 가진 요소들을 로드하는 함수
+    async function loadIncludes() {
+        console.log('loadIncludes 함수 시작');
+        const includeElements = document.querySelectorAll('[data-include]');
+        console.log(`발견된 data-include 요소: ${includeElements.length}개`);
+        for (const el of includeElements) {
+            const componentPath = el.getAttribute('data-include');
+            console.log(`컴포넌트 로드 시도: ${componentPath}`);
+            try {
+                const response = await fetch(componentPath);
+                if (!response.ok) {
+                    throw new Error(`컴포넌트를 불러오지 못했습니다: ${componentPath} (상태: ${response.status})`);
+                }
+                const html = await response.text();
+                el.innerHTML = html;
+                console.log(`컴포넌트 로드 성공: ${componentPath}`);
+            } catch (error) {
+                console.error(`컴포넌트 로드 실패: ${componentPath}`, error);
+            }
+        }
+        console.log('모든 data-include 컴포넌트 로드 완료. componentsLoaded 이벤트 발생.');
+        window.dispatchEvent(new CustomEvent('componentsLoaded'));
+    }
+
+    // 초기 로드 시 모든 data-include 컴포넌트 로드
+    loadIncludes();
+
     // 섹션 가시성 제어 함수
     const sections = document.querySelectorAll('main section');
     console.log('모든 섹션:', sections); // 디버깅용 로그 추가
@@ -32,7 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 해시 변경 처리 함수
     const handleHashChange = async () => {
+        console.log('handleHashChange 함수 시작');
         const hash = window.location.hash.substring(1); // # 제거
+        console.log(`현재 해시: #${hash}`);
         const mainPageContent = document.getElementById('main-page-content');
         const mainContentContainer = document.getElementById('main-content-container');
 
@@ -43,12 +72,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         switch (hash) {
             case 'map':
+                console.log('지도 섹션 표시');
                 document.getElementById('map').classList.remove('hidden');
                 if (typeof initMap === 'function') {
                     initMap();
                 }
                 break;
             case 'list':
+                console.log('리스트 섹션 표시');
                 document.getElementById('search').classList.remove('hidden');
                 document.getElementById('list').classList.remove('hidden');
                 if (document.getElementById('list')) {
@@ -56,45 +87,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
             case 'report':
+                console.log('제보하기 섹션 표시');
                 document.getElementById('report').classList.remove('hidden');
                 break;
             case 'login':
+                console.log('로그인 섹션 표시');
                 document.getElementById('login').classList.remove('hidden');
                 break;
             case 'register':
+                console.log('회원가입 섹션 표시');
                 document.getElementById('register').classList.remove('hidden');
                 break;
             case 'about-service':
+                console.log('서비스 소개 섹션 표시');
                 document.getElementById('about-service').classList.remove('hidden');
                 break;
             case 'privacy-policy':
                 componentPath = 'components/privacy-policy.html';
+                console.log(`개인정보처리방침 컴포넌트 경로: ${componentPath}`);
                 break;
             case 'about-us':
                 componentPath = 'components/about-us.html';
+                console.log(`회사소개 컴포넌트 경로: ${componentPath}`);
                 break;
             case 'contact-us':
                 componentPath = 'components/contact-us.html';
+                console.log(`문의하기 컴포넌트 경로: ${componentPath}`);
                 break;
             case 'how-to-use':
                 componentPath = 'components/how-to-use.html';
+                console.log(`이용방법 컴포넌트 경로: ${componentPath}`);
                 break;
             case 'faq':
                 componentPath = 'components/faq.html';
+                console.log(`자주 묻는 질문 컴포넌트 경로: ${componentPath}`);
                 break;
             default: // 기본적으로 메인 페이지의 모든 섹션을 표시
+                console.log('기본 섹션 (메인 페이지) 표시');
                 mainPageContent.style.display = 'block';
                 mainContentContainer.style.display = 'none';
                 sections.forEach(section => section.classList.remove('hidden'));
-                // loadAllComponents(); // 이미 DOM에 있으므로 다시 로드할 필요 없음
                 return;
         }
 
         if (componentPath) {
+            console.log('동적 컴포넌트 로드 시작');
             mainPageContent.style.display = 'none';
             mainContentContainer.style.display = 'block';
             await replaceComponent(mainContentContainer.id, componentPath);
         } else {
+            console.log('정적 섹션 표시');
             mainPageContent.style.display = 'block';
             mainContentContainer.style.display = 'none';
         }
@@ -155,6 +197,48 @@ document.addEventListener('DOMContentLoaded', function() {
     // 하단 배너 광고 예시 (실제로는 동적으로 생성해야 함)
     // const bannerAd = createAdCard('banner-ad'); 
     // document.body.appendChild(bannerAd);
+
+    // 프리미엄 서비스 요청 처리 함수
+    async function handlePremiumRequest(event) {
+        const button = event.target;
+        const storageCard = button.closest('.bg-white.rounded-lg.shadow-lg');
+        if (!storageCard) return;
+
+        const storageName = storageCard.querySelector('h4').textContent;
+        const userName = prompt('이름을 입력해주세요:');
+        const userEmail = prompt('이메일을 입력해주세요:');
+
+        if (!userName || !userEmail) {
+            alert('이름과 이메일은 필수 입력 사항입니다.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/premium-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ storageName, userName, userEmail }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(result.message);
+            } else {
+                alert(`프리미엄 서비스 요청 실패: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('프리미엄 서비스 요청 중 오류 발생:', error);
+            alert('프리미엄 서비스 요청 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 프리미엄 서비스 버튼에 이벤트 리스너 연결
+    document.querySelectorAll('#premium .bg-yellow-500').forEach(button => {
+        button.addEventListener('click', handlePremiumRequest);
+    });
 });
 
 /**
@@ -194,12 +278,9 @@ function initSearch() {
         const performSearch = () => {
             const query = searchInput.value.trim();
             if (query) {
-                // 여기에 실제 검색 API 호출 로직 구현
-                console.log(`검색 실행: ${query}`);
-                alert(`'${query}' 검색을 실행합니다. (구현 필요)`);
-                // displaySearchResults(query); // 실제 검색 결과 표시 함수 호출
+                displaySearchResults(query);
             } else {
-                alert('검색어를 입력해주세요.');
+                resetSearchResults();
             }
         };
 

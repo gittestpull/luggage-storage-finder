@@ -43,4 +43,9 @@ router.post('/storages', optionalAuth, async (req, res) => {
     }
 });
 
+const premiumController = require('../controllers/premiumController');
+
+// 프리미엄 서비스 요청
+router.post('/premium-request', premiumController.sendPremiumRequestNotification);
+
 module.exports = router;

@@ -109,6 +109,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            const reportChartCanvas = document.getElementById('reportChart');
+            if (reportChartCanvas && data.reportStats) {
+                new Chart(reportChartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: data.reportStats.map(stat => stat.username),
+                        datasets: [{
+                            label: '제보 횟수',
+                            data: data.reportStats.map(stat => stat.count),
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
         } catch (error) {
             console.error(error);
             // 오류 발생 시 대시보드 카드에 메시지 표시 가능

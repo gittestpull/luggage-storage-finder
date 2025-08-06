@@ -49,20 +49,28 @@ router.post('/admin/login', async (req, res) => {
 // 대시보드 데이터 (인증 필요)
 router.get('/admin/dashboard', auth, async (req, res) => {
     try {
-        const [storageCount, reportCount, regularUserCount, adminUserCount, recentUsers, recentReports] = await Promise.all([
+        const [storageCount, reportCount, regularUserCount, adminUserCount, recentUsers, recentReports, reportStats] = await Promise.all([
             Storage.countDocuments(),
             Report.countDocuments({ reportStatus: 'pending' }),
             User.countDocuments({ isAdmin: false }),
             User.countDocuments({ isAdmin: true }),
             User.find().sort({ createdAt: -1 }).limit(5).select('username createdAt'),
-            Report.find().sort({ createdAt: -1 }).limit(5).populate('reportedBy', 'username')
+            Report.find().sort({ createdAt: -1 }).limit(5).populate('reportedBy', 'username'),
+            Report.aggregate([
+                { $group: { _id: '$reportedBy', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 10 },
+                { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'reporter' } },
+                { $unwind: '$reporter' },
+                { $project: { _id: 0, username: '$reporter.username', count: 1 } }
+            ])
         ]);
 
         const recentActivities = [...recentUsers, ...recentReports]
             .sort((a, b) => b.createdAt - a.createdAt)
             .slice(0, 10);
 
-        res.json({ storageCount, reportCount, regularUserCount, adminUserCount, recentActivities });
+        res.json({ storageCount, reportCount, regularUserCount, adminUserCount, recentActivities, reportStats });
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 

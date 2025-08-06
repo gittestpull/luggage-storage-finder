@@ -85,7 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             document.getElementById('storageCount').textContent = data.storageCount;
             document.getElementById('reportCount').textContent = data.reportCount;
-            document.getElementById('userCount').textContent = data.userCount;
+            document.getElementById('regularUserCount').textContent = data.regularUserCount;
+            document.getElementById('adminUserCount').textContent = data.adminUserCount;
 
         } catch (error) {
             console.error(error);

@@ -49,12 +49,13 @@ router.post('/admin/login', async (req, res) => {
 // 대시보드 데이터 (인증 필요)
 router.get('/admin/dashboard', auth, async (req, res) => {
     try {
-        const [storageCount, reportCount, userCount] = await Promise.all([
+        const [storageCount, reportCount, regularUserCount, adminUserCount] = await Promise.all([
             Storage.countDocuments(),
             Report.countDocuments({ reportStatus: 'pending' }),
-            User.countDocuments({ isAdmin: false })
+            User.countDocuments({ isAdmin: false }),
+            User.countDocuments({ isAdmin: true })
         ]);
-        res.json({ storageCount, reportCount, userCount });
+        res.json({ storageCount, reportCount, regularUserCount, adminUserCount });
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 

@@ -23,15 +23,27 @@
         </div>
     </div>
 
-    <!-- 총 사용자 수 -->
+    <!-- 일반 사용자 수 -->
     <div class="bg-white p-6 rounded-lg shadow-md flex items-center">
         <div class="bg-yellow-500 text-white rounded-full h-16 w-16 flex items-center justify-center text-2xl">
             <!-- 아이콘 (예: 사용자 그룹) -->
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
         </div>
         <div class="ml-4">
-            <h3 class="text-gray-500">총 사용자</h3>
-            <p id="userCount" class="text-3xl font-bold">0</p>
+            <h3 class="text-gray-500">일반 사용자</h3>
+            <p id="regularUserCount" class="text-3xl font-bold">0</p>
+        </div>
+    </div>
+
+    <!-- 관리자 수 -->
+    <div class="bg-white p-6 rounded-lg shadow-md flex items-center">
+        <div class="bg-purple-500 text-white rounded-full h-16 w-16 flex items-center justify-center text-2xl">
+            <!-- 아이콘 (예: 관리자 아이콘) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <div class="ml-4">
+            <h3 class="text-gray-500">관리자</h3>
+            <p id="adminUserCount" class="text-3xl font-bold">0</p>
         </div>
     </div>
 </div>

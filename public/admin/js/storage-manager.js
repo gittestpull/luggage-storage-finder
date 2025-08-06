@@ -62,6 +62,8 @@ function initStorageManagement() {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">${storage.name}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${storage.address}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${storage.location ? storage.location.coordinates[1] : 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${storage.location ? storage.location.coordinates[0] : 'N/A'}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <select class="status-select bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" data-id="${storage._id}">
                         <option value="true" ${storage.status && storage.status.isOpen ? 'selected' : ''}>개방중</option>

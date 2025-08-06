@@ -88,18 +88,24 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('regularUserCount').textContent = data.regularUserCount;
             document.getElementById('adminUserCount').textContent = data.adminUserCount;
 
-            const reportStatsList = document.getElementById('reportStatsList');
-            if (reportStatsList) {
-                reportStatsList.innerHTML = '';
-                if (data.reportStats && data.reportStats.length > 0) {
-                    data.reportStats.forEach(stat => {
+            const recentActivitiesList = document.getElementById('recentActivitiesList');
+            if (recentActivitiesList) {
+                recentActivitiesList.innerHTML = '';
+                if (data.recentActivities && data.recentActivities.length > 0) {
+                    data.recentActivities.forEach(activity => {
                         const li = document.createElement('li');
                         li.className = 'py-3 flex justify-between items-center';
-                        li.innerHTML = `<span class="text-gray-700">${stat.username}</span><span class="font-semibold text-gray-900">${stat.count}회</span>`;
-                        reportStatsList.appendChild(li);
+                        let activityText = '';
+                        if (activity.username) { // User registration
+                            activityText = `<strong>${activity.username}</strong>님이 가입했습니다.`;
+                        } else { // Report
+                            activityText = `<strong>${activity.reportedBy.username}</strong>님이 <strong>${activity.name}</strong>을(를) 제보했습니다.`;
+                        }
+                        li.innerHTML = `<span class="text-gray-700">${activityText}</span><span class="text-sm text-gray-500">${new Date(activity.createdAt).toLocaleString()}</span>`;
+                        recentActivitiesList.appendChild(li);
                     });
                 } else {
-                    reportStatsList.innerHTML = '<li class="text-center py-4 text-gray-500">제보 기록이 없습니다.</li>';
+                    recentActivitiesList.innerHTML = '<li class="text-center py-4 text-gray-500">최근 활동이 없습니다.</li>';
                 }
             }
 

@@ -14,13 +14,16 @@ async function loadStorageList() {
         
         // API에서 데이터 가져오기
         const storages = await fetchAllStorages();
+        console.log('fetchAllStorages에서 반환된 데이터:', storages);
         
         // 리스트 비우기
         listContainer.innerHTML = '';
         
         if (storages && storages.length > 0) {
+            console.log('짐보관소 데이터가 존재하여 렌더링을 시작합니다.');
             // 실제 데이터로 리스트 생성
             storages.forEach((storage, index) => {
+                console.log('렌더링할 짐보관소:', storage);
                 const storageCard = createStorageCard(storage);
                 listContainer.appendChild(storageCard);
 
@@ -89,6 +92,9 @@ function createStorageCard(storage) {
     const detailBtn = card.querySelector('.detail-btn');
     if (detailBtn) {
         detailBtn.addEventListener('click', () => {
+            if (typeof showSection === 'function') {
+                showSection('map'); // 지도 섹션으로 전환
+            }
             showStorageDetails(detailBtn.getAttribute('data-id'));
         });
     }

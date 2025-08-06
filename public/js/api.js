@@ -6,11 +6,25 @@
 // 모든 짐보관소 데이터 가져오기
 async function fetchAllStorages() {
     try {
-        const response = await fetch('/api/storages');
-        if (!response.ok) {
-            throw new Error('서버에서 데이터를 불러오지 못했습니다.');
+        const headers = {};
+        const userToken = localStorage.getItem('userToken');
+        if (userToken) {
+            headers['Authorization'] = `Bearer ${userToken}`;
         }
-        return await response.json();
+
+        const response = await fetch('/api/storages', {
+            headers: headers
+        });
+
+        if (!response.ok) {
+            console.error('API 응답 오류:', response.status, response.statusText);
+            const errorData = await response.json();
+            console.error('API 오류 데이터:', errorData);
+            throw new Error(`서버에서 데이터를 불러오지 못했습니다: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log('fetchAllStorages 응답 데이터:', data);
+        return data;
     } catch (error) {
         console.error('짐보관소 데이터 불러오기 실패:', error);
         return [];

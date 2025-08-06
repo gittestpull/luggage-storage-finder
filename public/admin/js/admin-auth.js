@@ -36,20 +36,20 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/admin/login.html';
         });
     }
+
+    // 페이지 접근 제어
+    function checkAuth() {
+        const token = localStorage.getItem('adminToken');
+        // 로그인 페이지가 아닌데 토큰이 없으면 로그인 페이지로 리디렉션
+        if (!token && !window.location.pathname.endsWith('login.html')) {
+            window.location.href = '/admin/login.html';
+        }
+        // 로그인 페이지인데 토큰이 있으면 메인 페이지로 리디렉션
+        if (token && window.location.pathname.endsWith('login.html')) {
+            window.location.href = '/admin/index.html';
+        }
+    }
+
+    // 페이지 로드 시 인증 상태 확인
+    checkAuth();
 });
-
-// 페이지 접근 제어
-function checkAuth() {
-    const token = localStorage.getItem('adminToken');
-    // 로그인 페이지가 아닌데 토큰이 없으면 로그인 페이지로 리디렉션
-    if (!token && !window.location.pathname.endsWith('login.html')) {
-        window.location.href = '/admin/login.html';
-    }
-    // 로그인 페이지인데 토큰이 있으면 메인 페이지로 리디렉션
-    if (token && window.location.pathname.endsWith('login.html')) {
-        window.location.href = '/admin/index.html';
-    }
-}
-
-// 페이지 로드 시 인증 상태 확인
-checkAuth();

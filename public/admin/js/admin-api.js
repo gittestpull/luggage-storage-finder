@@ -80,3 +80,31 @@ async function updateReportStatusAdmin(id, status) {
     }
     return await response.json();
 }
+
+// 짐보관소 상태 업데이트 (관리자용)
+async function updateStorageStatusAdmin(id, isOpen) {
+    const response = await fetch(`/api/admin/storages/${id}/status`, {
+        method: 'PATCH',
+        headers: API_HEADERS(),
+        body: JSON.stringify({ isOpen })
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '짐보관소 상태 업데이트 실패');
+    }
+    return await response.json();
+}
+
+// 여러 짐보관소 상태 일괄 업데이트 (관리자용)
+async function bulkUpdateStorageStatusAdmin(ids, isOpen) {
+    const response = await fetch('/api/admin/storages/bulk-status', {
+        method: 'PATCH',
+        headers: API_HEADERS(),
+        body: JSON.stringify({ ids, isOpen })
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '짐보관소 일괄 상태 업데이트 실패');
+    }
+    return await response.json();
+}

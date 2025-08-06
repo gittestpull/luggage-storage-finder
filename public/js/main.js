@@ -1,26 +1,76 @@
-/**
- * main.js
- * 메인 페이지의 전반적인 기능과 모바일 최적화 로직을 담당합니다.
- */
-
-// 페이지 로드 완료 시 실행
 document.addEventListener('DOMContentLoaded', function() {
     // 모바일 메뉴 (햄버거) 기능 초기화
     initMobileMenu();
 
     // 검색 기능 초기화
     initSearch();
-    
-    // 제보 폼 초기화
-    // initReportForm(); // 해당 함수가 정의되어 있지 않으므로 주석 처리
-    
-    // 광고 로드
-    // loadAds(); // 해당 함수가 정의되어 있지 않으므로 주석 처리
-    
-    // 짐보관소 목록 로드
-    if (document.getElementById('list')) {
-        // loadStorageList(); // 해당 함수가 정의되어 있지 않으므로 주석 처리
-    }
+
+    // 섹션 가시성 제어 함수
+    const sections = document.querySelectorAll('main section');
+    const hideAllSections = () => {
+        sections.forEach(section => section.classList.add('hidden'));
+    };
+
+    const showSection = (id) => {
+        hideAllSections();
+        const section = document.getElementById(id);
+        if (section) {
+            section.classList.remove('hidden');
+        }
+    };
+    window.showSection = showSection; // showSection 함수를 전역으로 노출
+
+    // 해시 변경 처리 함수
+    const handleHashChange = () => {
+        const hash = window.location.hash;
+        hideAllSections(); // 모든 섹션을 먼저 숨깁니다.
+
+        switch (hash) {
+            case '#map':
+                showSection('map');
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+                break;
+            case '#list':
+                showSection('list');
+                if (document.getElementById('list')) {
+                    loadStorageList();
+                }
+                break;
+            case '#report':
+                showSection('report');
+                break;
+            case '#login':
+                showSection('login');
+                break;
+            case '#register':
+                showSection('register');
+                break;
+            default: // 기본적으로 지도 섹션을 표시
+                showSection('map');
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+                break;
+        }
+    };
+
+    // 초기 로드 시 해시 처리
+    handleHashChange();
+
+    // 해시 변경 이벤트 리스너
+    window.addEventListener('hashchange', handleHashChange);
+
+    // 네비게이션 링크 클릭 이벤트 (기존 HTML에 있는 링크들이 해시를 변경하도록)
+    document.querySelectorAll('nav a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            // 기본 동작 방지 (페이지 새로고침 방지)
+            e.preventDefault(); 
+            // 해시 변경
+            window.location.hash = e.target.getAttribute('href');
+        });
+    });
 
     // 하단 배너 광고 예시 (실제로는 동적으로 생성해야 함)
     // const bannerAd = createAdCard('banner-ad'); 
@@ -82,8 +132,3 @@ function initSearch() {
         });
     }
 }
-
-// createAdCard, displaySearchResults, loadStorageList, initReportForm 등은
-// 별도의 파일로 분리하거나 여기에 구현해야 합니다.
-// 현재 정의되어 있지 않아 main.js 실행 시 오류를 발생시킬 수 있으므로,
-// 호출부를 주석 처리했습니다.

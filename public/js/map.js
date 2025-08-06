@@ -6,52 +6,81 @@
 // 전역 변수
 let googleMap;
 let reportMarker = null;
+let userLocationMarker = null; // 내 위치 마커를 위한 전역 변수 추가
+let storageMarkers = []; // 짐보관소 마커들을 저장할 배열
 
 // 지도 초기화
 function initMap() {
     // 서울 중심 좌표
     const seoul = { lat: 37.5665, lng: 126.9780 };
     
-    // 새 지도 생성
-    const map = new google.maps.Map(document.getElementById("mapContainer"), {
-        zoom: 13,
-        center: seoul,
-    });
-    
-    // 전역 변수에 지도 객체 저장
-    googleMap = map;
-    window.googleMap = map;
+    clearAllMarkers(); // 모든 마커를 항상 제거
+
+    // 지도가 아직 초기화되지 않았다면 새 지도 생성
+    if (!googleMap) {
+        const map = new google.maps.Map(document.getElementById("mapContainer"), {
+            zoom: 13,
+            center: seoul,
+        });
+        
+        // 전역 변수에 지도 객체 저장
+        googleMap = map;
+        window.googleMap = map;
+        
+        // 지도 클릭 이벤트 - 제보 폼 좌표 설정
+        map.addListener("click", (event) => {
+            const lat = event.latLng.lat();
+            const lng = event.latLng.lng();
+            
+            // 제보 폼에 위도/경도 설정 
+            const latInput = document.getElementById('lat');
+            const lngInput = document.getElementById('lng');
+            
+            if(latInput && lngInput) {
+                latInput.value = lat;
+                lngInput.value = lng;
+                
+                // 마커 추가
+                updateReportMarker(map, lat, lng);
+                
+                // 알림
+                const locationInfo = document.getElementById('locationInfo');
+                if(locationInfo) {
+                    locationInfo.textContent = `선택한 위치: 위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)}`;
+                    locationInfo.classList.remove('hidden');
+                }
+            }
+        });
+    } else {
+        // 지도가 이미 있다면 중심과 줌만 재설정
+        googleMap.setCenter(seoul);
+        googleMap.setZoom(13);
+    }
     
     // API에서 짐보관소 데이터 가져오기
-    loadStoragesToMap(map);
-    
-    // 지도 클릭 이벤트 - 제보 폼 좌표 설정
-    map.addListener("click", (event) => {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
-        
-        // 제보 폼에 위도/경도 설정 
-        const latInput = document.getElementById('lat');
-        const lngInput = document.getElementById('lng');
-        
-        if(latInput && lngInput) {
-            latInput.value = lat;
-            lngInput.value = lng;
-            
-            // 마커 추가
-            updateReportMarker(map, lat, lng);
-            
-            // 알림
-            const locationInfo = document.getElementById('locationInfo');
-            if(locationInfo) {
-                locationInfo.textContent = `선택한 위치: 위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)}`;
-                locationInfo.classList.remove('hidden');
-            }
-        }
-    });
+    loadStoragesToMap(googleMap);
     
     // 현재 위치 버튼 추가
     addCurrentLocationButton();
+}
+
+// 모든 마커를 지도에서 제거하고 초기화하는 함수
+function clearAllMarkers() {
+    // 짐보관소 마커 제거
+    storageMarkers.forEach(marker => marker.setMap(null));
+    storageMarkers = [];
+
+    // 제보 마커 제거
+    if (reportMarker) {
+        reportMarker.setMap(null);
+        reportMarker = null;
+    }
+
+    // 내 위치 마커 제거
+    if (userLocationMarker) {
+        userLocationMarker.setMap(null);
+        userLocationMarker = null;
+    }
 }
 
 // 서버에서 짐보관소 데이터 가져와서 지도에 표시
@@ -128,7 +157,8 @@ function displaySampleStorages(map) {
 // API 데이터를 지도에 표시
 function displayStoragesOnMap(map, storages) {
     storages.forEach(storage => {
-        createMarker(map, storage);
+        const marker = createMarker(map, storage);
+        storageMarkers.push(marker); // 생성된 마커를 배열에 추가
     });
 }
 
@@ -201,29 +231,75 @@ function updateReportMarker(map, lat, lng) {
 }
 
 // 상세 정보 표시 함수
-function showStorageDetails(storageId) {
-    alert(`짐보관소 ID: ${storageId}의 상세 정보를 표시합니다.`);
-    // 실제 구현에서는 상세 정보 모달 또는 페이지로 이동
+async function showStorageDetails(storageId) {
+    if (!googleMap) {
+        alert('지도가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+
+    try {
+        const storages = await fetchAllStorages();
+        const targetStorage = storages.find(s => s._id === storageId);
+
+        if (targetStorage) {
+            const lat = targetStorage.location.coordinates ? targetStorage.location.coordinates[1] : targetStorage.lat;
+            const lng = targetStorage.location.coordinates ? targetStorage.location.coordinates[0] : targetStorage.lng;
+
+            if (lat && lng) {
+                const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
+                googleMap.setCenter(position);
+                googleMap.setZoom(15); // 상세 정보를 볼 때 확대
+
+                // 기존 마커 제거 (선택된 짐보관소만 강조하기 위해)
+                // 이 부분은 필요에 따라 전체 마커를 유지하고 선택된 마커만 강조하는 방식으로 변경 가능
+                // 현재는 모든 마커를 다시 그리는 방식이 아니므로, 특정 마커를 강조하는 로직이 필요할 수 있음
+
+                // 해당 짐보관소 마커를 다시 생성하여 정보창을 띄움
+                const marker = createMarker(googleMap, targetStorage);
+                // 마커 클릭 이벤트를 강제로 발생시켜 정보창을 띄움
+                google.maps.event.trigger(marker, 'click');
+
+                // 지도 섹션으로 이동 (main.js의 showSection 함수 사용)
+                if (typeof showSection === 'function') {
+                    showSection('map');
+                    window.location.hash = '#map'; // URL 해시도 변경
+                }
+            } else {
+                alert('선택된 짐보관소의 위치 정보가 유효하지 않습니다.');
+            }
+        } else {
+            alert('짐보관소 정보를 찾을 수 없습니다.');
+        }
+    } catch (error) {
+        console.error('짐보관소 상세 정보 표시 실패:', error);
+        alert('짐보관소 상세 정보를 불러오는 데 실패했습니다.');
+    }
 }
 
 // 현재 위치 버튼 추가
 function addCurrentLocationButton() {
     const mapSection = document.getElementById('map');
     if (mapSection) {
-        const currentLocationBtn = document.createElement('button');
-        currentLocationBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mt-2 mr-2';
-        currentLocationBtn.textContent = '내 위치 찾기';
-        currentLocationBtn.addEventListener('click', getCurrentLocation);
-        
-        const mapHeading = mapSection.querySelector('h3');
-        if (mapHeading) {
-            mapHeading.parentNode.insertBefore(currentLocationBtn, mapHeading.nextSibling);
+        // 버튼이 이미 존재하는지 확인
+        let currentLocationBtn = document.getElementById('currentLocationBtn');
+        if (!currentLocationBtn) {
+            currentLocationBtn = document.createElement('button');
+            currentLocationBtn.id = 'currentLocationBtn'; // ID 추가
+            currentLocationBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mt-2 mr-2';
+            currentLocationBtn.textContent = '내 위치 찾기';
+            currentLocationBtn.addEventListener('click', getCurrentLocation);
+            
+            const mapHeading = mapSection.querySelector('h3');
+            if (mapHeading) {
+                mapHeading.parentNode.insertBefore(currentLocationBtn, mapHeading.nextSibling);
+            }
         }
     }
 }
 
 // 사용자 현재 위치 가져오기
 function getCurrentLocation() {
+    console.log('getCurrentLocation 함수 호출됨');
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -237,13 +313,20 @@ function getCurrentLocation() {
                     googleMap.setCenter(userLocation);
                     googleMap.setZoom(15); // 확대
                     
+                    // 기존 사용자 위치 마커 제거
+                    if (userLocationMarker) {
+                        console.log('기존 userLocationMarker 제거');
+                        userLocationMarker.setMap(null);
+                    }
+
                     // 사용자 위치 마커 추가
-                    new google.maps.Marker({
+                    userLocationMarker = new google.maps.Marker({
                         position: userLocation,
                         map: googleMap,
                         title: "내 위치",
                         icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
                     });
+                    console.log('새 userLocationMarker 생성됨', userLocationMarker);
                     
                     // 제보 폼에 위치 정보 설정
                     const latInput = document.getElementById('lat');

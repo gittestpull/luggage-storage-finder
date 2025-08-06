@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const script = document.createElement('script');
                 script.src = '/admin/js/storage-manager.js';
                 script.onload = () => {
-                    if (typeof loadStorages === 'function') {
-                        loadStorages();
+                    if (typeof initStorageManagement === 'function') {
+                        initStorageManagement();
                     }
                 };
                 mainContent.appendChild(script);

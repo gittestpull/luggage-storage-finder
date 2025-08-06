@@ -7,23 +7,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 섹션 가시성 제어 함수
     const sections = document.querySelectorAll('main section');
+    console.log('모든 섹션:', sections); // 디버깅용 로그 추가
     const hideAllSections = () => {
-        sections.forEach(section => section.classList.add('hidden'));
+        console.log('모든 섹션 숨기기 실행'); // 디버깅용 로그 추가
+        sections.forEach(section => {
+            section.classList.add('hidden');
+            console.log(`${section.id} 숨김 처리`); // 디버깅용 로그 추가
+        });
     };
 
-    const showSection = (id) => {
+    const showSection = (ids) => {
         hideAllSections();
-        const section = document.getElementById(id);
-        if (section) {
-            section.classList.remove('hidden');
-        }
+        const sectionIds = Array.isArray(ids) ? ids : [ids];
+        console.log('표시할 섹션 ID:', sectionIds); // 디버깅용 로그 추가
+        sectionIds.forEach(id => {
+            const section = document.getElementById(id);
+            if (section) {
+                section.classList.remove('hidden');
+                console.log(`${section.id} 표시 처리`); // 디버깅용 로그 추가
+            }
+        });
     };
     window.showSection = showSection; // showSection 함수를 전역으로 노출
 
     // 해시 변경 처리 함수
     const handleHashChange = () => {
         const hash = window.location.hash;
-        hideAllSections(); // 모든 섹션을 먼저 숨깁니다.
+        hideAllSections(); // 모든 섹션을 먼저 숨깁니다. (다시 추가)
 
         switch (hash) {
             case '#map':
@@ -33,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
             case '#list':
-                showSection('list');
+                showSection(['search', 'list']); // 검색 섹션과 리스트 섹션 함께 표시
                 if (document.getElementById('list')) {
                     loadStorageList();
                 }
@@ -47,17 +57,19 @@ document.addEventListener('DOMContentLoaded', function() {
             case '#register':
                 showSection('register');
                 break;
-            default: // 기본적으로 지도 섹션을 표시
-                showSection('map');
-                if (typeof initMap === 'function') {
-                    initMap();
-                }
+            case '#about-service':
+                showSection('about-service');
+                break;
+            default: // 기본적으로 서비스 소개 섹션을 표시
+                showSection('about-service');
                 break;
         }
     };
 
-    // 초기 로드 시 해시 처리
-    handleHashChange();
+    // 초기 로드 시 해시 처리 (컴포넌트 로드 완료 후 실행)
+    window.addEventListener('componentsLoaded', () => {
+        handleHashChange();
+    });
 
     // 해시 변경 이벤트 리스너
     window.addEventListener('hashchange', handleHashChange);

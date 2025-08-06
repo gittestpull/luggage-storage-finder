@@ -6,6 +6,12 @@ const Storage = require('./src/models/Storage');
 const connectDB = require('./src/config/db');
 const axios = require('axios'); // axios 사용
 
+// GOOGLE_MAPS_API_KEY 환경 변수 확인
+if (!process.env.GOOGLE_MAPS_API_KEY) {
+    console.error('오류: GOOGLE_MAPS_API_KEY 환경 변수가 설정되지 않았습니다. .env 파일 또는 환경 설정을 확인해주세요.');
+    process.exit(1); // 스크립트 종료
+}
+
 const csvData = `철도운영기관명,운영노선명,역명,관리번호,무인편의시설코드,크기,지상/지하구분,역층,상세위치,시설수,이용요금,운영사,전화번호,데이터 기준일자,참고사항,
 공항철도,공항철도선,서울역,1,물품보관함,기타,지하,3,(B3) 고객안내센터 근처,대 : 16개 / 중 : 8개 / 소 : 14개,"대 : 4,000원 / 중 : 3,000원 / 소 : 2,000원 (1시간 당)",주식회사 새누,1899-4711,20241218,,
 공항철도,공항철도선,공덕역,2,물품보관함,기타,지하,3,(B3) 고객안내센터 근처,대 : 5개 / 중 : 3개 / 소 : 9개,"대 : 4,000원 / 중 : 3,000원 / 소 : 2,000원 (1시간 당)",주식회사 새누,1899-4711,20241218,,
@@ -22,14 +28,19 @@ async function getGeocode(address) {
     try {
         const response = await axios.get(url);
         if (response.data.status === 'OK') {
-            const location = response.data.results[0].geometry.location;
-            return { lat: location.lat, lng: location.lng };
+            if (response.data.results.length > 0) {
+                const location = response.data.results[0].geometry.location;
+                return { lat: location.lat, lng: location.lng };
+            } else {
+                console.warn(`Geocoding 결과 없음: ${address}, Status: ${response.data.status}`);
+                return null;
+            }
         } else {
-            console.warn(`Geocoding failed for address: ${address}, Status: ${response.data.status}`);
+            console.warn(`Geocoding 실패: ${address}, Status: ${response.data.status}, Error_message: ${response.data.error_message || '없음'}`);
             return null;
         }
     } catch (error) {
-        console.error(`Error during geocoding for ${address}:`, error.message);
+        console.error(`Geocoding 중 오류 발생 (${address}):`, error.message);
         return null;
     }
 }
@@ -47,14 +58,14 @@ async function deleteAndInsertStorages() {
         const newStorages = [];
 
         for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(/,(?=(?:(?:[^""]*\"){2})*[^\"]*$)/); // 콤마로 분리하되 따옴표 안의 콤마는 무시
+            const values = lines[i].split(/,(?=(?:(?:[^"\"]*\"){2})*[^"]*$)/); // 콤마로 분리하되 따옴표 안의 콤마는 무시
             const row = {};
             headers.forEach((header, index) => {
                 row[header.trim()] = values[index] ? values[index].replace(/^"|"$/g, '').trim() : '';
             });
 
             const fullAddress = row['역명'].trim();
-            console.log(`Geocoding 주소: ${fullAddress}`);
+            console.log(`[${i}/${lines.length - 1}] Geocoding 시도: ${fullAddress}`);
             const geocodeResult = await getGeocode(fullAddress);
 
             let smallPrice = 0;
@@ -98,13 +109,17 @@ async function deleteAndInsertStorages() {
                     // notes: row['참고사항']
                 });
             } else {
-                console.warn(`짐보관소 ${row['역명']} (${fullAddress})의 위도/경도를 찾을 수 없어 건너뜁니다.`);
+                console.warn(`[${i}/${lines.length - 1}] 짐보관소 ${row['역명']} (${fullAddress})의 위도/경도를 찾을 수 없어 건너뜁니다.`);
             }
         }
 
         console.log(`${newStorages.length}개의 새로운 짐보관소 데이터 삽입 중...`);
-        await Storage.insertMany(newStorages);
-        console.log('새로운 짐보관소 데이터 삽입 완료.');
+        if (newStorages.length > 0) {
+            await Storage.insertMany(newStorages);
+            console.log('새로운 짐보관소 데이터 삽입 완료.');
+        } else {
+            console.log('삽입할 새로운 짐보관소 데이터가 없습니다.');
+        }
 
     } catch (error) {
         console.error('데이터 처리 중 오류 발생:', error);

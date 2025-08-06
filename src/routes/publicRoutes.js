@@ -28,10 +28,13 @@ router.get('/storages/search', async (req, res) => {
 });
 
 // 새 짐보관소 제보하기
-router.post('/storages', async (req, res) => {
+router.post('/storages', optionalAuth, async (req, res) => {
     try {
-        // TODO: 사용자 인증 후 reportedBy 필드 추가
-        const newReport = new Report(req.body);
+        const reportData = { ...req.body };
+        if (req.user) {
+            reportData.reportedBy = req.user.userId;
+        }
+        const newReport = new Report(reportData);
         await newReport.save();
         res.status(201).json(newReport);
     } catch (e) {

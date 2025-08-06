@@ -29,7 +29,7 @@ async function loadAllComponents() {
         await loadComponent('footer-container', 'components/footer.html');
 
         // 모든 컴포넌트가 로드된 후 이벤트 발생시키기
-        // window.dispatchEvent(new Event('componentsLoaded')); // 더 이상 필요 없음
+        window.dispatchEvent(new Event('componentsLoaded'));
 
         // auth.js의 초기화 함수 직접 호출 (이 부분은 auth.js 자체에서 처리하도록 변경)
         // if (window.initAuthFeatures && typeof window.initAuthFeatures === 'function') {

@@ -5,7 +5,7 @@ const API_HEADERS = () => ({
 
 // 모든 짐보관소 목록 가져오기 (관리자용)
 async function fetchAllStoragesAdmin() {
-    const response = await fetch('/api/storages', { headers: API_HEADERS() });
+    const response = await fetch('/api/admin/storages', { headers: API_HEADERS() });
     if (!response.ok) throw new Error('데이터를 불러오지 못했습니다.');
     return await response.json();
 }

@@ -11,57 +11,61 @@ let storageMarkers = []; // 짐보관소 마커들을 저장할 배열
 
 // 지도 초기화
 function initMap() {
-    // 서울 중심 좌표
-    const seoul = { lat: 37.5665, lng: 126.9780 };
-    
-    clearAllMarkers(); // 모든 마커를 항상 제거
+    try {
+        // 서울 중심 좌표
+        const seoul = { lat: 37.5665, lng: 126.9780 };
+        
+        clearAllMarkers(); // 모든 마커를 항상 제거
 
-    // 지도가 아직 초기화되지 않았다면 새 지도 생성
-    if (!googleMap) {
-        const map = new google.maps.Map(document.getElementById("mapContainer"), {
-            zoom: 13,
-            center: seoul,
-        });
-        
-        // 전역 변수에 지도 객체 저장
-        googleMap = map;
-        window.googleMap = map;
-        
-        // 지도 클릭 이벤트 - 제보 폼 좌표 설정
-        map.addListener("click", (event) => {
-            const lat = event.latLng.lat();
-            const lng = event.latLng.lng();
+        // 지도가 아직 초기화되지 않았다면 새 지도 생성
+        if (!googleMap) {
+            const map = new google.maps.Map(document.getElementById("mapContainer"), {
+                zoom: 13,
+                center: seoul,
+            });
             
-            // 제보 폼에 위도/경도 설정 
-            const latInput = document.getElementById('lat');
-            const lngInput = document.getElementById('lng');
+            // 전역 변수에 지도 객체 저장
+            googleMap = map;
+            window.googleMap = map;
             
-            if(latInput && lngInput) {
-                latInput.value = lat;
-                lngInput.value = lng;
+            // 지도 클릭 이벤트 - 제보 폼 좌표 설정
+            map.addListener("click", (event) => {
+                const lat = event.latLng.lat();
+                const lng = event.latLng.lng();
                 
-                // 마커 추가
-                updateReportMarker(map, lat, lng);
+                // 제보 폼에 위도/경도 설정 
+                const latInput = document.getElementById('lat');
+                const lngInput = document.getElementById('lng');
                 
-                // 알림
-                const locationInfo = document.getElementById('locationInfo');
-                if(locationInfo) {
-                    locationInfo.textContent = `선택한 위치: 위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)}`;
-                    locationInfo.classList.remove('hidden');
+                if(latInput && lngInput) {
+                    latInput.value = lat;
+                    lngInput.value = lng;
+                    
+                    // 마커 추가
+                    updateReportMarker(map, lat, lng);
+                    
+                    // 알림
+                    const locationInfo = document.getElementById('locationInfo');
+                    if(locationInfo) {
+                        locationInfo.textContent = `선택한 위치: 위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)}`;
+                        locationInfo.classList.remove('hidden');
+                    }
                 }
-            }
-        });
-    } else {
-        // 지도가 이미 있다면 중심과 줌만 재설정
-        googleMap.setCenter(seoul);
-        googleMap.setZoom(13);
+            });
+        } else {
+            // 지도가 이미 있다면 중심과 줌만 재설정
+            googleMap.setCenter(seoul);
+            googleMap.setZoom(13);
+        }
+        
+        // API에서 짐보관소 데이터 가져오기
+        loadStoragesToMap(googleMap);
+        
+        // 현재 위치 버튼 추가
+        addCurrentLocationButton();
+    } catch (error) {
+        console.error('initMap 함수 실행 중 오류 발생:', error);
     }
-    
-    // API에서 짐보관소 데이터 가져오기
-    loadStoragesToMap(googleMap);
-    
-    // 현재 위치 버튼 추가
-    addCurrentLocationButton();
 }
 
 // 모든 마커를 지도에서 제거하고 초기화하는 함수

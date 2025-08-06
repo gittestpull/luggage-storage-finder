@@ -5,18 +5,12 @@
 // initStorageManagement(); // admin-main.js에서 직접 호출
 
 function initStorageManagement() {
+    console.log('initStorageManagement function executed - Version 2.0');
     console.log('initStorageManagement 함수 실행됨');
     const storageListBody = document.getElementById('storage-list-body');
     const modal = document.getElementById('storageModal');
     const form = document.getElementById('storageForm');
     const addBtn = document.getElementById('addStorageBtn');
-    const bulkAddBtn = document.getElementById('bulkAddStorageBtn'); // 일괄 추가 버튼
-    const cancelBtn = document.getElementById('cancelBtn');
-    const bulkUploadModal = document.getElementById('bulkUploadModal'); // 일괄 업로드 모달
-    const cancelBulkUploadBtn = document.getElementById('cancelBulkUploadBtn'); // 일괄 업로드 취소 버튼
-    const uploadCsvBtn = document.getElementById('uploadCsvBtn'); // CSV 업로드 버튼
-    const csvFile = document.getElementById('csvFile'); // CSV 파일 입력
-    const bulkUploadMessage = document.getElementById('bulkUploadMessage'); // 일괄 업로드 메시지
 
     if (!storageListBody) return; // 해당 페이지가 아니면 실행 중지
 
@@ -92,14 +86,8 @@ function initStorageManagement() {
                     }
                 });
             }
-        } else {
-            // 데이터가 없는 경우
-            storageListBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">짐보관소가 없습니다.</td></tr>`;
         }
-    } catch (error) {
-        storageListBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">데이터 로드 실패: ${error.message}</td></tr>`;
-    }
-}
+    };
 
 // 모달 열기/닫기
 const openModal = (storage = null) => {
@@ -117,48 +105,9 @@ const openModal = (storage = null) => {
     };
     const closeModal = () => modal.classList.add('hidden');
 
-    const openBulkUploadModal = () => {
-        console.log('openBulkUploadModal 함수 호출됨');
-        bulkUploadModal.classList.remove('hidden');
-        bulkUploadMessage.textContent = ''; // 메시지 초기화
-        csvFile.value = ''; // 파일 입력 초기화
-    };
-    const closeBulkUploadModal = () => bulkUploadModal.classList.add('hidden');
-
     // 이벤트 리스너 설정
     addBtn.addEventListener('click', () => openModal());
-    if (bulkAddBtn) {
-        console.log('bulkAddBtn에 이벤트 리스너 추가 시도');
-        bulkAddBtn.addEventListener('click', openBulkUploadModal); // 일괄 추가 버튼 이벤트
-    }
     cancelBtn.addEventListener('click', closeModal);
-    cancelBulkUploadBtn.addEventListener('click', closeBulkUploadModal); // 일괄 업로드 취소 버튼 이벤트
-
-    uploadCsvBtn.addEventListener('click', async () => {
-        if (csvFile.files.length === 0) {
-            bulkUploadMessage.textContent = 'CSV 파일을 선택해주세요.';
-            bulkUploadMessage.className = 'mt-2 text-sm text-red-500';
-            return;
-        }
-
-        const file = csvFile.files[0];
-        const formData = new FormData();
-        formData.append('csvFile', file);
-
-        bulkUploadMessage.textContent = '파일 업로드 중...';
-        bulkUploadMessage.className = 'mt-2 text-sm text-blue-500';
-
-        try {
-            const result = await uploadBulkStorages(formData); // admin-api.js에 정의할 함수
-            bulkUploadMessage.textContent = `업로드 성공: ${result.insertedCount}개 추가, ${result.skippedCount}개 건너뜀.`;
-            bulkUploadMessage.className = 'mt-2 text-sm text-green-500';
-            loadStorages(); // 목록 새로고침
-            // closeBulkUploadModal(); // 성공 시 모달 닫기 (선택 사항)
-        } catch (error) {
-            bulkUploadMessage.textContent = `업로드 실패: ${error.message}`;
-            bulkUploadMessage.className = 'mt-2 text-sm text-red-500';
-        }
-    });
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();

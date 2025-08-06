@@ -1,3 +1,5 @@
+console.log('typeof bootstrap:', typeof bootstrap);
+
 // 사용자 목록 로드 함수
 async function loadUsers() {
     console.log('loadUsers 함수 호출됨.');
@@ -49,89 +51,105 @@ async function loadUsers() {
 
 // 사용자 모달 열기 함수
 function openUserModal(user = null) {
-    const modal = new bootstrap.Modal(document.getElementById('userModal'));
-    const form = document.getElementById('userForm');
-    form.reset(); // 폼 초기화
+    const userModalElement = document.getElementById('userModal');
+    console.log('openUserModal called. userModalElement:', userModalElement);
 
-    if (user) {
-        document.getElementById('userModalLabel').textContent = '사용자 수정';
-        document.getElementById('userId').value = user._id;
-        document.getElementById('username').value = user.username;
-        document.getElementById('email').value = user.email || '';
-        document.getElementById('points').value = user.points || 0;
-        document.getElementById('isAdmin').checked = user.isAdmin;
-        document.getElementById('password').removeAttribute('required'); // 수정 시 비밀번호 필수는 아님
-    } else {
-        document.getElementById('userModalLabel').textContent = '새 사용자 추가';
-        document.getElementById('userId').value = '';
-        document.getElementById('password').setAttribute('required', 'required'); // 추가 시 비밀번호 필수
+    if (!userModalElement) {
+        console.error('Error: userModal element not found in DOM. Cannot open modal.');
+        alert('모달을 여는 데 문제가 발생했습니다. 페이지를 새로고침해 주세요.');
+        return;
     }
-    modal.show();
+
+    // Add a small delay to ensure DOM is fully ready
+    setTimeout(() => {
+        try {
+            const modal = new bootstrap.Modal(userModalElement);
+            const form = document.getElementById('userForm');
+            form.reset(); // 폼 초기화
+
+            if (user) {
+                document.getElementById('userModalLabel').textContent = '사용자 수정';
+                document.getElementById('userId').value = user._id;
+                document.getElementById('username').value = user.username;
+                document.getElementById('email').value = user.email || '';
+                document.getElementById('points').value = user.points || 0;
+                document.getElementById('isAdmin').checked = user.isAdmin;
+                document.getElementById('password').removeAttribute('required'); // 수정 시 비밀번호 필수는 아님
+            } else {
+                document.getElementById('userModalLabel').textContent = '새 사용자 추가';
+                document.getElementById('userId').value = '';
+                document.getElementById('password').setAttribute('required', 'required'); // 추가 시 비밀번호 필수
+            }
+            modal.show();
+        } catch (e) {
+            console.error('Error initializing Bootstrap modal:', e);
+            alert('모달 초기화 중 오류가 발생했습니다. 페이지를 새로고침해 주세요.');
+        }
+    }, 50); // 50ms delay
 }
 
 // 사용자 저장 (생성/수정) 함수
-    // 사용자 저장 (생성/수정) 함수
-    // 이 이벤트 리스너는 initUserManagement 함수 내에서 설정됩니다.
+// 이 이벤트 리스너는 initUserManagement 함수 내에서 설정됩니다.
 
-    // 사용자 삭제 함수
-    async function deleteUser(id) {
-        if (confirm('정말로 이 사용자를 삭제하시겠습니까?')) {
-            try {
-                await deleteUserAdmin(id);
-                alert('사용자가 성공적으로 삭제되었습니다.');
-                loadUsers(); // 목록 새로고침
-            } catch (error) {
-                console.error('사용자 삭제 실패:', error);
-                alert(`사용자 삭제 실패: ${error.message}`);
-            }
+// 사용자 삭제 함수
+async function deleteUser(id) {
+    if (confirm('정말로 이 사용자를 삭제하시겠습니까?')) {
+        try {
+            await deleteUserAdmin(id);
+            alert('사용자가 성공적으로 삭제되었습니다.');
+            loadUsers(); // 목록 새로고침
+        } catch (error) {
+            console.error('사용자 삭제 실패:', error);
+            alert(`사용자 삭제 실패: ${error.message}`);
         }
     }
+}
 
-    // admin-main.js에서 이 컴포넌트를 로드할 때 호출될 함수
-    window.initUserManagement = () => {
-        console.log('initUserManagement 호출됨.');
-        loadUsers();
+// admin-main.js에서 이 컴포넌트를 로드할 때 호출될 함수
+window.initUserManagement = () => {
+    console.log('initUserManagement 호출됨.');
+    loadUsers();
 
-        const addUserBtn = document.getElementById('addUserBtn');
-        if (addUserBtn) {
-            addUserBtn.addEventListener('click', () => openUserModal());
-        } else {
-            console.warn('addUserBtn을 찾을 수 없습니다.');
-        }
+    const addUserBtn = document.getElementById('addUserBtn');
+    if (addUserBtn) {
+        addUserBtn.addEventListener('click', () => openUserModal());
+    } else {
+        console.warn('addUserBtn을 찾을 수 없습니다.');
+    }
 
-        const userForm = document.getElementById('userForm');
-        if (userForm) {
-            userForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+    const userForm = document.getElementById('userForm');
+    if (userForm) {
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-                const userId = document.getElementById('userId').value;
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                const email = document.getElementById('email').value;
-                const points = parseInt(document.getElementById('points').value);
-                const isAdmin = document.getElementById('isAdmin').checked;
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            const points = parseInt(document.getElementById('points').value);
+            const isAdmin = document.getElementById('isAdmin').checked;
 
-                const userData = { username, email, points, isAdmin };
-                if (password) {
-                    userData.password = password;
+            const userData = { username, email, points, isAdmin };
+            if (password) {
+                userData.password = password;
+            }
+
+            try {
+                if (userId) {
+                    await updateUserAdmin(userId, userData);
+                    alert('사용자가 성공적으로 업데이트되었습니다.');
+                } else {
+                    await createUserAdmin(userData);
+                    alert('사용자가 성공적으로 생성되었습니다.');
                 }
-
-                try {
-                    if (userId) {
-                        await updateUserAdmin(userId, userData);
-                        alert('사용자가 성공적으로 업데이트되었습니다.');
-                    } else {
-                        await createUserAdmin(userData);
-                        alert('사용자가 성공적으로 생성되었습니다.');
-                    }
-                    bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
-                    loadUsers(); // 목록 새로고침
-                } catch (error) {
-                    console.error('사용자 저장 실패:', error);
-                    alert(`사용자 저장 실패: ${error.message}`);
-                }
-            });
-        } else {
-            console.warn('userForm을 찾을 수 없습니다.');
-        }
-    };
+                bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                loadUsers(); // 목록 새로고침
+            } catch (error) {
+                console.error('사용자 저장 실패:', error);
+                alert(`사용자 저장 실패: ${error.message}`);
+            }
+        });
+    } else {
+        console.warn('userForm을 찾을 수 없습니다.');
+    }
+};

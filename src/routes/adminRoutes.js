@@ -247,4 +247,76 @@ router.get('/admin/users', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 
+// 모든 사용자 목록 가져오기 (인증 필요)
+router.get('/admin/users', auth, async (req, res) => {
+    try {
+        res.json(await User.find({ isAdmin: false }).select('-password').sort({ createdAt: -1 }));
+    } catch (e) { res.status(500).json({ message: '서버 오류' }); }
+});
+
+// 사용자 생성 (인증 필요)
+router.post('/admin/users', auth, async (req, res) => {
+    try {
+        const { username, password, isAdmin, points } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ message: '사용자 이름과 비밀번호는 필수입니다.' });
+        }
+
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(409).json({ message: '이미 존재하는 사용자 이름입니다.' });
+        }
+
+        const newUser = new User({
+            username,
+            password,
+            isAdmin: isAdmin || false,
+            points: points || 0
+        });
+
+        await newUser.save();
+        res.status(201).json({ message: '사용자가 성공적으로 생성되었습니다.', user: newUser });
+    } catch (e) {
+        console.error('사용자 생성 중 오류 발생:', e);
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
+// 사용자 수정 (인증 필요)
+router.put('/admin/users/:id', auth, async (req, res) => {
+    try {
+        const { username, password, isAdmin, points } = req.body;
+        const updateData = { username, isAdmin, points };
+
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-password');
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+        }
+        res.json({ message: '사용자가 성공적으로 업데이트되었습니다.', user: updatedUser });
+    } catch (e) {
+        console.error('사용자 업데이트 중 오류 발생:', e);
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
+// 사용자 삭제 (인증 필요)
+router.delete('/admin/users/:id', auth, async (req, res) => {
+    try {
+        const deletedUser = await User.findByIdAndDelete(req.params.id);
+        if (!deletedUser) {
+            return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+        }
+        res.json({ message: '사용자가 성공적으로 삭제되었습니다.' });
+    } catch (e) {
+        console.error('사용자 삭제 중 오류 발생:', e);
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
 module.exports = router;

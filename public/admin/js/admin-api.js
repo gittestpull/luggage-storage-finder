@@ -115,3 +115,44 @@ async function fetchAllUsersAdmin() {
     if (!response.ok) throw new Error('사용자 데이터를 불러오지 못했습니다.');
     return await response.json();
 }
+
+// 새 사용자 생성 (관리자용)
+async function createUserAdmin(data) {
+    const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: API_HEADERS(),
+        body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '사용자 생성 실패');
+    }
+    return await response.json();
+}
+
+// 사용자 정보 업데이트 (관리자용)
+async function updateUserAdmin(id, data) {
+    const response = await fetch(`/api/admin/users/${id}`, {
+        method: 'PUT',
+        headers: API_HEADERS(),
+        body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '사용자 업데이트 실패');
+    }
+    return await response.json();
+}
+
+// 사용자 삭제 (관리자용)
+async function deleteUserAdmin(id) {
+    const response = await fetch(`/api/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: API_HEADERS()
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '사용자 삭제 실패');
+    }
+    return await response.json();
+}

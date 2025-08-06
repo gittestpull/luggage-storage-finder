@@ -1,6 +1,10 @@
 <div class="container-fluid">
     <h1 class="h3 mb-4 text-gray-800">사용자 관리</h1>
 
+    <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-primary" id="addUserBtn">새 사용자 추가</button>
+    </div>
+
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">등록된 사용자 목록</h6>
@@ -15,6 +19,8 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이메일</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">가입일</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">포인트</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리자 여부</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -25,3 +31,163 @@
         </div>
     </div>
 </div>
+
+<!-- User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">사용자 추가/수정</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    <div class="form-group">
+                        <label for="username">사용자명</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호 (수정 시에만 입력)</label>
+                        <input type="password" class="form-control" id="password">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" class="form-control" id="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="points">포인트</label>
+                        <input type="number" class="form-control" id="points" value="0">
+                    </div>
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" id="isAdmin">
+                        <label class="form-check-label" for="isAdmin">관리자 여부</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 사용자 목록 로드 함수
+    async function loadUsers() {
+        try {
+            const users = await fetchAllUsersAdmin();
+            const usersTableBody = document.querySelector('#usersTable tbody');
+            usersTableBody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = usersTableBody.insertRow();
+                row.insertCell().textContent = user._id;
+                row.insertCell().textContent = user.username;
+                row.insertCell().textContent = user.email || '';
+                row.insertCell().textContent = new Date(user.createdAt).toLocaleDateString();
+                row.insertCell().textContent = user.points || 0;
+                row.insertCell().textContent = user.isAdmin ? '예' : '아니오';
+
+                const actionsCell = row.insertCell();
+                const editButton = document.createElement('button');
+                editButton.textContent = '수정';
+                editButton.className = 'btn btn-sm btn-info mr-2';
+                editButton.onclick = () => openUserModal(user);
+                actionsCell.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '삭제';
+                deleteButton.className = 'btn btn-sm btn-danger';
+                deleteButton.onclick = () => deleteUser(user._id);
+                actionsCell.appendChild(deleteButton);
+            });
+        } catch (error) {
+            console.error('사용자 데이터를 불러오는 데 실패했습니다:', error);
+            alert('사용자 데이터를 불러오는 데 실패했습니다.');
+        }
+    }
+
+    // 사용자 모달 열기 함수
+    function openUserModal(user = null) {
+        const modal = new bootstrap.Modal(document.getElementById('userModal'));
+        const form = document.getElementById('userForm');
+        form.reset(); // 폼 초기화
+
+        if (user) {
+            document.getElementById('userModalLabel').textContent = '사용자 수정';
+            document.getElementById('userId').value = user._id;
+            document.getElementById('username').value = user.username;
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('points').value = user.points || 0;
+            document.getElementById('isAdmin').checked = user.isAdmin;
+            document.getElementById('password').removeAttribute('required'); // 수정 시 비밀번호 필수는 아님
+        } else {
+            document.getElementById('userModalLabel').textContent = '새 사용자 추가';
+            document.getElementById('userId').value = '';
+            document.getElementById('password').setAttribute('required', 'required'); // 추가 시 비밀번호 필수
+        }
+        modal.show();
+    }
+
+    // 사용자 저장 (생성/수정) 함수
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const userId = document.getElementById('userId').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const email = document.getElementById('email').value;
+        const points = parseInt(document.getElementById('points').value);
+        const isAdmin = document.getElementById('isAdmin').checked;
+
+        const userData = { username, email, points, isAdmin };
+        if (password) {
+            userData.password = password;
+        }
+
+        try {
+            if (userId) {
+                await updateUserAdmin(userId, userData);
+                alert('사용자가 성공적으로 업데이트되었습니다.');
+            } else {
+                await createUserAdmin(userData);
+                alert('사용자가 성공적으로 생성되었습니다.');
+            }
+            bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+            loadUsers(); // 목록 새로고침
+        } catch (error) {
+            console.error('사용자 저장 실패:', error);
+            alert(`사용자 저장 실패: ${error.message}`);
+        }
+    });
+
+    // 사용자 삭제 함수
+    async function deleteUser(id) {
+        if (confirm('정말로 이 사용자를 삭제하시겠습니까?')) {
+            try {
+                await deleteUserAdmin(id);
+                alert('사용자가 성공적으로 삭제되었습니다.');
+                loadUsers(); // 목록 새로고침
+            } catch (error) {
+                console.error('사용자 삭제 실패:', error);
+                alert(`사용자 삭제 실패: ${error.message}`);
+            }
+        }
+    }
+
+    // 초기 로드
+    document.addEventListener('DOMContentLoaded', () => {
+        loadUsers();
+
+        // 새 사용자 추가 버튼 이벤트 리스너
+        document.getElementById('addUserBtn').addEventListener('click', () => openUserModal());
+    });
+
+    // admin-main.js에서 이 컴포넌트를 로드할 때 호출될 함수
+    // 이 함수는 admin-main.js에서 mainContent.innerHTML = await response.text(); 후에 호출되어야 합니다.
+    window.initUserManagement = () => {
+        loadUsers();
+        document.getElementById('addUserBtn').addEventListener('click', () => openUserModal());
+    };
+</script>

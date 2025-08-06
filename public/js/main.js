@@ -31,40 +31,108 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showSection = showSection; // showSection 함수를 전역으로 노출
 
     // 해시 변경 처리 함수
-    const handleHashChange = () => {
-        const hash = window.location.hash;
-        hideAllSections(); // 모든 섹션을 먼저 숨깁니다. (다시 추가)
+    const handleHashChange = async () => {
+        const hash = window.location.hash.substring(1); // # 제거
+        const mainPageContent = document.getElementById('main-page-content');
+        const mainContentContainer = document.getElementById('main-content-container');
+
+        // 모든 섹션을 숨깁니다.
+        sections.forEach(section => section.classList.add('hidden'));
+
+        let componentPath = '';
 
         switch (hash) {
-            case '#map':
-                showSection('map');
+            case 'map':
+                document.getElementById('map').classList.remove('hidden');
                 if (typeof initMap === 'function') {
                     initMap();
                 }
                 break;
-            case '#list':
-                showSection(['search', 'list']); // 검색 섹션과 리스트 섹션 함께 표시
+            case 'list':
+                document.getElementById('search').classList.remove('hidden');
+                document.getElementById('list').classList.remove('hidden');
                 if (document.getElementById('list')) {
                     loadStorageList();
                 }
                 break;
-            case '#report':
-                showSection('report');
+            case 'report':
+                document.getElementById('report').classList.remove('hidden');
                 break;
-            case '#login':
-                showSection('login');
+            case 'login':
+                document.getElementById('login').classList.remove('hidden');
                 break;
-            case '#register':
-                showSection('register');
+            case 'register':
+                document.getElementById('register').classList.remove('hidden');
                 break;
-            case '#about-service':
-                showSection('about-service');
+            case 'about-service':
+                document.getElementById('about-service').classList.remove('hidden');
                 break;
-            default: // 기본적으로 서비스 소개 섹션을 표시
-                showSection('about-service');
+            case 'privacy-policy':
+                componentPath = 'components/privacy-policy.html';
                 break;
+            case 'about-us':
+                componentPath = 'components/about-us.html';
+                break;
+            case 'contact-us':
+                componentPath = 'components/contact-us.html';
+                break;
+            case 'how-to-use':
+                componentPath = 'components/how-to-use.html';
+                break;
+            case 'faq':
+                componentPath = 'components/faq.html';
+                break;
+            default: // 기본적으로 메인 페이지의 모든 섹션을 표시
+                mainPageContent.style.display = 'block';
+                mainContentContainer.style.display = 'none';
+                sections.forEach(section => section.classList.remove('hidden'));
+                // loadAllComponents(); // 이미 DOM에 있으므로 다시 로드할 필요 없음
+                return;
+        }
+
+        if (componentPath) {
+            mainPageContent.style.display = 'none';
+            mainContentContainer.style.display = 'block';
+            await replaceComponent(mainContentContainer.id, componentPath);
+        } else {
+            mainPageContent.style.display = 'block';
+            mainContentContainer.style.display = 'none';
         }
     };
+
+    // 단일 컴포넌트 동적 교체 함수 (SPA 구현 시 사용)
+    async function replaceComponent(containerId, componentPath) {
+        const container = document.getElementById(containerId);
+        if (!container) return false;
+        
+        // 페이드 아웃 효과
+        container.style.opacity = '0';
+        container.style.transition = 'opacity 0.3s';
+        
+        // 페이드 아웃 후 내용 교체
+        setTimeout(async () => {
+            try {
+                const response = await fetch(componentPath);
+                if (!response.ok) {
+                    throw new Error(`컴포넌트를 불러오지 못했습니다: ${componentPath}`);
+                }
+                
+                const html = await response.text();
+                container.innerHTML = html;
+                
+                // 페이드 인 효과
+                container.style.opacity = '1';
+                
+                // 교체 완료 이벤트 발생
+                window.dispatchEvent(new CustomEvent('componentReplaced', { 
+                    detail: { containerId, componentPath } 
+                }));
+            } catch (error) {
+                console.error(`컴포넌트 교체 실패:`, error);
+                container.style.opacity = '1';
+            }
+        }, 300);
+    }
 
     // 초기 로드 시 해시 처리 (컴포넌트 로드 완료 후 실행)
     window.addEventListener('componentsLoaded', () => {

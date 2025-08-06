@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="가장 가까운 짐보관소를 쉽고 빠르게 찾아보세요. 여행자와 도시 방문객을 위한 필수 짐보관소 찾기 서비스입니다.">
+    <meta name="keywords" content="짐보관소, 짐보관, 물품보관, 여행, 서울, 지하철, 코인락커, luggage storage">
     <title>짐보관소 찾기 서비스</title>
     <!-- Tailwind CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -61,295 +63,299 @@
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8">
-        <!-- 검색 섹션 -->
-        <section id="search" class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold mb-4">짐보관소 검색</h2>
-            <div class="flex">
-                <input type="text" id="searchInput" placeholder="지역명, 역 이름 등으로 검색" 
-                    class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button id="searchButton" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700">
-                    검색
-                </button>
-            </div>
-        </section>
-
-        <!-- 프리미엄 섹션 -->
-        <div data-include="components/premium-section.html"></div>
-
-        <!-- 서비스 소개 섹션 -->
-        <section id="about-service" class="my-8 bg-white p-6 rounded-lg shadow-md hidden">
-            <h3 class="text-2xl font-bold mb-4">짐보관소 찾기 서비스 소개</h3>
-            <div class="bg-blue-50 p-4 rounded-lg shadow-sm mb-6 text-center">
-                <h4 class="text-xl font-bold text-blue-700 mb-2">짐 걱정은 이제 그만! 짐보관소 찾기 서비스와 함께 자유로운 하루를 만끽하세요!</h4>
-                <p class="text-blue-600 mb-3">여행 중이신가요? 갑자기 짐을 맡길 곳이 필요하신가요?</p>
-                <p class="text-blue-600 font-semibold">저희 짐보관소 찾기 서비스는 언제 어디서든 여러분의 짐을 안전하게 보관할 수 있는 가장 가까운 장소를 찾아드립니다.</p>
-                <div class="mt-4 flex justify-center space-x-4">
-                    <div class="text-center">
-                        <p class="font-bold text-lg text-blue-800">✨ 언제든, 어디서든</p>
-                        <p class="text-sm text-blue-600">급하게 짐을 맡겨야 할 때, 지도에서 가장 가까운 짐보관소를 바로 찾아보세요. 운영 시간, 가격, 상세 위치까지 한눈에 확인하고 편리하게 이용할 수 있습니다.</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="font-bold text-lg text-blue-800">🤝 누구나 제보할 수 있는 참여형 서비스</p>
-                        <p class="text-sm text-blue-600">혹시 주변에 숨겨진 짐보관소를 알고 계신가요? 여러분의 소중한 정보가 다른 여행자들에게 큰 도움이 됩니다! 새로운 짐보관소 정보를 제보하고, 서비스 발전에 기여하며 포인트도 적립하세요!</p>
-                    </div>
-                </div>
-                <p class="mt-4 text-blue-800 font-bold">짐보관소 찾기 서비스와 함께 짐으로부터 자유로워지고, 더 가볍고 즐거운 경험을 시작하세요!</p>
-            </div>
-            <div class="space-y-4 text-gray-700">
-                <p>저희 짐보관소 찾기 서비스는 여행객과 일반 사용자들이 주변의 짐보관소를 쉽고 빠르게 찾을 수 있도록 돕는 플랫폼입니다. <strong>무거운 짐으로부터 자유로워지고, 더 가볍고 즐거운 여행을 경험하세요!</strong></p>
-                <p>갑작스러운 일정 변경, 여행 중 무거운 짐, 잠시 짐을 맡기고 싶을 때 등 다양한 상황에서 편리하게 짐보관소를 검색하고 이용할 수 있습니다. 저희 서비스는 여러분의 편의를 최우선으로 생각합니다.</p>
-                
-                <h4 class="text-xl font-semibold mt-6 mb-2">주요 기능</h4>
-                <ul class="list-disc list-inside ml-4 space-y-2">
-                    <li><span class="font-medium">지도 기반 검색:</span> 현재 위치 또는 특정 지역 주변의 짐보관소를 지도로 한눈에 확인합니다. 직관적인 인터페이스로 가장 가까운 보관소를 찾아보세요.</li>
-                    <li><span class="font-medium">상세 정보 제공:</span> 각 짐보관소의 운영 시간, 가격 (소형/대형), 주소, 연락처 등 필요한 모든 상세 정보를 제공합니다. 실시간 운영 상태도 확인 가능합니다.</li>
-                    <li><span class="font-medium">사용자 제보 및 포인트:</span> 새로운 짐보관소 정보를 제보하고, 검토 후 승인되면 소정의 포인트를 적립해 드립니다. 여러분의 참여가 서비스 발전에 큰 도움이 됩니다.</li>
-                    <li><span class="font-medium">간편한 로그인:</span> 이메일 기반의 간편한 회원가입 및 로그인 시스템을 제공하여 개인화된 서비스를 이용할 수 있습니다.</li>
-                </ul>
-
-                <h4 class="text-xl font-semibold mt-6 mb-2">서비스 이용 방법</h4>
-                <ol class="list-decimal list-inside ml-4 space-y-2">
-                    <li><span class="font-medium">짐보관소 검색:</span> 검색창에 지역명이나 역 이름을 입력하거나, 지도에서 직접 위치를 탐색하여 짐보관소를 찾습니다.</li>
-                    <li><span class="font-medium">정보 확인:</span> 검색된 짐보관소의 상세 정보를 확인하고, 운영 시간과 가격을 비교합니다.</li>
-                    <li><span class="font-medium">방문 및 이용:</span> 선택한 짐보관소를 방문하여 편리하게 짐을 보관합니다.</li>
-                    <li><span class="font-medium">새로운 정보 제보:</span> 주변에 알려지지 않은 짐보관소가 있다면 제보하기 기능을 통해 공유해주세요!</li>
-                </ol>
-
-                <h4 class="text-xl font-semibold mt-6 mb-2">자주 묻는 질문 (FAQ)</h4>
-                <div class="space-y-3">
-                    <div>
-                        <p class="font-medium">Q: 짐보관소 정보는 정확한가요?</p>
-                        <p class="text-sm text-gray-600">A: 저희는 최신 정보를 제공하기 위해 노력하며, 사용자 제보와 자체 검증을 통해 정보를 업데이트합니다. 하지만 방문 전 직접 확인하시는 것을 권장합니다.</p>
-                    </div>
-                    <div>
-                        <p class="font-medium">Q: 제보하면 정말 포인트가 지급되나요?</p>
-                        <p class="text-sm text-gray-600">A: 네, 제보해주신 짐보관소 정보가 검토 후 승인되면 소정의 포인트가 지급됩니다. 포인트는 추후 다양한 혜택으로 사용될 예정입니다.</p>
-                    </div>
-                    <div>
-                        <p class="font-medium">Q: 24시간 운영하는 짐보관소도 찾을 수 있나요?</p>
-                        <p class="text-sm text-gray-600">A: 네, 각 짐보관소의 상세 정보에 24시간 운영 여부가 표시되어 있습니다. 필터 기능을 통해 24시간 운영 보관소를 쉽게 찾을 수 있도록 업데이트 예정입니다.</p>
-                    </div>
-                </div>
-
-                <h4 class="text-xl font-semibold mt-6 mb-2">저희의 목표</h4>
-                <p>저희는 사용자들이 짐 걱정 없이 자유롭게 이동하고, 더 즐거운 경험을 할 수 있도록 최고의 짐보관소 정보를 제공하는 것을 목표로 합니다. 지속적인 업데이트와 사용자 피드백을 통해 더욱 편리하고 유용한 서비스가 되도록 노력하겠습니다.</p>
-                
-                <p class="text-sm text-gray-500 mt-6">문의사항은 ysk7998@gmail.com으로 연락주세요.</p>
-            </div>
-        </section>
-
-        <!-- 지도 섹션 -->
-        <section id="map" class="my-8">
-            <h3 class="text-2xl font-bold mb-4">지도로 보기</h3>
-            <div id="mapContainer" class="h-96 bg-gray-200 rounded-lg shadow-md">
-                <!-- 지도가 로드될 영역 -->
-                <div class="h-full flex items-center justify-center">
-                    <p>지도를 불러오는 중...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- 짐보관소 리스트 섹션 -->
-        <section id="list" class="my-8">
-            <h3 class="text-2xl font-bold mb-4">짐보관소 리스트</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- 짐보관소 아이템 (API로 로드됨) -->
-                <div class="col-span-full text-center py-8">
-                    <p>짐보관소 정보를 불러오는 중...</p>
-                </div>
-            </div>
-            <div class="text-center mt-6">
-                <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">더 보기</button>
-            </div>
-        </section>
-
-        <!-- 제보하기 섹션 -->
-        <section id="report" class="my-8 bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-2xl font-bold mb-4">짐보관소 제보하기</h3>
-            <p class="mb-4 text-gray-600">새로운 짐보관소를 알고 계신가요? 제보해주시면 검토 후 적립금을 드립니다!</p>
-            
-            <form id="reportForm" class="space-y-4">
-                <div>
-                    <label for="name" class="block text-gray-700 mb-1">짐보관소 이름 *</label>
-                    <input type="text" id="name" name="name" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div>
-                    <label for="address" class="block text-gray-700 mb-1">주소 *</label>
-                    <input type="text" id="address" name="address" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="openTime" class="block text-gray-700 mb-1">개장 시간</label>
-                        <input type="text" id="openTime" name="openTime" placeholder="예: 09:00"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label for="closeTime" class="block text-gray-700 mb-1">폐장 시간</label>
-                        <input type="text" id="closeTime" name="closeTime" placeholder="예: 18:00"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                </div>
-                
-                <div class="flex items-center">
-                    <input type="checkbox" id="is24Hours" name="is24Hours" value="true"
-                        class="mr-2 h-5 w-5 text-blue-600 focus:ring-blue-500">
-                    <label for="is24Hours" class="text-gray-700">24시간 운영</label>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="smallPrice" class="block text-gray-700 mb-1">소형 가격 (원/일)</label>
-                        <input type="number" id="smallPrice" name="smallPrice" min="0"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label for="largePrice" class="block text-gray-700 mb-1">대형 가격 (원/일)</label>
-                        <input type="number" id="largePrice" name="largePrice" min="0"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                </div>
-                
-                <div>
-                    <p class="text-gray-700 mb-1">위치 *</p>
-                    <p class="text-sm text-gray-500 mb-2">지도를 클릭하거나 '내 위치 찾기' 버튼을 눌러 위치를 설정하세요.</p>
-                    <input type="hidden" id="lat" name="lat" required>
-                    <input type="hidden" id="lng" name="lng" required>
-                </div>
-                
-                <div>
-                    <label for="description" class="block text-gray-700 mb-1">추가 정보</label>
-                    <textarea id="description" name="description" rows="3" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="특이사항이나 추가 정보를 입력해주세요."></textarea>
-                </div>
-                
-                <div class="text-right">
-                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                        제보하기
+        <main class="container mx-auto px-4 py-8">
+        <div id="main-page-content">
+            <!-- 검색 섹션 -->
+            <section id="search" class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold mb-4">짐보관소 검색</h2>
+                <div class="flex">
+                    <input type="text" id="searchInput" placeholder="지역명, 역 이름 등으로 검색" 
+                        class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="searchButton" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700">
+                        검색
                     </button>
                 </div>
-            </form>
-        </section>
+            </section>
 
-        <!-- 로그인 섹션 -->
-        <section id="login" class="my-8 bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-2xl font-bold mb-4">로그인</h3>
-            
-            <div class="mb-6">
-                <button id="kakaoLoginBtn" class="w-full bg-yellow-300 text-yellow-800 font-medium py-2 px-4 rounded-lg hover:bg-yellow-400 mb-2">
-                    카카오 계정으로 로그인
-                </button>
-                <button class="w-full bg-green-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-green-600">
-                    네이버 계정으로 로그인
-                </button>
-            </div>
-            
-            <div class="relative my-4">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-gray-300"></div>
+            <!-- 프리미엄 섹션 -->
+            <div data-include="components/premium-section.html"></div>
+
+            <!-- 서비스 소개 섹션 -->
+            <section id="about-service" class="my-8 bg-white p-6 rounded-lg shadow-md hidden">
+                <h3 class="text-2xl font-bold mb-4">짐보관소 찾기 서비스 소개</h3>
+                <div class="bg-blue-50 p-4 rounded-lg shadow-sm mb-6 text-center">
+                    <h4 class="text-xl font-bold text-blue-700 mb-2">짐 걱정은 이제 그만! 짐보관소 찾기 서비스와 함께 자유로운 하루를 만끽하세요!</h4>
+                    <p class="text-blue-600 mb-3">여행 중이신가요? 갑자기 짐을 맡길 곳이 필요하신가요?</p>
+                    <p class="text-blue-600 font-semibold">저희 짐보관소 찾기 서비스는 언제 어디서든 여러분의 짐을 안전하게 보관할 수 있는 가장 가까운 장소를 찾아드립니다.</p>
+                    <div class="mt-4 flex justify-center space-x-4">
+                        <div class="text-center">
+                            <p class="font-bold text-lg text-blue-800">✨ 언제든, 어디서든</p>
+                            <p class="text-sm text-blue-600">급하게 짐을 맡겨야 할 때, 지도에서 가장 가까운 짐보관소를 바로 찾아보세요. 운영 시간, 가격, 상세 위치까지 한눈에 확인하고 편리하게 이용할 수 있습니다.</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="font-bold text-lg text-blue-800">🤝 누구나 제보할 수 있는 참여형 서비스</p>
+                            <p class="text-sm text-blue-600">혹시 주변에 숨겨진 짐보관소를 알고 계신가요? 여러분의 소중한 정보가 다른 여행자들에게 큰 도움이 됩니다! 새로운 짐보관소 정보를 제보하고, 서비스 발전에 기여하며 포인트도 적립하세요!</p>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-blue-800 font-bold">짐보관소 찾기 서비스와 함께 짐으로부터 자유로워지고, 더 가볍고 즐거운 경험을 시작하세요!</p>
                 </div>
-                <div class="relative flex justify-center text-sm">
-                    <span class="px-2 bg-white text-gray-500">또는</span>
+                <div class="space-y-4 text-gray-700">
+                    <p>저희 짐보관소 찾기 서비스는 여행객과 일반 사용자들이 주변의 짐보관소를 쉽고 빠르게 찾을 수 있도록 돕는 플랫폼입니다. <strong>무거운 짐으로부터 자유로워지고, 더 가볍고 즐거운 여행을 경험하세요!</strong></p>
+                    <p>갑작스러운 일정 변경, 여행 중 무거운 짐, 잠시 짐을 맡기고 싶을 때 등 다양한 상황에서 편리하게 짐보관소를 검색하고 이용할 수 있습니다. 저희 서비스는 여러분의 편의를 최우선으로 생각합니다.</p>
+                    
+                    <h4 class="text-xl font-semibold mt-6 mb-2">주요 기능</h4>
+                    <ul class="list-disc list-inside ml-4 space-y-2">
+                        <li><span class="font-medium">지도 기반 검색:</span> 현재 위치 또는 특정 지역 주변의 짐보관소를 지도로 한눈에 확인합니다. 직관적인 인터페이스로 가장 가까운 보관소를 찾아보세요.</li>
+                        <li><span class="font-medium">상세 정보 제공:</span> 각 짐보관소의 운영 시간, 가격 (소형/대형), 주소, 연락처 등 필요한 모든 상세 정보를 제공합니다. 실시간 운영 상태도 확인 가능합니다.</li>
+                        <li><span class="font-medium">사용자 제보 및 포인트:</span> 새로운 짐보관소 정보를 제보하고, 검토 후 승인되면 소정의 포인트를 적립해 드립니다. 여러분의 참여가 서비스 발전에 큰 도움이 됩니다.</li>
+                        <li><span class="font-medium">간편한 로그인:</span> 이메일 기반의 간편한 회원가입 및 로그인 시스템을 제공하여 개인화된 서비스를 이용할 수 있습니다.</li>
+                    </ul>
+
+                    <h4 class="text-xl font-semibold mt-6 mb-2">서비스 이용 방법</h4>
+                    <ol class="list-decimal list-inside ml-4 space-y-2">
+                        <li><span class="font-medium">짐보관소 검색:</span> 검색창에 지역명이나 역 이름을 입력하거나, 지도에서 직접 위치를 탐색하여 짐보관소를 찾습니다.</li>
+                        <li><span class="font-medium">정보 확인:</span> 검색된 짐보관소의 상세 정보를 확인하고, 운영 시간과 가격을 비교합니다.</li>
+                        <li><span class="font-medium">방문 및 이용:</span> 선택한 짐보관소를 방문하여 편리하게 짐을 보관합니다.</li>
+                        <li><span class="font-medium">새로운 정보 제보:</span> 주변에 알려지지 않은 짐보관소가 있다면 제보하기 기능을 통해 공유해주세요!</li>
+                    </ol>
+
+                    <h4 class="text-xl font-semibold mt-6 mb-2">자주 묻는 질문 (FAQ)</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="font-medium">Q: 짐보관소 정보는 정확한가요?</p>
+                            <p class="text-sm text-gray-600">A: 저희는 최신 정보를 제공하기 위해 노력하며, 사용자 제보와 자체 검증을 통해 정보를 업데이트합니다. 하지만 방문 전 직접 확인하시는 것을 권장합니다.</p>
+                        </div>
+                        <div>
+                            <p class="font-medium">Q: 제보하면 정말 포인트가 지급되나요?</p>
+                            <p class="text-sm text-gray-600">A: 네, 제보해주신 짐보관소 정보가 검토 후 승인되면 소정의 포인트가 지급됩니다. 포인트는 추후 다양한 혜택으로 사용될 예정입니다.</p>
+                        </div>
+                        <div>
+                            <p class="font-medium">Q: 24시간 운영하는 짐보관소도 찾을 수 있나요?</p>
+                            <p class="text-sm text-gray-600">A: 네, 각 짐보관소의 상세 정보에 24시간 운영 여부가 표시되어 있습니다. 필터 기능을 통해 24시간 운영 보관소를 쉽게 찾을 수 있도록 업데이트 예정입니다.</p>
+                        </div>
+                    </div>
+
+                    <h4 class="text-xl font-semibold mt-6 mb-2">저희의 목표</h4>
+                    <p>저희는 사용자들이 짐 걱정 없이 자유롭게 이동하고, 더 즐거운 경험을 할 수 있도록 최고의 짐보관소 정보를 제공하는 것을 목표로 합니다. 지속적인 업데이트와 사용자 피드백을 통해 더욱 편리하고 유용한 서비스가 되도록 노력하겠습니다.</p>
+                    
+                    <p class="text-sm text-gray-500 mt-6">문의사항은 ysk7998@gmail.com으로 연락주세요.</p>
                 </div>
-            </div>
-            
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="email" class="block text-gray-700 mb-1">이메일</label>
-                    <input type="email" id="email" name="email" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </section>
+
+            <!-- 지도 섹션 -->
+            <section id="map" class="my-8">
+                <h3 class="text-2xl font-bold mb-4">지도로 보기</h3>
+                <div id="mapContainer" class="h-96 bg-gray-200 rounded-lg shadow-md">
+                    <!-- 지도가 로드될 영역 -->
+                    <div class="h-full flex items-center justify-center">
+                        <p>지도를 불러오는 중...</p>
+                    </div>
                 </div>
+            </section>
+
+            <!-- 짐보관소 리스트 섹션 -->
+            <section id="list" class="my-8">
+                <h3 class="text-2xl font-bold mb-4">짐보관소 리스트</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- 짐보관소 아이템 (API로 로드됨) -->
+                    <div class="col-span-full text-center py-8">
+                        <p>짐보관소 정보를 불러오는 중...</p>
+                    </div>
+                </div>
+                <div class="text-center mt-6">
+                    <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">더 보기</button>
+                </div>
+            </section>
+
+            <!-- 제보하기 섹션 -->
+            <section id="report" class="my-8 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-bold mb-4">짐보관소 제보하기</h3>
+                <p class="mb-4 text-gray-600">새로운 짐보관소를 알고 계신가요? 제보해주시면 검토 후 적립금을 드립니다!</p>
                 
-                <div>
-                    <label for="password" class="block text-gray-700 mb-1">비밀번호</label>
-                    <input type="password" id="password" name="password" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div class="flex items-center justify-between">
+                <form id="reportForm" class="space-y-4">
+                    <div>
+                        <label for="name" class="block text-gray-700 mb-1">짐보관소 이름 *</label>
+                        <input type="text" id="name" name="name" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="address" class="block text-gray-700 mb-1">주소 *</label>
+                        <input type="text" id="address" name="address" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="openTime" class="block text-gray-700 mb-1">개장 시간</label>
+                            <input type="text" id="openTime" name="openTime" placeholder="예: 09:00"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label for="closeTime" class="block text-gray-700 mb-1">폐장 시간</label>
+                            <input type="text" id="closeTime" name="closeTime" placeholder="예: 18:00"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    
                     <div class="flex items-center">
-                        <input type="checkbox" id="remember" name="remember"
-                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label for="remember" class="ml-2 block text-sm text-gray-700">
-                            로그인 상태 유지
-                        </label>
+                        <input type="checkbox" id="is24Hours" name="is24Hours" value="true"
+                            class="mr-2 h-5 w-5 text-blue-600 focus:ring-blue-500">
+                        <label for="is24Hours" class="text-gray-700">24시간 운영</label>
                     </div>
                     
-                    <a href="#" class="text-sm text-blue-600 hover:underline">비밀번호 찾기</a>
-                </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="smallPrice" class="block text-gray-700 mb-1">소형 가격 (원/일)</label>
+                            <input type="number" id="smallPrice" name="smallPrice" min="0"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label for="largePrice" class="block text-gray-700 mb-1">대형 가격 (원/일)</label>
+                            <input type="number" id="largePrice" name="largePrice" min="0"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <p class="text-gray-700 mb-1">위치 *</p>
+                        <p class="text-sm text-gray-500 mb-2">지도를 클릭하거나 '내 위치 찾기' 버튼을 눌러 위치를 설정하세요.</p>
+                        <input type="hidden" id="lat" name="lat" required>
+                        <input type="hidden" id="lng" name="lng" required>
+                    </div>
+                    
+                    <div>
+                        <label for="description" class="block text-gray-700 mb-1">추가 정보</label>
+                        <textarea id="description" name="description" rows="3" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="특이사항이나 추가 정보를 입력해주세요."></textarea>
+                    </div>
+                    
+                    <div class="text-right">
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                            제보하기
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 로그인 섹션 -->
+            <section id="login" class="my-8 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-bold mb-4">로그인</h3>
                 
-                <div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
-                        로그인
+                <div class="mb-6">
+                    <button id="kakaoLoginBtn" class="w-full bg-yellow-300 text-yellow-800 font-medium py-2 px-4 rounded-lg hover:bg-yellow-400 mb-2">
+                        카카오 계정으로 로그인
+                    </button>
+                    <button class="w-full bg-green-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-green-600">
+                        네이버 계정으로 로그인
                     </button>
                 </div>
                 
-                <div class="text-center text-sm">
-                    <span class="text-gray-600">계정이 없으신가요?</span>
-                    <a href="#" id="showRegisterForm" class="text-blue-600 hover:underline">회원가입</a>
+                <div class="relative my-4">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">또는</span>
+                    </div>
                 </div>
-            </form>
-        </section>
+                
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-gray-700 mb-1">이메일</label>
+                        <input type="email" id="email" name="email" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="password" class="block text-gray-700 mb-1">비밀번호</label>
+                        <input type="password" id="password" name="password" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember" name="remember"
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="remember" class="ml-2 block text-sm text-gray-700">
+                                로그인 상태 유지
+                            </label>
+                        </div>
+                        
+                        <a href="#" class="text-sm text-blue-600 hover:underline">비밀번호 찾기</a>
+                    </div>
+                    
+                    <div>
+                        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                            로그인
+                        </button>
+                    </div>
+                    
+                    <div class="text-center text-sm">
+                        <span class="text-gray-600">계정이 없으신가요?</span>
+                        <a href="#" id="showRegisterForm" class="text-blue-600 hover:underline">회원가입</a>
+                    </div>
+                </form>
+            </section>
 
-        <!-- 회원가입 섹션 -->
-        <section id="register" class="my-8 bg-white p-6 rounded-lg shadow-md hidden">
-            <h3 class="text-2xl font-bold mb-4">회원가입</h3>
-            <form id="registerForm" class="space-y-4">
-                <div>
-                    <label for="registerEmail" class="block text-gray-700 mb-1">이메일</label>
-                    <input type="email" id="registerEmail" name="username" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <p id="emailError" class="text-red-500 text-sm mt-1 hidden"></p>
-                </div>
-                
-                <div class="relative">
-                    <label for="registerPassword" class="block text-gray-700 mb-1">비밀번호</label>
-                    <input type="password" id="registerPassword" name="password" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="togglePassword">
-                        <!-- Heroicons - eye -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </span>
-                </div>
-                <p id="passwordError" class="text-red-500 text-sm mt-1 hidden"></p>
+            <!-- 회원가입 섹션 -->
+            <section id="register" class="my-8 bg-white p-6 rounded-lg shadow-md hidden">
+                <h3 class="text-2xl font-bold mb-4">회원가입</h3>
+                <form id="registerForm" class="space-y-4">
+                    <div>
+                        <label for="registerEmail" class="block text-gray-700 mb-1">이메일</label>
+                        <input type="email" id="registerEmail" name="username" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p id="emailError" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                    
+                    <div class="relative">
+                        <label for="registerPassword" class="block text-gray-700 mb-1">비밀번호</label>
+                        <input type="password" id="registerPassword" name="password" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="togglePassword">
+                            <!-- Heroicons - eye -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <p id="passwordError" class="text-red-500 text-sm mt-1 hidden"></p>
 
-                <div class="relative">
-                    <label for="registerPasswordConfirm" class="block text-gray-700 mb-1">비밀번호 확인</label>
-                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="togglePasswordConfirm">
-                        <!-- Heroicons - eye -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </span>
-                </div>
-                <p id="passwordConfirmError" class="text-red-500 text-sm mt-1 hidden"></p>
-                
-                <div>
-                    <button type="submit" id="registerButton" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex justify-center items-center">
-                        <span class="btn-text">회원가입</span>
-                        <span class="spinner hidden w-5 h-5 border-4 border-white border-t-transparent rounded-full animate-spin"></span>
-                    </button>
-                </div>
-                
-                <div class="text-center text-sm">
-                    <span class="text-gray-600">이미 계정이 있으신가요?</span>
-                    <a href="#" id="showLoginForm" class="text-blue-600 hover:underline">로그인</a>
-                </div>
-            </form>
-        </section>
+                    <div class="relative">
+                        <label for="registerPasswordConfirm" class="block text-gray-700 mb-1">비밀번호 확인</label>
+                        <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="togglePasswordConfirm">
+                            <!-- Heroicons - eye -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <p id="passwordConfirmError" class="text-red-500 text-sm mt-1 hidden"></p>
+                    
+                    <div>
+                        <button type="submit" id="registerButton" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex justify-center items-center">
+                            <span class="btn-text">회원가입</span>
+                            <span class="spinner hidden w-5 h-5 border-4 border-white border-t-transparent rounded-full animate-spin"></span>
+                        </button>
+                    </div>
+                    
+                    <div class="text-center text-sm">
+                        <span class="text-gray-600">이미 계정이 있으신가요?</span>
+                        <a href="#" id="showLoginForm" class="text-blue-600 hover:underline">로그인</a>
+                    </div>
+                </form>
+            </section>
+        </div>
+        <!-- 동적 콘텐츠가 로드될 메인 컨테이너 -->
+        <main id="main-content-container" class="container mx-auto px-4 py-8" style="display: none;"></main>
     </main>
 
     <footer class="bg-gray-800 text-white py-8">

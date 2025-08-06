@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+
 
 // --- 데이터베이스 연결 ---
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/luggage-storage', {
+mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {

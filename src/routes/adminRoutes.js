@@ -78,7 +78,13 @@ router.patch('/admin/reports/:id', auth, async (req, res) => {
 
         if (status === 'approved') {
             const { name, address, location, openTime, closeTime, is24Hours, smallPrice, largePrice } = report;
-            await new Storage({ name, address, location, openTime, closeTime, is24Hours, smallPrice, largePrice }).save();
+            console.log('승인된 제보 데이터:', report);
+            try {
+                const newStorage = await new Storage({ name, address, location, openTime, closeTime, is24Hours, smallPrice, largePrice }).save();
+                console.log('짐보관소 데이터가 성공적으로 저장되었습니다:', newStorage);
+            } catch (storageSaveError) {
+                console.error('짐보관소 저장 중 오류 발생:', storageSaveError);
+            }
 
             // 포인트 지급 로직
             if (report.reportedBy) {

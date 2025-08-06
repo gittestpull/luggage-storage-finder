@@ -9,12 +9,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 
 // 환경 변수 설정
 dotenv.config();
 
 // 데이터베이스 연결
 const connectDB = require('./src/config/db');
+mongoose.set('debug', true);
 connectDB();
 
 // 라우트 불러오기

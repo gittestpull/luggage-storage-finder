@@ -31,6 +31,14 @@ async function loadStorageList() {
                 }
             });
             
+            // 로그인 안내 메시지 추가
+            if (storages.length === 2 && !localStorage.getItem('adminToken')) { // adminToken으로 로그인 여부 판단
+                const loginPrompt = document.createElement('div');
+                loginPrompt.className = 'col-span-full text-center py-4 text-blue-600 font-semibold';
+                loginPrompt.innerHTML = '<p>로그인하시면 더 많은 짐보관소를 볼 수 있습니다.</p>';
+                listContainer.appendChild(loginPrompt);
+            }
+            
             // 더보기 버튼이 있다면 업데이트
             updateLoadMoreButton(storages.length);
         } else {

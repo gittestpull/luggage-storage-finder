@@ -16,9 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 페이지 로드 시 초기화 함수 호출
-    if (document.getElementById('report-list-body')) {
-        loadReports();
-    }
+// if (document.getElementById('report-list-body')) {
+//     loadReports();
+// }
 });
 
 // 제보 목록 로드 및 표시

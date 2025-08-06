@@ -1,10 +1,8 @@
 // 이 파일은 짐보관소 관리 페이지의 모든 DOM 조작과 이벤트 처리를 담당합니다.
 
-document.addEventListener('DOMContentLoaded', () => {
-    // admin-main.js에서 콘텐츠가 로드된 후 이벤트를 다시 설정해야 할 수 있으므로,
-    // 전역에서 접근 가능한 함수로 만들거나 이벤트 위임을 사용합니다.
-    initStorageManagement();
-});
+// admin-main.js에서 콘텐츠가 로드된 후 이벤트를 다시 설정해야 할 수 있으므로,
+// 전역에서 접근 가능한 함수로 만들거나 이벤트 위임을 사용합니다.
+// initStorageManagement(); // admin-main.js에서 직접 호출
 
 function initStorageManagement() {
     const storageListBody = document.getElementById('storage-list-body');

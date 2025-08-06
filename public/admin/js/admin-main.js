@@ -28,6 +28,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('콘텐츠 로드 실패');
             mainContent.innerHTML = await response.text();
 
+            // 컴포넌트별 JavaScript 로드 및 실행
+            if (hash === '#report-management') {
+                const script = document.createElement('script');
+                script.src = '/admin/js/report-manager.js';
+                script.onload = () => {
+                    if (typeof loadReports === 'function') {
+                        loadReports();
+                    }
+                };
+                mainContent.appendChild(script);
+            } else if (hash === '#storage-management') {
+                const script = document.createElement('script');
+                script.src = '/admin/js/storage-manager.js';
+                script.onload = () => {
+                    if (typeof loadStorages === 'function') {
+                        loadStorages();
+                    }
+                };
+                mainContent.appendChild(script);
+            }
+
             // 대시보드인 경우 데이터 로드 함수 호출
             if (hash === '#dashboard' || hash === '') {
                 loadDashboardData();

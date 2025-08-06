@@ -39,7 +39,7 @@ async function loadReports() {
                 <td class="px-6 py-4 whitespace-nowrap">${report.name}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${report.address}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${report.reportedBy ? report.reportedBy.username : 'N/A'}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(report.createdAt).toLocaleDateString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(report.createdAt).toLocaleString()}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(report.reportStatus)}">
                         ${report.reportStatus}

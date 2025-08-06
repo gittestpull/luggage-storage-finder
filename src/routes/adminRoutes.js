@@ -10,6 +10,7 @@ const multer = require('multer'); // multer 임포트
 const axios = require('axios'); // axios 임포트
 const fs = require('fs'); // 파일 시스템 모듈 임포트
 const { parse } = require('csv-parse'); // CSV 파싱 라이브러리 임포트
+const { exec } = require('child_process'); // child_process 모듈 임포트
 
 // Multer 설정: 파일이 메모리에 저장되도록 설정 (작은 파일에 적합)
 const upload = multer({ storage: multer.memoryStorage() });
@@ -309,6 +310,42 @@ router.delete('/admin/users/:id', auth, async (req, res) => {
         res.json({ message: '사용자가 성공적으로 삭제되었습니다.' });
     } catch (e) {
         console.error('사용자 삭제 중 오류 발생:', e);
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
+// 사용자 삭제 (인증 필요)
+router.delete('/admin/users/:id', auth, async (req, res) => {
+    try {
+        const deletedUser = await User.findByIdAndDelete(req.params.id);
+        if (!deletedUser) {
+            return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+        }
+        res.json({ message: '사용자가 성공적으로 삭제되었습니다.' });
+    } catch (e) {
+        console.error('사용자 삭제 중 오류 발생:', e);
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
+// 애플리케이션 재시작 (인증 필요)
+router.post('/admin/system/restart', auth, async (req, res) => {
+    try {
+        console.log('애플리케이션 재시작 요청 수신...');
+        res.status(200).json({ message: '애플리케이션 재시작 명령을 실행합니다.' });
+
+        // 비동기적으로 재시작 명령 실행
+        exec('docker-compose up -d --force-recreate', (error, stdout, stderr) => {
+            if (error) {
+                console.error(`exec error: ${error}`);
+                return;
+            }
+            console.log(`stdout: ${stdout}`);
+            console.error(`stderr: ${stderr}`);
+        });
+
+    } catch (e) {
+        console.error('애플리케이션 재시작 중 오류 발생:', e);
         res.status(500).json({ message: '서버 오류' });
     }
 });

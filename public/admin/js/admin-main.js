@@ -64,6 +64,25 @@ document.addEventListener('DOMContentLoaded', () => {
             // 대시보드인 경우 데이터 로드 함수 호출
             if (hash === '#dashboard' || hash === '') {
                 loadDashboardData();
+                // 재시작 버튼 이벤트 리스너 추가
+                const restartButton = document.getElementById('restartAppBtn');
+                if (restartButton) {
+                    restartButton.addEventListener('click', async () => {
+                        if (confirm('정말로 애플리케이션을 재시작하시겠습니까? 이 작업은 잠시 서비스 중단을 초래할 수 있습니다.')) {
+                            try {
+                                alert('애플리케이션 재시작 명령을 보냈습니다. 잠시 후 서비스가 재시작됩니다.');
+                                await restartApplicationAdmin(); // admin-api.js에 정의된 함수
+                                // 재시작 후 페이지 새로고침 (선택 사항, 서비스 중단 후 복구 확인용)
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 5000); // 5초 후 새로고침
+                            } catch (error) {
+                                console.error('애플리케이션 재시작 실패:', error);
+                                alert(`애플리케이션 재시작 실패: ${error.message}`);
+                            }
+                        }
+                    });
+                }
             }
         } catch (error) {
             mainContent.innerHTML = `<p class="text-red-500">${error.message}</p>`;

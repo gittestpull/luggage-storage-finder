@@ -1,72 +1,87 @@
-/* 추가적인 커스텀 스타일 */
+/* 기본 및 공통 스타일 */
 html {
     scroll-behavior: smooth;
 }
 
-.ad-container {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin: 1rem 0;
-    text-align: center;
-    border: 1px dashed #ddd;
+body {
+    font-family: 'Pretendard', sans-serif; /* 더 나은 가독성을 위한 폰트 (웹폰트 로드 필요) */
 }
 
-/* 실시간 표시 애니메이션 */
-.live-indicator {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    background-color: #22c55e;
-    border-radius: 50%;
-    margin-right: 5px;
-    animation: pulse 2s infinite;
+/* 헤더 고정 */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-    100% {
-        opacity: 1;
-    }
+/* 모바일 메뉴 스타일 */
+#mobile-menu {
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
 }
 
-/* 모바일 반응형 */
+#mobile-menu.open {
+    max-height: 500px; /* 충분한 높이 */
+    opacity: 1;
+}
+
+/* 회원가입 폼 버튼 로딩 스피너 */
+.spinner {
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* =============================================== */
+/* 모바일 반응형 스타일 (768px 이하) */
+/* =============================================== */
 @media (max-width: 768px) {
-    header nav ul {
-        flex-direction: column;
-        align-items: center;
+    /* 본문 폰트 및 섹션 패딩 조정 */
+    body {
+        font-size: 14px;
     }
-    
-    header nav ul li {
+    main.container {
+        padding-top: 1rem; /* 헤더와의 간격 */
+        padding-bottom: 1rem;
+    }
+    section {
+        padding: 1.25rem; /* p-5 */
+    }
+
+    /* 제목 폰트 크기 조정 */
+    h1 {
+        font-size: 1.25rem; /* text-xl */
+    }
+    h2, h3 {
+        font-size: 1.125rem; /* text-lg */
+    }
+
+    /* 입력 필드 및 버튼 크기 조정 (터치 용이성) */
+    input[type='text'],
+    input[type='email'],
+    input[type='password'],
+    input[type='number'],
+    textarea,
+    button {
+        padding-top: 0.75rem; /* py-3 */
+        padding-bottom: 0.75rem;
+        font-size: 1rem; /* 기본 폰트 크기로 키워 가독성 확보 */
+    }
+
+    /* 검색 섹션 - 버튼이 아래로 내려오도록 */
+    #search .flex {
+        flex-direction: column;
+    }
+    #search input {
+        border-radius: 0.375rem; /* rounded-md */
         margin-bottom: 0.5rem;
     }
-}
-
-/* 지도 마커 스타일 */
-.map-marker {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.map-marker:hover {
-    transform: scale(1.1);
-}
-
-/* 프리미엄 서비스 하이라이트 */
-.premium-highlight {
-    background: linear-gradient(135deg, #fef3c7, #fef9c3);
-    border: 2px solid #fcd34d;
+    #search button {
+        border-radius: 0.375rem; /* rounded-md */
+    }
 }

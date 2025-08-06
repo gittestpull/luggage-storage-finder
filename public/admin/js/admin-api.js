@@ -156,16 +156,3 @@ async function deleteUserAdmin(id) {
     }
     return await response.json();
 }
-
-// 애플리케이션 재시작 (관리자용)
-async function restartApplicationAdmin() {
-    const response = await fetch('/api/admin/system/restart', {
-        method: 'POST',
-        headers: API_HEADERS()
-    });
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '애플리케이션 재시작 실패');
-    }
-    return await response.json();
-}

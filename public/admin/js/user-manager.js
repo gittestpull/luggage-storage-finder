@@ -1,5 +1,3 @@
-console.log('typeof bootstrap:', typeof bootstrap);
-
 // 사용자 목록 로드 함수
 async function loadUsers() {
     console.log('loadUsers 함수 호출됨.');
@@ -60,32 +58,29 @@ function openUserModal(user = null) {
         return;
     }
 
-    // Add a small delay to ensure DOM is fully ready
-    setTimeout(() => {
-        try {
-            const modal = new bootstrap.Modal(userModalElement);
-            const form = document.getElementById('userForm');
-            form.reset(); // 폼 초기화
+    try {
+        const modal = new bootstrap.Modal(userModalElement);
+        const form = document.getElementById('userForm');
+        form.reset(); // 폼 초기화
 
-            if (user) {
-                document.getElementById('userModalLabel').textContent = '사용자 수정';
-                document.getElementById('userId').value = user._id;
-                document.getElementById('username').value = user.username;
-                document.getElementById('email').value = user.email || '';
-                document.getElementById('points').value = user.points || 0;
-                document.getElementById('isAdmin').checked = user.isAdmin;
-                document.getElementById('password').removeAttribute('required'); // 수정 시 비밀번호 필수는 아님
-            } else {
-                document.getElementById('userModalLabel').textContent = '새 사용자 추가';
-                document.getElementById('userId').value = '';
-                document.getElementById('password').setAttribute('required', 'required'); // 추가 시 비밀번호 필수
-            }
-            modal.show();
-        } catch (e) {
-            console.error('Error initializing Bootstrap modal:', e);
-            alert('모달 초기화 중 오류가 발생했습니다. 페이지를 새로고침해 주세요.');
+        if (user) {
+            document.getElementById('userModalLabel').textContent = '사용자 수정';
+            document.getElementById('userId').value = user._id;
+            document.getElementById('username').value = user.username;
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('points').value = user.points || 0;
+            document.getElementById('isAdmin').checked = user.isAdmin;
+            document.getElementById('password').removeAttribute('required'); // 수정 시 비밀번호 필수는 아님
+        } else {
+            document.getElementById('userModalLabel').textContent = '새 사용자 추가';
+            document.getElementById('userId').value = '';
+            document.getElementById('password').setAttribute('required', 'required'); // 추가 시 비밀번호 필수
         }
-    }, 50); // 50ms delay
+        modal.show();
+    } catch (e) {
+        console.error('Error initializing Bootstrap modal:', e);
+        alert('모달 초기화 중 오류가 발생했습니다. 페이지를 새로고침해 주세요.');
+    }
 }
 
 // 사용자 저장 (생성/수정) 함수

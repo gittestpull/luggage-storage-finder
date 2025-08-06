@@ -1,4 +1,79 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // 서비스 워커 등록
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                    // 푸시 구독 로직
+                    requestNotificationPermission(registration);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        });
+    }
+
+    // 푸시 알림 권한 요청 및 구독
+    async function requestNotificationPermission(registration) {
+        if (!('Notification' in window) || !('PushManager' in window)) {
+            console.warn('이 브라우저는 푸시 알림을 지원하지 않습니다.');
+            return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('알림 권한 허용됨.');
+            try {
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array('BEOlOiEIrR-D0n-H140Evw9VmgAr5LUvlkVDZPPlJvO1WtNYfVrRkdlWj-40ILyK9Hs9QeB4oUkft05V3l__nxQ') // VAPID 공개 키
+                });
+                console.log('푸시 구독 성공:', subscription);
+                // 구독 정보를 백엔드로 전송
+                await sendSubscriptionToBackend(subscription);
+            } catch (error) {
+                console.error('푸시 구독 실패:', error);
+            }
+        } else {
+            console.warn('알림 권한 거부됨.');
+        }
+    }
+
+    // VAPID 공개 키를 Uint8Array로 변환하는 헬퍼 함수
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    // 구독 정보를 백엔드로 전송하는 함수
+    async function sendSubscriptionToBackend(subscription) {
+        try {
+            const response = await fetch('/api/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(subscription),
+            });
+            if (response.ok) {
+                console.log('구독 정보 백엔드 전송 성공');
+            } else {
+                console.error('구독 정보 백엔드 전송 실패', await response.text());
+            }
+        } catch (error) {
+            console.error('구독 정보 전송 중 오류 발생:', error);
+        }
+    }
+
     // 모바일 메뉴 (햄버거) 기능 초기화
     initMobileMenu();
 
@@ -179,6 +254,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 초기 로드 시 해시 처리 (컴포넌트 로드 완료 후 실행)
     window.addEventListener('componentsLoaded', () => {
         handleHashChange();
+        // 프리미엄 서비스 버튼에 이벤트 리스너 연결
+        document.querySelectorAll('#premium .bg-yellow-500').forEach(button => {
+            button.addEventListener('click', handlePremiumRequest);
+        });
     });
 
     // 해시 변경 이벤트 리스너
@@ -234,11 +313,6 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('프리미엄 서비스 요청 중 오류가 발생했습니다.');
         }
     }
-
-    // 프리미엄 서비스 버튼에 이벤트 리스너 연결
-    document.querySelectorAll('#premium .bg-yellow-500').forEach(button => {
-        button.addEventListener('click', handlePremiumRequest);
-    });
 });
 
 /**

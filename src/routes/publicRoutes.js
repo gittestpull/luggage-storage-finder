@@ -44,8 +44,12 @@ router.post('/storages', optionalAuth, async (req, res) => {
 });
 
 const premiumController = require('../controllers/premiumController');
+const pushController = require('../controllers/pushController');
 
 // 프리미엄 서비스 요청
 router.post('/premium-request', premiumController.sendPremiumRequestNotification);
+
+// 푸시 구독 정보 저장
+router.post('/subscribe', pushController.subscribe);
 
 module.exports = router;

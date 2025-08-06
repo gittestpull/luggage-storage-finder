@@ -11,6 +11,8 @@ const axios = require('axios'); // axios 임포트
 const fs = require('fs'); // 파일 시스템 모듈 임포트
 const { parse } = require('csv-parse'); // CSV 파싱 라이브러리 임포트
 
+const { sendPushNotification } = require('../utils/pushNotifications');
+
 // Multer 설정: 파일이 메모리에 저장되도록 설정 (작은 파일에 적합)
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -207,7 +209,17 @@ router.post('/admin/storages/bulk-upload', auth, upload.single('csvFile'), async
         }
 
         if (newStorages.length > 0) {
-            await Storage.insertMany(newStorages);
+            const insertedStorages = await Storage.insertMany(newStorages);
+            // 새로운 짐보관소 등록 알림
+            for (const storage of insertedStorages) {
+                const notificationPayload = {
+                    title: '새로운 짐보관소 등록',
+                    body: `${storage.name} 짐보관소가 새로 등록되었습니다.`, 
+                    icon: '/images/icon-192x192.png',
+                    data: { url: '/list' } // 알림 클릭 시 이동할 URL
+                };
+                await sendPushNotification(notificationPayload);
+            }
         }
 
         res.json({
@@ -236,11 +248,34 @@ router.patch('/admin/reports/:id', auth, async (req, res) => {
         const report = await Report.findByIdAndUpdate(req.params.id, { reportStatus: status }, { new: true }).populate('reportedBy');
 
         if (status === 'approved') {
-            const { name, address, location, openTime, closeTime, is24Hours, smallPrice, largePrice } = report;
+            const { name, address, openTime, closeTime, is24Hours, smallPrice, largePrice } = report;
             console.log('승인된 제보 데이터:', report);
+
+            // 주소를 기반으로 지오코딩 수행
+            const geocodeResult = await getGeocode(address);
+            if (!geocodeResult) {
+                console.error(`짐보관소 ${name} (${address})의 위도/경도를 찾을 수 없어 짐보관소 생성을 건너뜁니다.`);
+                return res.status(400).json({ message: '짐보관소 주소의 위도/경도를 찾을 수 없습니다.' });
+            }
+
+            const location = {
+                type: 'Point',
+                coordinates: [geocodeResult.lng, geocodeResult.lat] // 경도, 위도 순서
+            };
+
             try {
                 const newStorage = await new Storage({ name, address, location, openTime, closeTime, is24Hours, smallPrice, largePrice }).save();
                 console.log('짐보관소 데이터가 성공적으로 저장되었습니다:', newStorage);
+
+                // 새로운 짐보관소 등록 알림
+                const notificationPayload = {
+                    title: '새로운 짐보관소 등록',
+                    body: `${newStorage.name} 짐보관소가 제보 승인으로 새로 등록되었습니다.`, 
+                    icon: '/images/icon-192x192.png',
+                    data: { url: '/list' } // 알림 클릭 시 이동할 URL
+                };
+                await sendPushNotification(notificationPayload);
+
             } catch (storageSaveError) {
                 console.error('짐보관소 저장 중 오류 발생:', storageSaveError);
             }

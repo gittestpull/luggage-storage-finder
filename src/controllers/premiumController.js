@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { sendPushNotification } = require('../utils/pushNotifications');
 
 const sendPremiumRequestNotification = async (req, res) => {
     const { storageName, userName, userEmail } = req.body;
@@ -8,6 +9,7 @@ const sendPremiumRequestNotification = async (req, res) => {
     }
 
     try {
+        // 1. 이메일 알림 전송
         const transporter = nodemailer.createTransport({
             service: 'gmail', // 또는 사용하려는 이메일 서비스 (예: Naver, Outlook)
             auth: {
@@ -34,9 +36,20 @@ const sendPremiumRequestNotification = async (req, res) => {
         };
 
         await transporter.sendMail(mailOptions);
+        console.log('관리자에게 이메일 알림 전송 성공');
+
+        // 2. 푸시 알림 전송
+        const notificationPayload = {
+            title: '새로운 프리미엄 서비스 요청',
+            body: `${storageName}에 대한 프리미엄 서비스 요청이 접수되었습니다.`, 
+            icon: '/images/icon-192x192.png',
+            data: { url: '/' } // 알림 클릭 시 이동할 URL
+        };
+        await sendPushNotification(notificationPayload);
+
         res.status(200).json({ message: '프리미엄 서비스 요청이 성공적으로 전송되었습니다.' });
     } catch (error) {
-        console.error('프리미엄 서비스 요청 알림 이메일 전송 실패:', error);
+        console.error('프리미엄 서비스 요청 처리 중 오류 발생:', error);
         res.status(500).json({ message: '프리미엄 서비스 요청 전송에 실패했습니다.', error: error.message });
     }
 };

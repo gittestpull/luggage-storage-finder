@@ -15,9 +15,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 푸시 알림 권한 요청 및 구독
-    async function requestNotificationPermission(registration) {
+    async function requestNotificationPermission(registration, storageId = null) {
         if (!('Notification' in window) || !('PushManager' in window)) {
             console.warn('이 브라우저는 푸시 알림을 지원하지 않습니다.');
+            alert('이 브라우저는 푸시 알림을 지원하지 않습니다.');
             return;
         }
 
@@ -31,12 +32,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 console.log('푸시 구독 성공:', subscription);
                 // 구독 정보를 백엔드로 전송
-                await sendSubscriptionToBackend(subscription);
+                await sendSubscriptionToBackend(subscription, storageId);
             } catch (error) {
                 console.error('푸시 구독 실패:', error);
+                alert('푸시 알림 구독에 실패했습니다. 브라우저 설정을 확인해주세요.');
             }
         } else {
             console.warn('알림 권한 거부됨.');
+            alert('푸시 알림 권한이 거부되었습니다. 알림을 받으려면 브라우저 설정을 변경해주세요.');
         }
     }
 
@@ -55,24 +58,47 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 구독 정보를 백엔드로 전송하는 함수
-    async function sendSubscriptionToBackend(subscription) {
+    async function sendSubscriptionToBackend(subscription, storageId) {
         try {
-            const response = await fetch('/api/subscribe', {
+            const token = localStorage.getItem('userToken');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const url = storageId ? `/api/storages/${storageId}/subscribe` : '/api/subscribe';
+
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify(subscription),
             });
             if (response.ok) {
+                // alert('알림 구독이 성공적으로 완료되었습니다!'); // 메시지 제거
                 console.log('구독 정보 백엔드 전송 성공');
             } else {
+                const errorData = await response.json();
+                if (errorData.message !== '이미 구독 중입니다.') { // 중복 구독 메시지는 알림창 띄우지 않음
+                    console.error(`알림 구독 실패: ${errorData.message || '알 수 없는 오류'}`); // alert 대신 console.error
+                }
                 console.error('구독 정보 백엔드 전송 실패', await response.text());
             }
         } catch (error) {
             console.error('구독 정보 전송 중 오류 발생:', error);
+            // alert('알림 구독 중 오류가 발생했습니다.'); // 알림 제거
         }
     }
+
+    // 특정 짐보관소 알림 구독 함수 (전역 노출)
+    window.subscribeToStorageNotifications = async (storageId, storageName) => {
+        console.log(`${storageName}에 대한 알림 구독 요청`);
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+            await requestNotificationPermission(registration, storageId);
+        } else {
+            console.error('서비스 워커가 등록되지 않아 알림을 받을 수 없습니다. 페이지를 새로고침 해주세요.'); // alert 대신 console.error
+        }
+    };
 
     // 모바일 메뉴 (햄버거) 기능 초기화
     initMobileMenu();
@@ -254,6 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 초기 로드 시 해시 처리 (컴포넌트 로드 완료 후 실행)
     window.addEventListener('componentsLoaded', () => {
         handleHashChange();
+        loadPremiumStorages(); // 프리미엄 짐보관소 로드
         // 프리미엄 서비스 버튼에 이벤트 리스너 연결
         document.querySelectorAll('#premium .bg-yellow-500').forEach(button => {
             button.addEventListener('click', handlePremiumRequest);
@@ -367,3 +394,19 @@ function initSearch() {
         });
     }
 }
+
+/**
+ * 페이지의 메타 태그(title, description)를 동적으로 업데이트합니다.
+ * @param {string} title - 새로운 페이지 제목
+ * @param {string} description - 새로운 페이지 설명
+ */
+function updateMetaTags(title, description) {
+    document.title = title;
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+        metaDescription.setAttribute('content', description);
+    }
+}
+
+// 전역에서 접근 가능하도록 함수를 window 객체에 할당
+window.updateMetaTags = updateMetaTags;

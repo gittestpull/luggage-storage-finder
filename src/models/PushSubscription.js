@@ -25,6 +25,11 @@ const PushSubscriptionSchema = new mongoose.Schema({
         ref: 'User', // User 모델과 연결 (선택 사항)
         required: false,
     },
+    storageId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Storage', // Storage 모델과 연결 (선택 사항)
+        required: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

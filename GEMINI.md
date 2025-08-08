@@ -9,10 +9,16 @@ The `luggage-storage-finder` is a web application designed to help users find lu
 
 **Key Features:**
 
+*   **Google Analytics 4 (GA4) Integration:** Implemented GA4 tracking on public and admin pages.
+*   **Enhanced SEO:** Dynamic meta tags for improved search engine visibility, and proper logo integration with alt text.
 *   **User Authentication:** Secure user login and registration.
 *   **Luggage Storage Management:** CRUD operations for luggage storage locations (admin panel).
-*   **Reporting System:** Users can report issues or new storage locations, which can be managed by administrators.
+*   **Reporting System:** Users can report issues or new storage locations, which can be managed by administrators. Enhanced to allow error reporting for existing storage entries.
 *   **Admin Dashboard:** Provides an overview of key metrics (storage count, reports, user counts).
+*   **Premium Storage Management:** New feature allowing administrators to designate and manage 'premium' luggage storage locations via the admin panel.
+*   **Premium Storage Reservation:** Users can request reservations for premium storage locations through a dedicated modal, triggering push notifications to relevant subscribers.
+*   **Specific Push Notifications:** Users can subscribe to receive push notifications for updates related to specific premium storage locations.
+*   **User Review System:** Frontend UI implemented for users to write and submit reviews for storage locations.
 *   **Geocoding:** Integration with Google Maps API for location services.
 *   **CSV Upload:** Bulk upload of storage data via CSV (admin panel).
 
@@ -120,16 +126,18 @@ This method requires Node.js and MongoDB to be installed and running separately 
 *   **Backend (Node.js/Express):**
     *   **API Structure:** Routes are defined in `src/routes/` and mounted under `/api`.
     *   **Authentication:** JWT-based authentication is used, with middleware in `src/middleware/auth.js`.
-    *   **Database Models:** Mongoose schemas and models are defined in `src/models/`.
+    *   **Database Models:** Mongoose schemas and models are defined in `src/models/`. `Storage` model now includes `isPremium` field. `PushSubscription` model includes `storageId` for specific notifications.
     *   **Environment Variables:** Sensitive information and configurations are managed via `.env` files using `dotenv`.
     *   **Password Hashing:** `bcryptjs` is used for secure password storage.
     *   **File Uploads:** `multer` is used for handling file uploads, particularly for CSV data.
     *   **External APIs:** `axios` is used for making HTTP requests to external services (e.g., Google Geocoding API).
+    *   **Push Notifications:** Implemented using `web-push` for sending notifications to subscribed users.
 *   **Frontend:**
     *   **Structure:** HTML files are in `public/`, with separate directories for admin and shared components.
     *   **Styling:** Primarily uses Tailwind CSS, with some Bootstrap 5 for specific components like modals in the admin panel.
-    *   **JavaScript:** Client-side logic is organized into separate files (`public/js/`, `public/admin/js/`) and dynamically loaded as needed.
+    *   **JavaScript:** Client-side logic is organized into separate files (`public/js/`, `public/admin/js/`). New files include `premium-loader.js`, `reservation-modal.js`, `premium-manager.js`.
     *   **Component Loading:** Admin panel components are dynamically loaded into the `main-content` area based on navigation hash changes.
+    *   **User Experience:** Improved navigation, dynamic meta tags, and interactive elements for reservation and review submission.
 *   **Testing:**
     *   `playwright test` is configured for end-to-end testing. Test files are located in the `tests/` directory.
 

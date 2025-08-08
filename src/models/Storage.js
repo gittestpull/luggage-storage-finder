@@ -7,6 +7,7 @@ const storageSchema = new mongoose.Schema({
     openTime: String,
     closeTime: String,
     is24Hours: Boolean,
+    isPremium: { type: Boolean, default: false },
     smallPrice: Number,
     largePrice: Number,
     status: { isOpen: { type: Boolean, default: true }, lastUpdated: { type: Date, default: Date.now } },

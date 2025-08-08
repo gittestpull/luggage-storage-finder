@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
             case '#user-management':
                 url = '/admin/components/user-management.html';
                 break;
+            case '#premium-management':
+                url = '/admin/components/premium-management.html';
+                break;
             case '#dashboard':
             default:
                 url = '/admin/components/dashboard.html';
@@ -56,6 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 script.onload = () => {
                     if (typeof initUserManagement === 'function') {
                         initUserManagement();
+                    }
+                };
+                mainContent.appendChild(script);
+            } else if (hash === '#premium-management') {
+                const script = document.createElement('script');
+                script.src = '/admin/js/premium-manager.js';
+                script.onload = () => {
+                    if (typeof loadPremiumStorages === 'function') {
+                        loadPremiumStorages();
                     }
                 };
                 mainContent.appendChild(script);

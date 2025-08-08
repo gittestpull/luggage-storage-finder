@@ -246,6 +246,13 @@ async function showStorageDetails(storageId) {
         const targetStorage = storages.find(s => s._id === storageId);
 
         if (targetStorage) {
+            // 메타 태그 업데이트
+            const title = `${targetStorage.name} - 내 주변 짐보관소 찾기`;
+            const description = `${targetStorage.address}에 위치한 ${targetStorage.name}의 상세 정보입니다. 운영 시간, 가격, 실시간 현황을 확인하세요.`;
+            if (typeof updateMetaTags === 'function') {
+                updateMetaTags(title, description);
+            }
+
             const lat = targetStorage.location.coordinates ? targetStorage.location.coordinates[1] : targetStorage.lat;
             const lng = targetStorage.location.coordinates ? targetStorage.location.coordinates[0] : targetStorage.lng;
 
@@ -254,20 +261,10 @@ async function showStorageDetails(storageId) {
                 googleMap.setCenter(position);
                 googleMap.setZoom(15); // 상세 정보를 볼 때 확대
 
-                // 기존 마커 제거 (선택된 짐보관소만 강조하기 위해)
-                // 이 부분은 필요에 따라 전체 마커를 유지하고 선택된 마커만 강조하는 방식으로 변경 가능
-                // 현재는 모든 마커를 다시 그리는 방식이 아니므로, 특정 마커를 강조하는 로직이 필요할 수 있음
-
                 // 해당 짐보관소 마커를 다시 생성하여 정보창을 띄움
                 const marker = createMarker(googleMap, targetStorage);
-                // 마커 클릭 이벤트를 강제로 발생시켜 정보창을 띄움
                 google.maps.event.trigger(marker, 'click');
 
-                // 지도 섹션으로 이동 (main.js의 showSection 함수 사용)
-                if (typeof showSection === 'function') {
-                    showSection('map');
-                    window.location.hash = '#map'; // URL 해시도 변경
-                }
             } else {
                 alert('선택된 짐보관소의 위치 정보가 유효하지 않습니다.');
             }

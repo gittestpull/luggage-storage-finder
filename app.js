@@ -62,3 +62,17 @@ app.get('/admin/index.html', (req, res) => {
 app.listen(PORT, () => {
     console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
 });
+
+// 404 에러 처리
+app.use((req, res, next) => {
+    res.status(404).json({ message: 'Not Found' });
+});
+
+// 일반 에러 처리 미들웨어
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.statusCode || 500).json({
+        message: err.message || 'Internal Server Error',
+        error: err.name
+    });
+});

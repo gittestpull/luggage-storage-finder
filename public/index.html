@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="가장 가까운 짐보관소를 쉽고 빠르게 찾아보세요. 여행자와 도시 방문객을 위한 필수 짐보관소 찾기 서비스입니다.">
     <meta name="keywords" content="짐보관소, 짐보관, 물품보관, 여행, 서울, 지하철, 코인락커, luggage storage">
-    <title>짐보관소 찾기 서비스</title>
+    <title>내 주변 짐보관소 찾기 - 가장 가까운 물품보관소 검색</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2N6DWK6Y32"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-2N6DWK6Y32');
+    </script>
     <!-- Tailwind CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- 커스텀 CSS -->
@@ -17,7 +26,10 @@
     <header class="bg-white shadow-md sticky top-0 z-50">
         <div class="container mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-blue-600">짐보관소 찾기</h1>
+                <a href="/" class="flex items-center">
+                    <img src="/images/logo.png" alt="짐보관소 찾기 서비스 로고" class="h-10 mr-3">
+                    <span class="text-2xl font-bold text-blue-600">짐보관소 찾기</span>
+                </a>
                 
                 <!-- 데스크톱 네비게이션 -->
                 <nav class="hidden md:flex items-center">
@@ -35,6 +47,7 @@
                         <li id="userProfileArea" class="hidden">
                             <span id="userNickname" class="text-blue-600 font-medium"></span>
                             <span id="userPoints" class="ml-2 text-sm text-gray-600">(<span class="font-bold">0</span> P)</span>
+                            <button id="myReportsButton" class="ml-2 text-sm text-blue-500 hover:underline">내 신고 내역</button>
                             <button id="logoutButton" class="ml-2 text-sm text-red-500 hover:underline">로그아웃</button>
                         </li>
                     </ul>
@@ -67,6 +80,7 @@
                  <li id="mobileUserProfileArea" class="hidden pt-2 border-t">
                     <span id="mobileUserNickname" class="text-blue-600 font-medium"></span>
                     <span id="mobileUserPoints" class="ml-2 text-sm text-gray-600">(<span class="font-bold">0</span> P)</span>
+                    <button id="mobileMyReportsButton" class="w-full mt-2 text-left text-sm text-blue-500 hover:underline">내 신고 내역</button>
                     <button id="mobileLogoutButton" class="w-full mt-2 text-left text-sm text-red-500 hover:underline">로그아웃</button>
                 </li>
             </ul>
@@ -89,6 +103,9 @@
 
             <!-- 프리미엄 섹션 -->
             <div data-include="components/premium-section.html"></div>
+
+            <!-- 짐보관 꿀팁 섹션 -->
+            <div data-include="components/tips-section.html"></div>
 
             <!-- 서비스 소개 섹션 -->
             <section id="about-service" class="my-8 bg-white p-6 rounded-lg shadow-md hidden">
@@ -372,12 +389,15 @@
 
     <!-- 앱 스크립트 -->
     <script src="/js/api.js"></script>
-    <script src="/js/map.js"></script>
-    <script src="/js/storage-list.js"></script>
-    <script src="/js/report-form.js"></script>
     <script src="/js/auth.js"></script>
     <script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
     <script src="/js/main.js"></script>
+    <script src="/js/report-error-modal.js"></script>
+    <script src="/js/premium-loader.js"></script>
+    <script src="/js/reservation-modal.js"></script>
+    <script src="/js/map.js"></script>
+    <script src="/js/storage-list.js"></script>
+    <script src="/js/report-form.js"></script>
 
     <script>
         // 서버에서 API 키를 가져와 구글 지도 스크립트 로드
@@ -398,5 +418,63 @@
                 console.error('Google Maps API 키를 불러오는 데 실패했습니다.', error);
             });
     </script>
+    <!-- Report Error Modal -->
+    <div id="reportErrorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">정보 오류 신고</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500" id="modalStorageName"></p>
+                    <textarea id="reportErrorDescription" class="mt-3 p-2 w-full border rounded-md" rows="4" placeholder="어떤 정보가 잘못되었는지 자세히 설명해주세요."></textarea>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="submitReportError" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        신고하기
+                    </button>
+                    <button id="closeReportErrorModal" class="mt-3 px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservation Modal -->
+    <div id="reservationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">짐보관소 예약하기</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 mb-4" id="modalReservationStorageName"></p>
+                    <form id="reservationForm" class="space-y-4">
+                        <div>
+                            <label for="reserverName" class="block text-sm font-medium text-gray-700">이름</label>
+                            <input type="text" id="reserverName" name="reserverName" required
+                                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="reserverEmail" class="block text-sm font-medium text-gray-700">이메일</label>
+                            <input type="email" id="reserverEmail" name="reserverEmail" required
+                                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="reserverPhone" class="block text-sm font-medium text-gray-700">전화번호 (선택)</label>
+                            <input type="tel" id="reserverPhone" name="reserverPhone"
+                                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div class="items-center px-4 py-3">
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                예약 요청하기
+                            </button>
+                            <button type="button" id="closeReservationModal" class="mt-3 px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                취소
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

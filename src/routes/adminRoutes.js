@@ -363,4 +363,18 @@ router.delete('/admin/users/:id', auth, async (req, res) => {
     }
 });
 
+// 짐보관소 프리미엄 상태 변경
+router.put('/admin/storages/:id/premium', auth, async (req, res) => {
+    try {
+        const { isPremium } = req.body;
+        const storage = await Storage.findByIdAndUpdate(req.params.id, { isPremium }, { new: true });
+        if (!storage) {
+            return res.status(404).json({ message: '짐보관소를 찾을 수 없습니다.' });
+        }
+        res.json(storage);
+    } catch (e) {
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
 module.exports = router;

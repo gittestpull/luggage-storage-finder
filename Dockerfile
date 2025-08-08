@@ -10,6 +10,7 @@ RUN npm install
 
 # 소스 파일 복사
 COPY . .
+COPY importCsvData.js .
 
 # 포트 설정
 EXPOSE 3000

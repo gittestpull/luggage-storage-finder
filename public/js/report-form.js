@@ -111,6 +111,9 @@ function useMyLocationForReport() {
                     latInput.value = lat;
                     lngInput.value = lng;
                     
+                    // Call reverse geocoding to set the address
+                    reverseGeocodeAndSetAddress(lat, lng); // <--- Add this line
+                    
                     // 위치 정보 표시
                     const locationInfo = document.getElementById('locationInfo');
                     if (locationInfo) {

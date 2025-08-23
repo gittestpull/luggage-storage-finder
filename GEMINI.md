@@ -22,6 +22,22 @@ The `luggage-storage-finder` is a web application designed to help users find lu
         *   **Cleaned `publicRoutes.js`:** Removed duplicate code blocks from `src/routes/publicRoutes.js` to improve code integrity.
         *   **Added Debugging Logs:** Integrated detailed `console.log` statements in `map.js` and `report-form.js` to aid in troubleshooting frontend interactions.
         *   **Temporary Backend Adjustment:** Modified `src/routes/publicRoutes.js` to always return all storage locations for debugging purposes (this change can be reverted later if desired).
+    *   **CLI Agent-Driven Enhancements (August 2025):**
+        *   **Frontend UI/UX Enhancements:**
+            *   **Default View:** Changed the initial page load to display only the map and list sections by default.
+            *   **Login/Register UI:** Removed social login buttons (Kakao/Naver) from the login section.
+            *   **Report Form - "Use My Location" Feature:** Added a "내 위치 찾기" button to the report form and implemented reverse geocoding to automatically populate the address field. Refactored map-related JavaScript for reusability.
+        *   **Authentication & Authorization Refactoring:**
+            *   **Middleware Separation:** Modified `src/middleware/auth.js` for general authentication and created `src/middleware/isAdmin.js` for admin-specific authorization.
+            *   **Route Protection:** Applied the new `isAdmin` middleware to all admin-specific routes.
+            *   **Token Handling:** Improved frontend logic to gracefully handle invalid or expired authentication tokens.
+        *   **Bug Fixes:**
+            *   Fixed `ReferenceError` and `SyntaxError` in `public/js/main.js` and `public/js/auth.js`.
+            *   Resolved incorrect login form submission.
+            *   Fixed non-functional mobile logout button.
+        *   **Content Updates:**
+            *   Updated `public/components/privacy-policy.html` and `public/components/contact-us.html` with richer content and restyled them to match the FAQ page.
+            *   Changed the privacy policy contact person to "개인정보팀".
 
 *   **Google Analytics 4 (GA4) Integration:** Implemented GA4 tracking on public and admin pages.
 *   **Enhanced SEO:** Dynamic meta tags for improved search engine visibility, and proper logo integration with alt text.

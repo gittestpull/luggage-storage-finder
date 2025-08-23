@@ -231,11 +231,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 componentPath = 'components/faq.html';
                 console.log(`자주 묻는 질문 컴포넌트 경로: ${componentPath}`);
                 break;
-            default: // 기본적으로 메인 페이지의 모든 섹션을 표시
-                console.log('기본 섹션 (메인 페이지) 표시');
-                mainPageContent.style.display = 'block';
-                mainContentContainer.style.display = 'none';
-                sections.forEach(section => section.classList.remove('hidden'));
+            default: // 기본적으로 지도와 리스트 섹션만 표시
+                console.log('기본 섹션 (지도와 리스트) 표시');
+                mainPageContent.style.display = 'block'; // Ensure main content area is visible
+                mainContentContainer.style.display = 'none'; // Hide dynamic content container
+
+                // Explicitly show map, search, and list sections
+                document.getElementById('map').classList.remove('hidden');
+                document.getElementById('search').classList.remove('hidden');
+                document.getElementById('list').classList.remove('hidden');
+
+                // Initialize map and load storage list
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+                if (document.getElementById('list')) { // Check if list element exists before calling loadStorageList
+                    loadStorageList();
+                }
                 return;
         }
 

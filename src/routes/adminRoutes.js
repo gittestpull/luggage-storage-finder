@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
+const isAdmin = require('../middleware/isAdmin');
 const User = require('../models/User');
 const Storage = require('../models/Storage');
 const Report = require('../models/Report');
@@ -49,7 +50,7 @@ router.post('/admin/login', async (req, res) => {
 });
 
 // 대시보드 데이터 (인증 필요)
-router.get('/admin/dashboard', auth, async (req, res) => {
+router.get('/admin/dashboard', auth, isAdmin, async (req, res) => {
     try {
         const [storageCount, reportCount, regularUserCount, adminUserCount, recentUsers, recentReports, reportStats] = await Promise.all([
             Storage.countDocuments(),
@@ -77,14 +78,14 @@ router.get('/admin/dashboard', auth, async (req, res) => {
 });
 
 // 관리자용 짐보관소 목록 (인증 필요)
-router.get('/admin/storages', auth, async (req, res) => {
+router.get('/admin/storages', auth, isAdmin, async (req, res) => {
     try {
         res.json(await Storage.find().populate({ path: 'report', populate: { path: 'reportedBy', select: 'username' } }).sort({ createdAt: -1 }));
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 
 // 짐보관소 상세 정보 (인증 필요)
-router.get('/storages/:id', auth, async (req, res) => {
+router.get('/storages/:id', auth, isAdmin, async (req, res) => {
     try {
         const storage = await Storage.findById(req.params.id);
         if (!storage) return res.status(404).json({ message: '짐보관소를 찾을 수 없습니다.' });
@@ -93,14 +94,14 @@ router.get('/storages/:id', auth, async (req, res) => {
 });
 
 // 짐보관소 정보 업데이트 (인증 필요)
-router.put('/storages/:id', auth, async (req, res) => {
+router.put('/storages/:id', auth, isAdmin, async (req, res) => {
     try {
         res.json(await Storage.findByIdAndUpdate(req.params.id, req.body, { new: true }));
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 
 // 짐보관소 삭제 (인증 필요)
-router.delete('/storages/:id', auth, async (req, res) => {
+router.delete('/storages/:id', auth, isAdmin, async (req, res) => {
     try {
         await Storage.findByIdAndDelete(req.params.id);
         res.json({ message: '삭제 완료' });
@@ -108,7 +109,7 @@ router.delete('/storages/:id', auth, async (req, res) => {
 });
 
 // 짐보관소 상태 업데이트 (관리자용)
-router.patch('/admin/storages/:id/status', auth, async (req, res) => {
+router.patch('/admin/storages/:id/status', auth, isAdmin, async (req, res) => {
     try {
         const { isOpen } = req.body;
         const storage = await Storage.findByIdAndUpdate(req.params.id, { 'status.isOpen': isOpen, 'status.lastUpdated': new Date() }, { new: true });
@@ -118,7 +119,7 @@ router.patch('/admin/storages/:id/status', auth, async (req, res) => {
 });
 
 // 여러 짐보관소 상태 일괄 업데이트 (관리자용)
-router.patch('/admin/storages/bulk-status', auth, async (req, res) => {
+router.patch('/admin/storages/bulk-status', auth, isAdmin, async (req, res) => {
     try {
         const { ids, isOpen } = req.body;
         if (!Array.isArray(ids) || ids.length === 0) {
@@ -133,7 +134,7 @@ router.patch('/admin/storages/bulk-status', auth, async (req, res) => {
 });
 
 // 짐보관소 일괄 추가 (CSV 업로드)
-router.post('/admin/storages/bulk-upload', auth, upload.single('csvFile'), async (req, res) => {
+router.post('/admin/storages/bulk-upload', auth, isAdmin, upload.single('csvFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'CSV 파일을 업로드해주세요.' });
     }
@@ -235,14 +236,14 @@ router.post('/admin/storages/bulk-upload', auth, upload.single('csvFile'), async
 });
 
 // 모든 제보 목록 가져오기 (인증 필요)
-router.get('/admin/reports', auth, async (req, res) => {
+router.get('/admin/reports', auth, isAdmin, async (req, res) => {
     try {
         res.json(await Report.find().populate('reportedBy', 'username').sort({ createdAt: -1 }));
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 
 // 제보 상태 업데이트 (승인/반려) 및 포인트 지급
-router.patch('/admin/reports/:id', auth, async (req, res) => {
+router.patch('/admin/reports/:id', auth, isAdmin, async (req, res) => {
     try {
         const { status } = req.body;
         const report = await Report.findByIdAndUpdate(req.params.id, { reportStatus: status }, { new: true }).populate('reportedBy');
@@ -294,14 +295,14 @@ router.patch('/admin/reports/:id', auth, async (req, res) => {
 });
 
 // 모든 사용자 목록 가져오기 (인증 필요)
-router.get('/admin/users', auth, async (req, res) => {
+router.get('/admin/users', auth, isAdmin, async (req, res) => {
     try {
         res.json(await User.find().select('-password').sort({ createdAt: -1 }));
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
 
 // 사용자 생성 (인증 필요)
-router.post('/admin/users', auth, async (req, res) => {
+router.post('/admin/users', auth, isAdmin, async (req, res) => {
     try {
         const { username, password, isAdmin, points } = req.body;
 
@@ -330,7 +331,7 @@ router.post('/admin/users', auth, async (req, res) => {
 });
 
 // 사용자 수정 (인증 필요)
-router.put('/admin/users/:id', auth, async (req, res) => {
+router.put('/admin/users/:id', auth, isAdmin, async (req, res) => {
     try {
         const { username, password, isAdmin, points } = req.body;
         const updateData = { username, isAdmin, points };
@@ -352,7 +353,7 @@ router.put('/admin/users/:id', auth, async (req, res) => {
 });
 
 // 사용자 삭제 (인증 필요)
-router.delete('/admin/users/:id', auth, async (req, res) => {
+router.delete('/admin/users/:id', auth, isAdmin, async (req, res) => {
     try {
         const deletedUser = await User.findByIdAndDelete(req.params.id);
         if (!deletedUser) {
@@ -366,7 +367,7 @@ router.delete('/admin/users/:id', auth, async (req, res) => {
 });
 
 // 짐보관소 프리미엄 상태 변경
-router.put('/admin/storages/:id/premium', auth, async (req, res) => {
+router.put('/admin/storages/:id/premium', auth, isAdmin, async (req, res) => {
     try {
         const { isPremium } = req.body;
         const storage = await Storage.findByIdAndUpdate(req.params.id, { isPremium }, { new: true });

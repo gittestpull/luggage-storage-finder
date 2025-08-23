@@ -102,6 +102,7 @@ function initializeKakaoSDK() {
 }
 
 function setupEventListeners() {
+    console.log('setupEventListeners 함수 시작');
     // 로그인/회원가입 폼 전환
     const showRegisterFormBtn = document.getElementById('showRegisterForm');
     const showLoginFormBtn = document.getElementById('showLoginForm');
@@ -125,15 +126,25 @@ function setupEventListeners() {
     }
 
     // 폼 제출 이벤트
-    document.getElementById('loginForm')?.addEventListener('submit', handleLoginFormSubmit);
-    document.getElementById('registerForm')?.addEventListener('submit', handleRegisterFormSubmit);
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLoginFormSubmit);
+    }
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegisterFormSubmit);
+    }
 
     // 로그아웃 버튼
     document.getElementById('logoutButton')?.addEventListener('click', logout);
+    document.getElementById('mobileLogoutButton')?.addEventListener('click', logout);
     
     // 카카오 로그인 버튼
     document.getElementById('kakaoLoginBtn')?.addEventListener('click', kakaoLogin);
 }
+
+// 전역에서 접근 가능하도록 함수를 window 객체에 할당
+window.setupEventListeners = setupEventListeners;
 
 function togglePasswordVisibility(inputElement) {
     if (inputElement.type === 'password') {
@@ -199,7 +210,7 @@ function kakaoLogin() {
         success: function(authObj) {
             Kakao.API.request({
                 url: '/v2/user/me',
-                success: function(res) {
+                success: async function(res) {
                     const { id, kakao_account } = res;
                     const { profile, email } = kakao_account;
                     localStorage.setItem('userToken', authObj.access_token);
@@ -237,20 +248,16 @@ function kakaoLogin() {
 
 // 일반 로그인 폼 제출 처리
 async function handleLoginFormSubmit(e) {
-    console.log('handleLoginFormSubmit 함수 시작');
-    e.preventDefault();
-    console.log('e.preventDefault() 실행됨');
+    e.preventDefault(); // Keep this, as it's called by the delegated handler
     const username = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    
+
     if (!username || !password) {
         alert('이메일과 비밀번호를 모두 입력해주세요.');
-        console.log('유효성 검사 실패: 이메일 또는 비밀번호 누락');
         return;
     }
-    
+
     try {
-        console.log('로그인 API 요청 시작');
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -295,9 +302,11 @@ function logout() {
     if (loginType === 'kakao' && Kakao.Auth.getAccessToken()) {
         Kakao.Auth.logout(() => {
             clearUserData();
+            alert('로그아웃 되었습니다.');
         });
     } else {
         clearUserData();
+        alert('로그아웃 되었습니다.');
     }
 }
 
@@ -306,31 +315,34 @@ function clearUserData() {
     localStorage.clear();
     updateLoginUI(false);
     document.getElementById('login').classList.remove('hidden');
-    alert('로그아웃 되었습니다.');
 }
 
 // 로그인 상태 확인
-function checkLoginStatus() {
+async function checkLoginStatus() {
     const userToken = localStorage.getItem('userToken');
-    const nickname = localStorage.getItem('userNickname');
-    const points = localStorage.getItem('userPoints');
-    const submittedPoints = localStorage.getItem('userSubmittedReportPoints');
-    const approvedPoints = localStorage.getItem('userApprovedReportPoints');
-    
+
     if (userToken) {
-        // 최신 사용자 정보 가져와서 UI 업데이트
         try {
             const updatedUser = await fetchCurrentUserProfile();
-            localStorage.setItem('userPoints', updatedUser.points);
-            localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
-            localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
-            updateLoginUI(true, updatedUser.username, updatedUser.points, updatedUser.submittedReportPoints, updatedUser.approvedReportPoints);
-        } catch (profileError) {
-            console.error('로그인 상태 확인 중 사용자 프로필 업데이트 실패:', profileError);
-            // 오류 발생 시 기존 로직으로 대체 (총 포인트만 표시)
-            updateLoginUI(true, nickname, points, submittedPoints, approvedPoints);
+            if (updatedUser) {
+                // User is authenticated, update UI and localStorage
+                localStorage.setItem('userPoints', updatedUser.points);
+                localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
+                localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
+                localStorage.setItem('userNickname', updatedUser.username);
+                localStorage.setItem('userId', updatedUser._id);
+
+                updateLoginUI(true, updatedUser.username, updatedUser.points, updatedUser.submittedReportPoints, updatedUser.approvedReportPoints);
+                document.getElementById('login').classList.add('hidden');
+            } else {
+                // Token is invalid or expired, clear it silently
+                clearUserData();
+            }
+        } catch (error) {
+            console.error('로그인 상태 확인 중 오류 발생:', error);
+            // On other errors (e.g. network), treat as logged out.
+            updateLoginUI(false);
         }
-        document.getElementById('login').classList.add('hidden');
     } else {
         updateLoginUI(false);
     }

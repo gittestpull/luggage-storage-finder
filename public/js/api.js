@@ -68,6 +68,19 @@ async function submitStorageReport(formData) {
             data[key] = value;
         });
 
+        // lat, lng 값을 location 객체로 변환
+        const lat = formData.get('lat');
+        const lng = formData.get('lng');
+        if (lat && lng) {
+            data.location = {
+                type: 'Point',
+                coordinates: [parseFloat(lng), parseFloat(lat)]
+            };
+            // 원본 formData에서 lat, lng 제거 (중복 방지)
+            delete data.lat;
+            delete data.lng;
+        }
+
         // 로그인한 사용자의 ID를 reportedBy 필드에 추가
         const userId = localStorage.getItem('userId');
         if (userId) {
@@ -117,6 +130,28 @@ async function updateStorageStatus(id, isOpen) {
         return await response.json();
     } catch (error) {
         console.error('짐보관소 상태 업데이트 실패:', error);
+        throw error;
+    }
+}
+
+// 현재 로그인된 사용자 정보 가져오기
+async function fetchCurrentUserProfile() {
+    try {
+        const token = localStorage.getItem('userToken');
+        if (!token) {
+            throw new Error('로그인 토큰이 없습니다.');
+        }
+        const response = await fetch('/api/user/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error('사용자 정보를 불러오지 못했습니다.');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('현재 사용자 프로필 불러오기 실패:', error);
         throw error;
     }
 }

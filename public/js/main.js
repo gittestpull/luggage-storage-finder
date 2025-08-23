@@ -188,8 +188,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
             case 'report':
-                console.log('제보하기 섹션 표시');
+                console.log('제보하기 섹션 표시 및 지도 초기화');
                 document.getElementById('report').classList.remove('hidden');
+                // 제보하기 섹션에서 지도를 함께 표시
+                document.getElementById('map').classList.remove('hidden');
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+                if (typeof initReportForm === 'function') {
+                    initReportForm();
+                }
                 break;
             case 'login':
                 console.log('로그인 섹션 표시');

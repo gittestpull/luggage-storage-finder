@@ -282,9 +282,11 @@ router.patch('/admin/reports/:id', auth, async (req, res) => {
 
             // 포인트 지급 로직
             if (report.reportedBy) {
-                report.reportedBy.points += 100; // 예시: 100 포인트 지급
+                const APPROVED_REPORT_POINTS = 100; // 승인당 지급할 포인트
+                report.reportedBy.approvedReportPoints += APPROVED_REPORT_POINTS; // 승인 포인트 지급
+                report.reportedBy.points = report.reportedBy.submittedReportPoints + report.reportedBy.approvedReportPoints; // 총 포인트 업데이트
                 await report.reportedBy.save();
-                console.log(`사용자 ${report.reportedBy.username}에게 100 포인트 지급됨. 현재 포인트: ${report.reportedBy.points}`);
+                console.log(`사용자 ${report.reportedBy.username}에게 ${APPROVED_REPORT_POINTS} 승인 포인트 지급됨. 현재 총 포인트: ${report.reportedBy.points}`);
             }
         }
         res.json(report);

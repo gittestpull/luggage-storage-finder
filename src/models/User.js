@@ -5,7 +5,9 @@ const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
-    points: { type: Number, default: 0 } // 포인트 필드 추가
+    points: { type: Number, default: 0 }, // 총 포인트
+    submittedReportPoints: { type: Number, default: 0 }, // 제보 점수
+    approvedReportPoints: { type: Number, default: 0 } // 승인 점수
 });
 
 userSchema.pre('save', async function(next) {

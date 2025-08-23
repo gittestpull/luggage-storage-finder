@@ -5,6 +5,7 @@
 
 // 제보 폼 초기화 및 이벤트 설정
 function initReportForm() {
+    console.log('initReportForm 함수 호출됨.');
     const reportForm = document.getElementById('reportForm');
     if (!reportForm) return;
     
@@ -24,6 +25,19 @@ function addLocationSelectUI(reportForm) {
     locationInfoContainer.className = 'mt-4 mb-4 hidden text-center p-2 bg-blue-100 rounded';
     locationInfoContainer.id = 'locationInfo';
     locationInfoContainer.textContent = '지도를 클릭하여 정확한 위치를 선택해주세요.';
+    
+    // 숨겨진 위도/경도 입력 필드 추가
+    const latInputHidden = document.createElement('input');
+    latInputHidden.type = 'hidden';
+    latInputHidden.id = 'lat';
+    latInputHidden.name = 'lat';
+    reportForm.appendChild(latInputHidden);
+
+    const lngInputHidden = document.createElement('input');
+    lngInputHidden.type = 'hidden';
+    lngInputHidden.id = 'lng';
+    lngInputHidden.name = 'lng';
+    reportForm.appendChild(lngInputHidden);
     
     // 지도로 위치 선택 버튼 추가
     const locationSelectRow = document.createElement('div');
@@ -160,9 +174,25 @@ function setupFormSubmission(reportForm) {
             
             // API 요청
             const result = await submitStorageReport(formData);
+
+            // 제출 버튼 복원 (성공 시)
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
             
             console.log('제보 성공:', result);
             alert('짐보관소 제보가 완료되었습니다! 검토 후 적립금이 지급됩니다. 감사합니다!');
+            
+            // 사용자 포인트 정보 업데이트
+            try {
+                const updatedUser = await fetchCurrentUserProfile();
+                localStorage.setItem('userPoints', updatedUser.points);
+                localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
+                localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
+                // UI 업데이트
+                updateLoginUI(true, updatedUser.username, updatedUser.points, updatedUser.submittedReportPoints, updatedUser.approvedReportPoints);
+            } catch (profileError) {
+                console.error('사용자 프로필 업데이트 실패:', profileError);
+            }
             
             // 폼 초기화
             reportForm.reset();
@@ -190,10 +220,6 @@ function setupFormSubmission(reportForm) {
             console.error('제보 오류:', error);
             alert(error.message || '제보 중 오류가 발생했습니다. 다시 시도해 주세요.');
         } finally {
-            // 제출 버튼 복원
-            const submitBtn = reportForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalBtnText;
         }
     });
 }

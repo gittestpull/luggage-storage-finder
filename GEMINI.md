@@ -9,6 +9,20 @@ The `luggage-storage-finder` is a web application designed to help users find lu
 
 **Key Features:**
 
+*   **Recent Enhancements and Bug Fixes:**
+    *   **Map Functionality Enhancements:**
+        *   **Corrected Coordinate Handling:** Ensured `latitude` and `longitude` are correctly extracted from `storage.location.coordinates` for map marker display.
+        *   **Improved Map Initialization:** Ensured the map is properly initialized and visible when navigating to the "Report" section.
+        *   **Reverse Geocoding for Reporting:** Implemented functionality to automatically populate the address field in the report form based on a map click, using Google Maps Geocoding API.
+    *   **Report Submission Improvements:**
+        *   **Dynamic Form Element Management:** Centralized the creation and management of hidden `lat`/`lng` input fields and `locationInfo` display within `report-form.js` for better consistency.
+        *   **Correct Location Data Formatting:** Ensured `lat` and `lng` values from the report form are correctly transformed into the `location: { type: 'Point', coordinates: [lng, lat] }` format for database storage.
+        *   **Enhanced UI Feedback on Submission:** Refined the submit button's state management to immediately revert from "Submitting..." to its original text upon successful submission or error, providing clearer user feedback.
+    *   **Debugging and Codebase Refinements:**
+        *   **Cleaned `publicRoutes.js`:** Removed duplicate code blocks from `src/routes/publicRoutes.js` to improve code integrity.
+        *   **Added Debugging Logs:** Integrated detailed `console.log` statements in `map.js` and `report-form.js` to aid in troubleshooting frontend interactions.
+        *   **Temporary Backend Adjustment:** Modified `src/routes/publicRoutes.js` to always return all storage locations for debugging purposes (this change can be reverted later if desired).
+
 *   **Google Analytics 4 (GA4) Integration:** Implemented GA4 tracking on public and admin pages.
 *   **Enhanced SEO:** Dynamic meta tags for improved search engine visibility, and proper logo integration with alt text.
 *   **User Authentication:** Secure user login and registration.

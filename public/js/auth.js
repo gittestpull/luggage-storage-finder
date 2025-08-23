@@ -207,8 +207,18 @@ function kakaoLogin() {
                     localStorage.setItem('userNickname', profile.nickname);
                     localStorage.setItem('userEmail', email || '');
                     localStorage.setItem('loginType', 'kakao');
-                    localStorage.setItem('userPoints', 0); // 초기 포인트
-                    updateLoginUI(true, profile.nickname, 0);
+                    // 최신 사용자 정보 가져와서 UI 업데이트
+                    try {
+                        const updatedUser = await fetchCurrentUserProfile();
+                        localStorage.setItem('userPoints', updatedUser.points);
+                        localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
+                        localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
+                        updateLoginUI(true, updatedUser.username, updatedUser.points, updatedUser.submittedReportPoints, updatedUser.approvedReportPoints);
+                    } catch (profileError) {
+                        console.error('카카오 로그인 후 사용자 프로필 업데이트 실패:', profileError);
+                        // 오류 발생 시 기존 로직으로 대체 (총 포인트만 표시)
+                        updateLoginUI(true, profile.nickname, 0, 0, 0);
+                    }
                     document.getElementById('login').classList.add('hidden');
                     alert(`환영합니다, ${profile.nickname}님!`);
                 },
@@ -227,16 +237,20 @@ function kakaoLogin() {
 
 // 일반 로그인 폼 제출 처리
 async function handleLoginFormSubmit(e) {
+    console.log('handleLoginFormSubmit 함수 시작');
     e.preventDefault();
+    console.log('e.preventDefault() 실행됨');
     const username = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     
     if (!username || !password) {
         alert('이메일과 비밀번호를 모두 입력해주세요.');
+        console.log('유효성 검사 실패: 이메일 또는 비밀번호 누락');
         return;
     }
     
     try {
+        console.log('로그인 API 요청 시작');
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -252,10 +266,20 @@ async function handleLoginFormSubmit(e) {
         localStorage.setItem('userToken', token);
         localStorage.setItem('userId', user.id);
         localStorage.setItem('userNickname', user.username);
-        localStorage.setItem('userPoints', user.points);
         localStorage.setItem('loginType', 'normal');
         
-        updateLoginUI(true, user.username, user.points);
+        // 최신 사용자 정보 가져와서 UI 업데이트
+        try {
+            const updatedUser = await fetchCurrentUserProfile();
+            localStorage.setItem('userPoints', updatedUser.points);
+            localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
+            localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
+            updateLoginUI(true, updatedUser.username, updatedUser.points, updatedUser.submittedReportPoints, updatedUser.approvedReportPoints);
+        } catch (profileError) {
+            console.error('로그인 후 사용자 프로필 업데이트 실패:', profileError);
+            // 오류 발생 시 기존 로직으로 대체 (총 포인트만 표시)
+            updateLoginUI(true, user.username, user.points, 0, 0);
+        }
         document.getElementById('login').classList.add('hidden');
         alert(`환영합니다, ${user.username}님!`);
 
@@ -290,9 +314,22 @@ function checkLoginStatus() {
     const userToken = localStorage.getItem('userToken');
     const nickname = localStorage.getItem('userNickname');
     const points = localStorage.getItem('userPoints');
+    const submittedPoints = localStorage.getItem('userSubmittedReportPoints');
+    const approvedPoints = localStorage.getItem('userApprovedReportPoints');
     
     if (userToken) {
-        updateLoginUI(true, nickname, points);
+        // 최신 사용자 정보 가져와서 UI 업데이트
+        try {
+            const updatedUser = await fetchCurrentUserProfile();
+            localStorage.setItem('userPoints', updatedUser.points);
+            localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
+            localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
+            updateLoginUI(true, updatedUser.username, updatedUser.points, updatedUser.submittedReportPoints, updatedUser.approvedReportPoints);
+        } catch (profileError) {
+            console.error('로그인 상태 확인 중 사용자 프로필 업데이트 실패:', profileError);
+            // 오류 발생 시 기존 로직으로 대체 (총 포인트만 표시)
+            updateLoginUI(true, nickname, points, submittedPoints, approvedPoints);
+        }
         document.getElementById('login').classList.add('hidden');
     } else {
         updateLoginUI(false);
@@ -300,19 +337,38 @@ function checkLoginStatus() {
 }
 
 // UI 업데이트
-function updateLoginUI(isLoggedIn, nickname = '', points = 0) {
+function updateLoginUI(isLoggedIn, nickname = '', totalPoints = 0, submittedPoints = 0, approvedPoints = 0) {
     const loginLink = document.querySelector('a[href="#login"]');
     const userProfileArea = document.getElementById('userProfileArea');
     const userNickname = document.getElementById('userNickname');
     const userPoints = document.getElementById('userPoints');
+    const userSubmittedPoints = document.getElementById('userSubmittedPoints');
+    const userApprovedPoints = document.getElementById('userApprovedPoints');
+
+    const mobileUserProfileArea = document.getElementById('mobileUserProfileArea');
+    const mobileUserNickname = document.getElementById('mobileUserNickname');
+    const mobileUserPoints = document.getElementById('mobileUserPoints');
+    const mobileUserSubmittedPoints = document.getElementById('mobileUserSubmittedPoints');
+    const mobileUserApprovedPoints = document.getElementById('mobileUserApprovedPoints');
     
     if (isLoggedIn) {
         loginLink?.parentElement.classList.add('hidden');
         userProfileArea?.classList.remove('hidden');
+        mobileUserProfileArea?.classList.remove('hidden');
+
         if(userNickname) userNickname.textContent = nickname;
-        if(userPoints) userPoints.querySelector('span').textContent = points?.toLocaleString() || 0;
+        if(userPoints) userPoints.querySelector('span').textContent = totalPoints?.toLocaleString() || 0;
+        if(userSubmittedPoints) userSubmittedPoints.querySelector('span').textContent = submittedPoints?.toLocaleString() || 0;
+        if(userApprovedPoints) userApprovedPoints.querySelector('span').textContent = approvedPoints?.toLocaleString() || 0;
+
+        if(mobileUserNickname) mobileUserNickname.textContent = nickname;
+        if(mobileUserPoints) mobileUserPoints.querySelector('span').textContent = totalPoints?.toLocaleString() || 0;
+        if(mobileUserSubmittedPoints) mobileUserSubmittedPoints.querySelector('span').textContent = submittedPoints?.toLocaleString() || 0;
+        if(mobileUserApprovedPoints) mobileUserApprovedPoints.querySelector('span').textContent = approvedPoints?.toLocaleString() || 0;
+
     } else {
         loginLink?.parentElement.classList.remove('hidden');
         userProfileArea?.classList.add('hidden');
+        mobileUserProfileArea?.classList.add('hidden');
     }
 }

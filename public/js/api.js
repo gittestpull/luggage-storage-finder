@@ -133,3 +133,25 @@ async function updateStorageStatus(id, isOpen) {
         throw error;
     }
 }
+
+// 현재 로그인된 사용자 정보 가져오기
+async function fetchCurrentUserProfile() {
+    try {
+        const token = localStorage.getItem('userToken');
+        if (!token) {
+            throw new Error('로그인 토큰이 없습니다.');
+        }
+        const response = await fetch('/api/user/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error('사용자 정보를 불러오지 못했습니다.');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('현재 사용자 프로필 불러오기 실패:', error);
+        throw error;
+    }
+}

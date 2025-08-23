@@ -46,6 +46,18 @@ router.post('/storages', optionalAuth, async (req, res) => {
 
         const newReport = new Report(reportData);
         await newReport.save();
+
+        // 포인트 지급 로직
+        if (req.user) {
+            const User = require('../models/User'); // User 모델 임포트
+            const REPORT_POINTS = 10; // 제보당 지급할 포인트
+            try {
+                await User.findByIdAndUpdate(req.user.userId, { $inc: { submittedReportPoints: REPORT_POINTS } });
+                console.log(`${req.user.userId} 사용자에게 ${REPORT_POINTS} 제보 포인트 지급 완료.`);
+            } catch (pointError) {
+                console.error('포인트 지급 중 오류 발생:', pointError);
+            }
+        }
         res.status(201).json(newReport);
     } catch (e) {
         console.error('새 짐보관소 제보 저장 중 오류 발생:', e);

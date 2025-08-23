@@ -182,6 +182,18 @@ function setupFormSubmission(reportForm) {
             console.log('제보 성공:', result);
             alert('짐보관소 제보가 완료되었습니다! 검토 후 적립금이 지급됩니다. 감사합니다!');
             
+            // 사용자 포인트 정보 업데이트
+            try {
+                const updatedUser = await fetchCurrentUserProfile();
+                localStorage.setItem('userPoints', updatedUser.points);
+                localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
+                localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
+                // UI 업데이트
+                updateLoginUI(true, updatedUser.username, updatedUser.points, updatedUser.submittedReportPoints, updatedUser.approvedReportPoints);
+            } catch (profileError) {
+                console.error('사용자 프로필 업데이트 실패:', profileError);
+            }
+            
             // 폼 초기화
             reportForm.reset();
             

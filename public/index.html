@@ -27,7 +27,6 @@
         <div class="container mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
                 <a href="/" class="flex items-center">
-                    <img src="/images/logo.png" alt="짐보관소 찾기 서비스 로고" class="h-10 mr-3">
                     <span class="text-2xl font-bold text-blue-600">짐보관소 찾기</span>
                 </a>
                 
@@ -46,7 +45,9 @@
                         <li><a href="#login" class="text-gray-600 hover:text-blue-600">로그인</a></li>
                         <li id="userProfileArea" class="hidden">
                             <span id="userNickname" class="text-blue-600 font-medium"></span>
-                            <span id="userPoints" class="ml-2 text-sm text-gray-600">(<span class="font-bold">0</span> P)</span>
+                            <span id="userPoints" class="ml-2 text-sm text-gray-600">(총 <span class="font-bold">0</span> P)</span>
+                            <span id="userSubmittedPoints" class="ml-2 text-sm text-gray-600">(제보 <span class="font-bold">0</span> P)</span>
+                            <span id="userApprovedPoints" class="ml-2 text-sm text-gray-600">(승인 <span class="font-bold">0</span> P)</span>
                             <button id="myReportsButton" class="ml-2 text-sm text-blue-500 hover:underline">내 신고 내역</button>
                             <button id="logoutButton" class="ml-2 text-sm text-red-500 hover:underline">로그아웃</button>
                         </li>
@@ -79,7 +80,9 @@
                 <li><a href="#login" class="block text-gray-600 hover:text-blue-600">로그인</a></li>
                  <li id="mobileUserProfileArea" class="hidden pt-2 border-t">
                     <span id="mobileUserNickname" class="text-blue-600 font-medium"></span>
-                    <span id="mobileUserPoints" class="ml-2 text-sm text-gray-600">(<span class="font-bold">0</span> P)</span>
+                    <span id="mobileUserPoints" class="ml-2 text-sm text-gray-600">(총 <span class="font-bold">0</span> P)</span>
+                    <span id="mobileUserSubmittedPoints" class="ml-2 text-sm text-gray-600">(제보 <span class="font-bold">0</span> P)</span>
+                    <span id="mobileUserApprovedPoints" class="ml-2 text-sm text-gray-600">(승인 <span class="font-bold">0</span> P)</span>
                     <button id="mobileMyReportsButton" class="w-full mt-2 text-left text-sm text-blue-500 hover:underline">내 신고 내역</button>
                     <button id="mobileLogoutButton" class="w-full mt-2 text-left text-sm text-red-500 hover:underline">로그아웃</button>
                 </li>
@@ -290,7 +293,7 @@
                     </div>
                 </div>
                 
-                <form id="loginForm" class="space-y-4">
+                <form id="loginForm" class="space-y-4" method="post">
                     <div>
                         <label for="email" class="block text-gray-700 mb-1">이메일</label>
                         <input type="email" id="email" name="email" required
@@ -331,7 +334,7 @@
             <!-- 회원가입 섹션 -->
             <section id="register" class="my-8 bg-white p-6 rounded-lg shadow-md hidden">
                 <h3 class="text-2xl font-bold mb-4">회원가입</h3>
-                <form id="registerForm" class="space-y-4">
+                <form id="registerForm" class="space-y-4" method="post">
                     <div>
                         <label for="registerEmail" class="block text-gray-700 mb-1">이메일</label>
                         <input type="email" id="registerEmail" name="username" required

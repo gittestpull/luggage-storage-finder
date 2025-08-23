@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연예 뉴스</title>
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- 커스텀 CSS -->
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="bg-gray-100">
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <a href="/" class="flex items-center">
+                    <span class="text-2xl font-bold text-blue-600">짐보관소 찾기</span>
+                </a>
+                <nav>
+                    <ul class="flex space-x-4 items-center">
+                        <li><a href="/" class="text-gray-600 hover:text-blue-600">홈</a></li>
+                        <li><a href="/news.html" class="text-blue-600 font-bold">연예 뉴스</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6 text-center">연예 뉴스</h1>
+        <div id="news-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 뉴스 기사가 여기에 동적으로 로드됩니다 -->
+            <p class="col-span-full text-center text-gray-500">뉴스를 불러오는 중...</p>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white p-4 text-center mt-8">
+        <p>&copy; 2025 짐보관소 찾기 서비스. 모든 권리 보유.</p>
+    </footer>
+
+    <script src="/js/news.js"></script>
+</body>
+</html>

@@ -68,6 +68,19 @@ async function submitStorageReport(formData) {
             data[key] = value;
         });
 
+        // lat, lng 값을 location 객체로 변환
+        const lat = formData.get('lat');
+        const lng = formData.get('lng');
+        if (lat && lng) {
+            data.location = {
+                type: 'Point',
+                coordinates: [parseFloat(lng), parseFloat(lat)]
+            };
+            // 원본 formData에서 lat, lng 제거 (중복 방지)
+            delete data.lat;
+            delete data.lng;
+        }
+
         // 로그인한 사용자의 ID를 reportedBy 필드에 추가
         const userId = localStorage.getItem('userId');
         if (userId) {

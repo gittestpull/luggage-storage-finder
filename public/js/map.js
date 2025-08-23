@@ -41,15 +41,46 @@ function initMap() {
                     latInput.value = lat;
                     lngInput.value = lng;
                     
+                    // 역지오코딩을 통해 주소 가져오기
+                    const geocoder = new google.maps.Geocoder();
+                    geocoder.geocode({ 'location': { lat, lng } }, (results, status) => {
+                        console.log('역지오코딩 상태:', status);
+                        if (status === 'OK') {
+                            if (results[0]) {
+                                console.log('역지오코딩 결과 주소:', results[0].formatted_address);
+                                const addressInput = document.getElementById('address');
+                                if (addressInput) {
+                                    console.log('주소 입력 필드 찾음. 값 설정 중...');
+                                    addressInput.value = results[0].formatted_address;
+                                    console.log('주소 입력 필드 값 설정 완료:', addressInput.value);
+                                } else {
+                                    console.warn('주소 입력 필드 (ID: address)를 찾을 수 없습니다.');
+                                }
+                                const locationInfo = document.getElementById('locationInfo');
+                                if(locationInfo) {
+                                    locationInfo.textContent = `선택한 위치: ${results[0].formatted_address} (위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)})`;
+                                    locationInfo.classList.remove('hidden');
+                                }
+                            } else {
+                                console.warn('주소를 찾을 수 없습니다.');
+                                const locationInfo = document.getElementById('locationInfo');
+                                if(locationInfo) {
+                                    locationInfo.textContent = `선택한 위치: 주소 없음 (위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)})`;
+                                    locationInfo.classList.remove('hidden');
+                                }
+                            }
+                        } else {
+                            console.error('역지오코딩 실패:', status);
+                            const locationInfo = document.getElementById('locationInfo');
+                            if(locationInfo) {
+                                locationInfo.textContent = `선택한 위치: 역지오코딩 실패 (위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)})`;
+                                locationInfo.classList.remove('hidden');
+                            }
+                        }
+                    });
+                    
                     // 마커 추가
                     updateReportMarker(map, lat, lng);
-                    
-                    // 알림
-                    const locationInfo = document.getElementById('locationInfo');
-                    if(locationInfo) {
-                        locationInfo.textContent = `선택한 위치: 위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)}`;
-                        locationInfo.classList.remove('hidden');
-                    }
                 }
             });
         } else {

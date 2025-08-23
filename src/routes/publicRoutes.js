@@ -19,12 +19,7 @@ router.get('/storages/premium', async (req, res) => {
 // 모든 짐보관소 가져오기
 router.get('/storages', optionalAuth, async (req, res) => {
     try {
-        let storages;
-        if (req.user) { // 로그인된 사용자 (토큰이 유효한 경우)
-            storages = await Storage.find();
-        } else { // 로그인되지 않은 사용자
-            storages = await Storage.find().limit(2);
-        }
+        let storages = await Storage.find(); // Always return all storages for debugging
         res.json(storages);
     } catch (e) { res.status(500).json({ message: '서버 오류' }); }
 });
@@ -64,126 +59,13 @@ router.post('/reports', optionalAuth, async (req, res) => {
         const { storageId, storageName, description } = req.body;
         if (!storageId || !storageName || !description) {
             return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
-        }
-
-        const express = require('express');
-const router = express.Router();
-const Storage = require('../models/Storage');
-const Report = require('../models/Report');
-
-const optionalAuth = require('../middleware/optionalAuth');
-const auth = require('../middleware/auth'); // Add auth middleware
-
-// 모든 짐보관소 가져오기
-router.get('/storages', optionalAuth, async (req, res) => {
-    try {
-        let storages;
-        if (req.user) { // 로그인된 사용자 (토큰이 유효한 경우)
-            storages = await Storage.find();
-        } else { // 로그인되지 않은 사용자
-            storages = await Storage.find().limit(2);
-        }
-        res.json(storages);
-    } catch (e) { res.status(500).json({ message: '서버 오류' }); }
-});
-
-// 검색어로 짐보관소 검색
-router.get('/storages/search', async (req, res) => {
-    try {
-        const { keyword } = req.query;
-        if (!keyword) return res.status(400).json({ message: '검색어를 입력해주세요.' });
-        res.json(await Storage.find({ $or: [{ name: { $regex: keyword, $options: 'i' } }, { address: { $regex: keyword, $options: 'i' } }] }));
-    } catch (e) { res.status(500).json({ message: '서버 오류', error: e.message }); }
-});
-
-// 새 짐보관소 제보하기 (기존 기능 유지)
-router.post('/storages', optionalAuth, async (req, res) => {
-    try {
-        const reportData = { ...req.body };
-        if (req.user) {
-            reportData.reportedBy = req.user.userId;
-        }
-        // 새로운 짐보관소 제보이므로 storageId와 storageName은 없음
-        reportData.storageId = null;
-        reportData.storageName = null;
-
-        const newReport = new Report(reportData);
-        await newReport.save();
-        res.status(201).json(newReport);
-    } catch (e) {
-        console.error('새 짐보관소 제보 저장 중 오류 발생:', e);
-        res.status(500).json({ message: '서버 오류', error: e.message });
-    }
-});
-
-// 기존 짐보관소 정보 오류 신고하기 (새로운 기능)
-router.post('/reports', optionalAuth, async (req, res) => {
-    try {
-        const { storageId, storageName, description } = req.body;
-        if (!storageId || !storageName || !description) {
-            return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
-        }
-
-        const express = require('express');
-const router = express.Router();
-const Storage = require('../models/Storage');
-const Report = require('../models/Report');
-
-const optionalAuth = require('../middleware/optionalAuth');
-const auth = require('../middleware/auth'); // auth 미들웨어 추가
-
-// 모든 짐보관소 가져오기
-router.get('/storages', optionalAuth, async (req, res) => {
-    try {
-        let storages;
-        if (req.user) { // 로그인된 사용자
-            storages = await Storage.find();
-        } else { // 비로그인 사용자
-            storages = await Storage.find().limit(2);
-        }
-        res.json(storages);
-    } catch (e) { res.status(500).json({ message: '서버 오류' }); }
-});
-
-// 검색어로 짐보관소 검색
-router.get('/storages/search', async (req, res) => {
-    try {
-        const { keyword } = req.query;
-        if (!keyword) return res.status(400).json({ message: '검색어를 입력해주세요.' });
-        const results = await Storage.find({ $or: [{ name: { $regex: keyword, $options: 'i' } }, { address: { $regex: keyword, $options: 'i' } }] });
-        res.json(results);
-    } catch (e) { res.status(500).json({ message: '서버 오류', error: e.message }); }
-});
-
-// 새 짐보관소 제보하기
-router.post('/storages', optionalAuth, async (req, res) => {
-    try {
-        const reportData = { ...req.body, type: 'new' }; // 제보 유형 추가
-        if (req.user) {
-            reportData.reportedBy = req.user.userId;
-        }
-        const newReport = new Report(reportData);
-        await newReport.save();
-        res.status(201).json(newReport);
-    } catch (e) {
-        console.error('새 짐보관소 제보 저장 중 오류 발생:', e);
-        res.status(500).json({ message: '서버 오류', error: e.message });
-    }
-});
-
-// 기존 짐보관소 정보 오류 신고하기
-router.post('/reports', optionalAuth, async (req, res) => {
-    try {
-        const { storageId, storageName, description } = req.body;
-        if (!storageId || !description) {
-            return res.status(400).json({ message: '필수 정보(storageId, description)가 누락되었습니다.' });
         }
 
         const reportData = {
             type: 'correction',
             storageId,
-            name: `(오류신고) ${storageName || '이름 없는 보관소'}`,
-            address: `(오류신고) ${storageName || '이름 없는 보관소'}`,
+            name: `(오류신고) ${storageName || '이름 없는 보관소'}`, 
+            address: `(오류신고) ${storageName || '이름 없는 보관소'}`, 
             location: { type: 'Point', coordinates: [0, 0] }, // 임시 위치 정보 추가
             description,
         };
@@ -211,7 +93,6 @@ router.get('/reports/my', auth, async (req, res) => {
         res.status(500).json({ message: '서버 오류', error: e.message });
     }
 });
-
 
 const premiumController = require('../controllers/premiumController');
 const pushController = require('../controllers/pushController');
@@ -302,64 +183,5 @@ router.post('/reservations', auth, async (req, res) => {
 router.get('/maps/key', (req, res) => {
     res.json({ apiKey: process.env.GOOGLE_MAPS_API_KEY });
 });
-
-module.exports = router;
-
-        if (req.user) {
-            reportData.reportedBy = req.user.userId;
-        }
-
-        const newReport = new Report(reportData);
-        await newReport.save();
-        res.status(201).json(newReport);
-    } catch (e) {
-        console.error('정보 오류 신고 저장 중 오류 발생:', e);
-        res.status(500).json({ message: '서버 오류', error: e.message });
-    }
-});
-
-// 사용자가 제출한 신고 이력 조회 (새로운 엔드포인트)
-router.get('/reports/my', auth, async (req, res) => {
-    try {
-        const myReports = await Report.find({ reportedBy: req.user.userId }).populate('reportedBy', 'username');
-        res.json(myReports);
-    } catch (e) {
-        console.error('내 신고 이력 조회 중 오류 발생:', e);
-        res.status(500).json({ message: '서버 오류', error: e.message });
-    }
-});
-
-const premiumController = require('../controllers/premiumController');
-const pushController = require('../controllers/pushController');
-
-// 프리미엄 서비스 요청
-router.post('/premium-request', premiumController.sendPremiumRequestNotification);
-
-// 푸시 구독 정보 저장
-router.post('/subscribe', pushController.subscribe);
-
-module.exports = router;
-
-        if (req.user) {
-            reportData.reportedBy = req.user.userId;
-        }
-
-        const newReport = new Report(reportData);
-        await newReport.save();
-        res.status(201).json(newReport);
-    } catch (e) {
-        console.error('정보 오류 신고 저장 중 오류 발생:', e);
-        res.status(500).json({ message: '서버 오류', error: e.message });
-    }
-});
-
-const premiumController = require('../controllers/premiumController');
-const pushController = require('../controllers/pushController');
-
-// 프리미엄 서비스 요청
-router.post('/premium-request', premiumController.sendPremiumRequestNotification);
-
-// 푸시 구독 정보 저장
-router.post('/subscribe', pushController.subscribe);
 
 module.exports = router;

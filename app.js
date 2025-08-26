@@ -23,6 +23,7 @@ connectDB();
 const publicRoutes = require('./src/routes/publicRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const authRoutes = require('./src/routes/authRoutes');
+const newsRoutes = require('./src/routes/newsRoutes');
 
 // Express 앱 초기화
 const app = express();
@@ -38,6 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', publicRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', authRoutes);
+app.use('/api/news', newsRoutes);
 
 // Google Maps API 키를 클라이언트에 전달하는 라우트 (이것은 publicRoutes에 포함될 수도 있지만, 일단 여기에 유지)
 app.get('/api/maps/key', (req, res) => {

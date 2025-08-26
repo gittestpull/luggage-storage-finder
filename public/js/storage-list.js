@@ -9,11 +9,17 @@ async function loadStorageList() {
     if (!listContainer) return;
     
     try {
+        // Clear existing ads from AdSense's internal tracking
+        if (window.adsbygoogle && window.adsbygoogle.loaded) { // Check if AdSense is loaded
+            window.adsbygoogle = window.adsbygoogle || [];
+            window.adsbygoogle.length = 0; // Clear the array
+        }
+
         // 로딩 표시
         listContainer.innerHTML = '<div class="col-span-full text-center py-8"><p>짐보관소 정보를 불러오는 중...</p></div>';
         
         // API에서 데이터 가져오기
-        const storages = await fetchAllStorages();
+        const storages = await api.getStorages();
         console.log('fetchAllStorages에서 반환된 데이터:', storages);
         
         // 리스트 비우기
@@ -27,12 +33,15 @@ async function loadStorageList() {
                 const storageCard = createStorageCard(storage);
                 listContainer.appendChild(storageCard);
 
-                // 3번째 아이템 뒤에 광고 카드 삽입
-                if (index === 2) {
+                // 30번째 아이템마다 광고 카드 삽입 (0-indexed: 29, 59, 89, ...)
+                if ((index + 1) % 30 === 0) {
                     const adCard = createAdCard('list-ad');
                     listContainer.appendChild(adCard);
                 }
             });
+            
+            // After all ads are added to the DOM, push them to AdSense
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
             
             // 로그인 안내 메시지 추가
             if (storages.length === 2 && !localStorage.getItem('adminToken')) { // adminToken으로 로그인 여부 판단
@@ -232,23 +241,28 @@ function addCardEventListeners(card, storage) {
 
 // 광고 카드 HTML 엘리먼트 생성
 function createAdCard(type) {
-    const adCard = document.createElement('div');
-    adCard.className = 'bg-gray-200 p-4 rounded-lg shadow-md text-center';
+    const adContainer = document.createElement('div');
+    adContainer.className = 'bg-white p-4 rounded-lg shadow-md text-center'; // Ad card styling
     
     if (type === 'list-ad') {
-        adCard.innerHTML = `
-            <h5 class="font-bold text-gray-800">광고</h5>
-            <p class="text-gray-600">이목을 집중시키는 광고를 여기에 넣어보세요!</p>
-            <a href="#" class="text-blue-600 hover:underline">더 알아보기</a>
-        `;
+        const insElement = document.createElement('ins');
+        insElement.className = 'adsbygoogle';
+        insElement.style.display = 'block';
+        insElement.setAttribute('data-ad-client', 'ca-pub-2858917314962782');
+        insElement.setAttribute('data-ad-slot', '1234567890'); // Use the placeholder for now
+        insElement.setAttribute('data-ad-format', 'auto');
+        insElement.setAttribute('data-full-width-responsive', 'true');
+        
+        adContainer.appendChild(insElement);
+        
     } else if (type === 'banner-ad') {
-        adCard.className = 'fixed bottom-0 left-0 right-0 bg-yellow-300 p-2 text-center shadow-lg z-50';
-        adCard.innerHTML = `
+        adContainer.className = 'fixed bottom-0 left-0 right-0 bg-yellow-300 p-2 text-center shadow-lg z-50';
+        adContainer.innerHTML = `
             <p class="text-sm text-yellow-800">✨ 특별 할인 이벤트! 지금 예약하고 20% 할인 받으세요! <a href="#" class="font-bold underline">자세히 보기</a></p>
         `;
     }
     
-    return adCard;
+    return adContainer;
 }
 
 // 업데이트 시간 표시 형식 생성
@@ -302,7 +316,7 @@ async function loadMoreStorages() {
     
     try {
         // 모든 데이터 가져오기
-        const storages = await fetchAllStorages();
+        const storages = await api.getStorages();
         
         // 더 보여줄 데이터가 없으면 버튼 숨김
         if (currentCount >= storages.length) {

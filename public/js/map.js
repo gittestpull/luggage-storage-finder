@@ -85,7 +85,7 @@ function clearAllMarkers() {
 // 서버에서 짐보관소 데이터 가져와서 지도에 표시
 async function loadStoragesToMap(map) {
     try {
-        const storages = await fetchAllStorages();
+        const storages = await api.getStorages();
         
         if (storages && storages.length > 0) {
             // 서버에서 받은 데이터로 마커 생성
@@ -277,7 +277,7 @@ async function showStorageDetails(storageId) {
     }
 
     try {
-        const storages = await fetchAllStorages();
+        const storages = await api.getStorages();
         const targetStorage = storages.find(s => s._id === storageId);
 
         if (targetStorage) {

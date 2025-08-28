@@ -399,9 +399,9 @@ function initSearch() {
         const performSearch = () => {
             const query = searchInput.value.trim();
             if (query) {
-                displaySearchResults(query);
+                loadStorageList(query); // Call loadStorageList with the search query
             } else {
-                resetSearchResults();
+                loadStorageList(); // Load all storages if query is empty
             }
         };
 

@@ -10,6 +10,9 @@ const storageSchema = new mongoose.Schema({
     isPremium: { type: Boolean, default: false },
     smallPrice: Number,
     largePrice: Number,
+    lockerCounts: String, // Added: 시설수
+    phoneNumber: String,  // Added: 전화번호
+    dataStandardDate: String, // Added: 데이터 기준일자
     status: { isOpen: { type: Boolean, default: true }, lastUpdated: { type: Date, default: Date.now } },
     createdAt: { type: Date, default: Date.now },
     report: { type: mongoose.Schema.Types.ObjectId, ref: 'Report', required: false } // 제보 ID 추가

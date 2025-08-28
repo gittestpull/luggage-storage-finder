@@ -4,23 +4,29 @@
  */
 
 // 짐보관소 목록을 로드하고 표시하는 함수
-async function loadStorageList() {
+async function loadStorageList(searchQuery = '') {
     const listContainer = document.querySelector('#list .grid');
     if (!listContainer) return;
+
+    const listSection = document.getElementById('list'); // Get the list section
+    const sectionTitle = listSection ? listSection.querySelector('h3') : null; // Get the section title
     
     try {
-        // Clear existing ads from AdSense's internal tracking
-        if (window.adsbygoogle && window.adsbygoogle.loaded) { // Check if AdSense is loaded
-            window.adsbygoogle = window.adsbygoogle || [];
-            window.adsbygoogle.length = 0; // Clear the array
-        }
-
         // 로딩 표시
         listContainer.innerHTML = '<div class="col-span-full text-center py-8"><p>짐보관소 정보를 불러오는 중...</p></div>';
         
         // API에서 데이터 가져오기
-        const storages = await api.getStorages();
+        const storages = await api.getStorages(searchQuery); // Pass searchQuery
         console.log('fetchAllStorages에서 반환된 데이터:', storages);
+
+        // Update section title based on search query
+        if (sectionTitle) {
+            if (searchQuery) {
+                sectionTitle.textContent = `"${searchQuery}" 검색 결과 (${storages.length}개)`;
+            } else {
+                sectionTitle.textContent = '짐보관소 리스트';
+            }
+        }
         
         // 리스트 비우기
         listContainer.innerHTML = '';
@@ -29,7 +35,7 @@ async function loadStorageList() {
             console.log('짐보관소 데이터가 존재하여 렌더링을 시작합니다.');
             // 실제 데이터로 리스트 생성
             storages.forEach((storage, index) => {
-                console.log('렌더링할 짐보관소:', storage);
+                console.log('렌더링할 짐보관소:', storage); // Added console.log for debugging
                 const storageCard = createStorageCard(storage);
                 listContainer.appendChild(storageCard);
 
@@ -40,9 +46,6 @@ async function loadStorageList() {
                 }
             });
             
-            // After all ads are added to the DOM, push them to AdSense
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-            
             // 로그인 안내 메시지 추가
             if (storages.length === 2 && !localStorage.getItem('adminToken')) { // adminToken으로 로그인 여부 판단
                 const loginPrompt = document.createElement('div');
@@ -51,11 +54,11 @@ async function loadStorageList() {
                 listContainer.appendChild(loginPrompt);
             }
             
-            // 더보기 버튼이 있다면 업데이트
-            updateLoadMoreButton(storages.length);
+            // 더보기 버튼이 있다면 업데이트 (hide if search query is active)
+            updateLoadMoreButton(storages.length, searchQuery); // Pass searchQuery to updateLoadMoreButton
         } else {
             // 데이터가 없는 경우
-            listContainer.innerHTML = '<div class="col-span-full text-center py-8"><p>등록된 짐보관소가 없습니다.</p></div>';
+            listContainer.innerHTML = '<div class="col-span-full text-center py-8"><p>검색 결과가 없습니다.</p></div>'; // Changed message for no search results
         }
     } catch (error) {
         console.error('짐보관소 목록 로드 실패:', error);
@@ -94,6 +97,9 @@ function createStorageCard(storage) {
             <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">소형: ${(storage.smallPrice || 0).toLocaleString()}원/일</span>
             <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">대형: ${(storage.largePrice || 0).toLocaleString()}원/일</span>
         </div>
+        ${storage.lockerCounts ? `<div class="text-sm text-gray-700 mb-1">보관함 수: ${storage.lockerCounts}</div>` : ''}
+        ${storage.phoneNumber ? `<div class="text-sm text-gray-700 mb-1">전화번호: ${storage.phoneNumber}</div>` : ''}
+        ${storage.dataStandardDate ? `<div class="text-sm text-gray-700 mb-1">데이터 기준일: ${storage.dataStandardDate}</div>` : ''}
         <div class="flex justify-between mt-2 items-center">
             <div>
                 <button class="text-blue-600 hover:underline detail-btn" data-id="${storage._id || '0'}">상세정보</button>
@@ -287,19 +293,19 @@ function getUpdateTimeText(updateTime) {
 }
 
 // 더보기 버튼 업데이트
-function updateLoadMoreButton(itemCount) {
+function updateLoadMoreButton(itemCount, searchQuery = '') { // Add searchQuery parameter
     const loadMoreBtn = document.querySelector('#list .text-center button');
     if (loadMoreBtn) {
-        // 아이템이 적으면 버튼 숨기기
-        if (itemCount < 3) { 
+        // Hide button if a search query is active or items are few
+        if (searchQuery || itemCount < 3) { // Hide if searching or few items
             loadMoreBtn.classList.add('hidden');
         } else {
             loadMoreBtn.classList.remove('hidden');
-            
+
             // 이벤트 리스너 재설정 (중복 방지)
             loadMoreBtn.replaceWith(loadMoreBtn.cloneNode(true));
             const newLoadMoreBtn = document.querySelector('#list .text-center button');
-            
+
             // 새 이벤트 리스너 등록
             newLoadMoreBtn.addEventListener('click', () => {
                 loadMoreStorages();

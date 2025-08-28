@@ -89,22 +89,8 @@
 
     <script src="/js/api.js"></script>
     <script src="/js/news.js"></script>
+    <script src="/api/maps/script?callback=initMap&libraries=geometry" async defer></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // 서버에서 API 키를 가져와 구글 지도 스크립트 로드
-            fetch('/api/maps/key')
-                .then(response => response.json())
-                .then(data => {
-                    const script = document.createElement('script');
-                    script.src = `https://maps.googleapis.com/maps/api/js?key=${data.apiKey}&callback=initMap&libraries=geometry`;
-                    script.loading = "async";
-                    document.head.appendChild(script);
-                })
-                .catch(error => {
-                    console.error('Google Maps API 키를 불러오는 데 실패했습니다.', error);
-                });
-        });
-
         function initMap() {
             // The news.js script will handle the map logic
         }

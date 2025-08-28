@@ -408,25 +408,7 @@
     <script src="/js/storage-list.js"></script>
     <script src="/js/report-form.js"></script>
 
-    <script>
-        // 서버에서 API 키를 가져와 구글 지도 스크립트 로드
-        fetch('/api/maps/key')
-            .then(response => response.json())
-            .then(data => {
-                const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${data.apiKey}&callback=initMap`;
-                script.async = true;
-                script.defer = true;
-                script.onerror = () => { // 오류 핸들러 추가
-                    console.error('Google Maps API 스크립트 로드 실패.');
-                    alert('지도를 불러오는 데 실패했습니다. 네트워크 연결을 확인해주세요.');
-                };
-                document.head.appendChild(script);
-            })
-            .catch(error => {
-                console.error('Google Maps API 키를 불러오는 데 실패했습니다.', error);
-            });
-    </script>
+    <script src="/api/maps/script" async defer></script>
     <!-- Report Error Modal -->
     <div id="reportErrorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">

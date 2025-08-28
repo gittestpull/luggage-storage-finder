@@ -5,7 +5,7 @@
 
 const api = {
     // 모든 짐보관소 데이터 가져오기
-    async getStorages() {
+    async getStorages(searchQuery = '', latitude = null, longitude = null, radius = null) {
         try {
             const headers = {};
             const userToken = localStorage.getItem('userToken');
@@ -13,7 +13,15 @@ const api = {
                 headers['Authorization'] = `Bearer ${userToken}`;
             }
 
-            const response = await fetch('/api/storages', {
+            let url = '/api/storages';
+            const params = new URLSearchParams();
+            if (searchQuery) params.append('searchQuery', searchQuery);
+            if (latitude !== null) params.append('latitude', latitude);
+            if (longitude !== null) params.append('longitude', longitude);
+            if (radius !== null) params.append('radius', radius);
+            if (params.toString()) url += `?${params.toString()}`;
+
+            const response = await fetch(url, {
                 headers: headers
             });
 

@@ -19,9 +19,33 @@ router.get('/storages/premium', async (req, res) => {
 // 모든 짐보관소 가져오기
 router.get('/storages', optionalAuth, async (req, res) => {
     try {
-        let storages = await Storage.find(); // Always return all storages for debugging
+        const { searchQuery, latitude, longitude, radius } = req.query;
+        let query = {};
+
+        if (searchQuery) {
+            query.$or = [
+                { name: { $regex: searchQuery, $options: 'i' } },
+                { address: { $regex: searchQuery, $options: 'i' } }
+            ];
+        }
+
+        if (latitude && longitude && radius) {
+            const EARTH_RADIUS_KM = 6378.1; // Earth's radius in kilometers
+            const radiusInRadians = parseFloat(radius) / EARTH_RADIUS_KM;
+
+            query.location = {
+                $geoWithin: {
+                    $centerSphere: [[parseFloat(longitude), parseFloat(latitude)], radiusInRadians]
+                }
+            };
+        }
+
+        let storages = await Storage.find(query);
         res.json(storages);
-    } catch (e) { res.status(500).json({ message: '서버 오류' }); }
+    } catch (e) {
+        console.error('Error fetching storages:', e);
+        res.status(500).json({ message: '서버 오류', error: e.message });
+    }
 });
 
 // 검색어로 짐보관소 검색
@@ -191,9 +215,6 @@ router.post('/reservations', auth, async (req, res) => {
     }
 });
 
-// Google Maps API 키 제공
-router.get('/maps/key', (req, res) => {
-    res.json({ apiKey: process.env.GOOGLE_MAPS_API_KEY });
-});
+
 
 module.exports = router;

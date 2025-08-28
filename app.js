@@ -10,6 +10,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const axios = require('axios');
 
 // 환경 변수 설정
 dotenv.config();
@@ -41,10 +42,21 @@ app.use('/api', adminRoutes);
 app.use('/api', authRoutes);
 app.use('/api/news', newsRoutes);
 
-// Google Maps API 키를 클라이언트에 전달하는 라우트 (이것은 publicRoutes에 포함될 수도 있지만, 일단 여기에 유지)
-app.get('/api/maps/key', (req, res) => {
-    res.json({ apiKey: process.env.GOOGLE_MAPS_API_KEY });
+app.get('/api/maps/script', async (req, res) => {
+    try {
+        const callback = req.query.callback || 'initMap';
+        const libraries = req.query.libraries ? `&libraries=${req.query.libraries}` : '';
+        const scriptUrl = `https://maps.googleapis.com/maps/api/js?key=${process.env.GOOGLE_MAPS_API_KEY}&callback=${callback}${libraries}`;
+        
+        const response = await axios.get(scriptUrl);
+        res.type('.js').send(response.data);
+    } catch (error) {
+        console.error('Error fetching Google Maps script:', error);
+        res.status(500).send('Error fetching Google Maps script');
+    }
 });
+
+
 
 // 메인 페이지 라우트
 app.get('/', (req, res) => {

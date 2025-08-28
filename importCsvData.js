@@ -102,11 +102,11 @@ async function importData() {
             storages.push({
                 name: `${record['철도운영기관명']} ${record['운영노선명']} ${record['역명']}`.trim(),
                 address: `${record['역명']} ${record['상세위치']}`.trim(),
-                contact: `${record['운영사']} ${record['전화번호']}`.trim(),
+                phoneNumber: record['전화번호'] ? record['전화번호'].trim() : '', // Map 전화번호 to phoneNumber
                 price: priceString, // Keep original price string for reference
                 smallPrice: smallPrice,
                 largePrice: largePrice,
-                capacity: record['시설수'] ? record['시설수'].trim() : '',
+                lockerCounts: record['시설수'] ? record['시설수'].trim() : '', // Map 시설수 to lockerCounts
                 type: record['무인편의시설코드'] ? record['무인편의시설코드'].trim() : '',
                 location: {
                     type: 'Point',
@@ -117,8 +117,8 @@ async function importData() {
                 isAvailable: true,
                 adminManaged: true,
                 isPremium: false, // isPremium 필드 추가 및 false로 초기화
-                createdAt: new Date(),
-                updatedAt: new Date()
+                dataStandardDate: record['데이터 기준일자'] ? record['데이터 기준일자'].trim() : '', // Map 데이터 기준일자
+                createdAt: new Date()
             });
         }
 

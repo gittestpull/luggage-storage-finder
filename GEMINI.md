@@ -22,6 +22,12 @@ The `luggage-storage-finder` is a web application designed to help users find lu
         *   **Added Debugging Logs:** Integrated detailed `console.log` statements in `map.js` and `report-form.js` to aid in troubleshooting frontend interactions.
         *   **Temporary Backend Adjustment:** Modified `src/routes/publicRoutes.js` to always return all storage locations for debugging purposes (this change can be reverted later if desired).
     *   **CLI Agent-Driven Enhancements (August 2025):**
+        *   **Security Enhancement:**
+            *   **Google Maps API Key Protection:** Refactored the frontend to prevent the Google Maps API key from being exposed.
+                *   Removed the client-side API key endpoint (`/api/maps/key`).
+                *   Implemented a new server-side endpoint (`/api/maps/script`) that proxies the Google Maps JavaScript API, securely injecting the API key on the server.
+                *   Updated all pages using the Google Maps API to use the new proxied script endpoint.
+                *   Added `axios` as a dependency for the new server-side proxy.
         *   **Frontend UI/UX Enhancements:**
             *   **Default View:** Changed the initial page load to display only the map and list sections by default.
             *   **Login/Register UI:** Removed social login buttons (Kakao/Naver) from the login section.

@@ -75,7 +75,21 @@ app.get('/admin/index.html', (req, res) => {
 // 서버 시작
 app.listen(PORT, () => {
     console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
+    
+    // 서버 시작 시 뉴스 즉시 업데이트
+    console.log('최초 뉴스 업데이트를 시작합니다...');
+    updateNews();
+
+    // 6시간마다 뉴스 업데이트 스케줄링
+    const sixHours = 6 * 60 * 60 * 1000;
+    setInterval(() => {
+        console.log('스케줄에 따라 뉴스 업데이트를 시작합니다...');
+        updateNews();
+    }, sixHours);
 });
+
+// 뉴스 업데이트 함수 불러오기
+const updateNews = require('./update-news.js');
 
 // 404 에러 처리
 app.use((req, res, next) => {

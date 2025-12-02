@@ -22,6 +22,7 @@ function initMap() {
             const map = new google.maps.Map(document.getElementById("mapContainer"), {
                 zoom: 13,
                 center: seoul,
+                gestureHandling: 'cooperative'
             });
             
             // 전역 변수에 지도 객체 저장

@@ -30,6 +30,7 @@ const newsArticleSchema = new mongoose.Schema({
         required: true
     },
     location: {
+        name: String,
         lat: Number,
         lng: Number
     }

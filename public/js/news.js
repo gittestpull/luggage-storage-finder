@@ -1,70 +1,161 @@
 document.addEventListener('DOMContentLoaded', () => {
     let map;
-    let currentTargetLocation;
+    let userLocationMarker;
+    let storageMarkers = [];
+    const articleElements = new Map(); // K: article.url, V: { card, marker }
+    let currentUserLocation = null;
+
     const mapContainer = document.getElementById('mapContainer');
     const nearbyList = document.getElementById('nearby-list');
-    const newsList = document.getElementById('news-list');
+    const newsListContainer = document.getElementById('news-list');
+    const findMyLocationBtn = document.getElementById('find-my-location-btn');
 
-    // Function to fetch news from the backend
-    async function fetchNews() {
+    const ICONS = {
+        article: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+        articleHighlight: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+        storage: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        user: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+    };
+
+    // --- Initialization ---
+
+    window.initMap = async () => {
         try {
-            const response = await fetch('/api/news');
-            if (!response.ok) {
-                throw new Error('뉴스를 불러오는 데 실패했습니다.');
-            }
-            const articles = await response.json();
+            const articles = await fetchNews();
+            initializeMap(articles);
             displayNews(articles);
         } catch (error) {
             console.error(error);
-            newsList.innerHTML = '<p class="text-center text-red-500">뉴스 로딩 중 오류가 발생했습니다.</p>';
+            newsListContainer.innerHTML = '<p class="text-center text-red-500">뉴스 로딩 중 오류가 발생했습니다.</p>';
         }
+    };
+    
+    findMyLocationBtn.addEventListener('click', handleFindMyLocation);
+
+    // --- Data Fetching ---
+
+    async function fetchNews() {
+        const response = await fetch('/api/news');
+        if (!response.ok) throw new Error('뉴스를 불러오는 데 실패했습니다.');
+        return await response.json();
     }
 
-    // Function to display news articles
-    function displayNews(articles) {
+    async function fetchStorages(location) {
+        const storages = await api.getStorages();
+        if (!storages || storages.length === 0) return [];
+        
+        return storages.map(storage => {
+            const storageLocation = {
+                lat: storage.location.coordinates[1],
+                lng: storage.location.coordinates[0]
+            };
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                new google.maps.LatLng(location.lat, location.lng),
+                new google.maps.LatLng(storageLocation.lat, storageLocation.lng)
+            );
+            return { ...storage, distance };
+        }).sort((a, b) => a.distance - b.distance);
+    }
+    
+    // --- Map Logic ---
+
+    function initializeMap(articles) {
+        const initialLocation = { lat: 37.5665, lng: 126.9780 }; // Seoul
+        map = new google.maps.Map(mapContainer, {
+            center: initialLocation,
+            zoom: 12
+        });
+
+        articles.forEach(article => {
+            if (article.location?.lat && article.location?.lng) {
+                const marker = new google.maps.Marker({
+                    position: article.location,
+                    map: map,
+                    title: article.title,
+                    icon: ICONS.article
+                });
+
+                marker.addListener('click', () => handleMarkerClick(article.url));
+                articleElements.set(article.url, { marker });
+            }
+        });
+    }
+
+    function highlightMarker(articleUrl) {
+        articleElements.forEach((value, key) => {
+            if (value.marker) {
+                value.marker.setIcon(key === articleUrl ? ICONS.articleHighlight : ICONS.article);
+            }
+        });
+    }
+    
+    function updateStorageMarkers(storages) {
+        storageMarkers.forEach(marker => marker.setMap(null));
+        storageMarkers = [];
+
+        storages.slice(0, 5).forEach(storage => {
+            const position = { lat: storage.location.coordinates[1], lng: storage.location.coordinates[0] };
+            const marker = new google.maps.Marker({
+                position,
+                map: map,
+                title: storage.name,
+                icon: ICONS.storage
+            });
+            storageMarkers.push(marker);
+        });
+    }
+
+    // --- UI Display & Interaction ---
+
+    function displayNews(articles, sortByLocation = null) {
         if (!articles || articles.length === 0) {
-            newsList.innerHTML = '<p class="text-center text-gray-500">표시할 뉴스가 없습니다.</p>';
+            newsListContainer.innerHTML = '<p class="text-center text-gray-500">표시할 뉴스가 없습니다.</p>';
             return;
         }
 
-        newsList.innerHTML = ''; // Clear loading message
-        articles.forEach(article => {
-            const newsCard = createNewsCard(article);
-            newsList.appendChild(newsCard);
-        });
+        if (sortByLocation) {
+            articles.forEach(article => {
+                if (article.location?.lat) {
+                    article.distance = google.maps.geometry.spherical.computeDistanceBetween(
+                        new google.maps.LatLng(sortByLocation.lat, sortByLocation.lng),
+                        new google.maps.LatLng(article.location.lat, article.location.lng)
+                    );
+                } else {
+                    article.distance = Infinity;
+                }
+            });
+            articles.sort((a, b) => a.distance - b.distance);
+        }
 
-        // Initialize map with the location of the first article
-        const firstArticle = articles[0];
-        if (firstArticle.location && firstArticle.location.lat && firstArticle.location.lng) {
-            currentTargetLocation = { lat: firstArticle.location.lat, lng: firstArticle.location.lng };
-            showMapForLocation(currentTargetLocation);
-        } else {
-            // Fallback to Seoul if no location is available
-            currentTargetLocation = { lat: 37.5665, lng: 126.9780 };
-            showMapForLocation(currentTargetLocation);
+        newsListContainer.innerHTML = '';
+        articles.forEach(article => {
+            const card = createNewsCard(article);
+            newsListContainer.appendChild(card);
+            if (articleElements.has(article.url)) {
+                articleElements.get(article.url).card = card;
+            }
+        });
+        
+        // Activate the first card by default
+        if (articles.length > 0) {
+            handleCardClick(articles[0].url, false); // Don't scroll on initial load
         }
     }
 
-    // Function to create a news card element
     function createNewsCard(article) {
         const card = document.createElement('div');
-        card.className = 'news-card bg-white news-card-clickable';
-        if (article.location && article.location.lat && article.location.lng) {
-            card.dataset.lat = article.location.lat;
-            card.dataset.lng = article.location.lng;
-        }
+        card.className = 'news-card bg-white cursor-pointer';
+        card.dataset.url = article.url;
 
-        const publishedDate = new Date(article.publishedAt).toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        const publishedDate = new Date(article.publishedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+        const distanceText = article.distance ? `<span class="text-sm text-gray-500">(${(article.distance / 1000).toFixed(1)}km)</span>` : '';
+        const locationName = article.location?.name ? `<span class="font-bold">[${article.location.name}]</span>` : '';
 
         card.innerHTML = `
             <img src="${article.imageUrl || 'https://picsum.photos/seed/news/800/400'}" alt="News Image" class="w-full h-48 object-cover">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-semibold obangsaek-red">${article.category}</span>
+                    <span class="text-sm font-semibold obangsaek-red">${locationName} ${article.category} ${distanceText}</span>
                     <span class="text-sm text-gray-500">${publishedDate}</span>
                 </div>
                 <h2 class="text-2xl font-bold mt-2 mb-2 obangsaek-black">${article.title}</h2>
@@ -73,99 +164,137 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         
-        if (article.location && article.location.lat && article.location.lng) {
-            card.addEventListener('click', () => {
-                const lat = parseFloat(card.dataset.lat);
-                const lng = parseFloat(card.dataset.lng);
-                currentTargetLocation = { lat, lng };
-                showMapForLocation(currentTargetLocation);
-
-                                                // Scroll to the map section with a slight delay
-                setTimeout(() => {
-                    const mapSection = document.getElementById('mapContainer').closest('div.w-full.lg:w-1/3');
-                    if (mapSection) {
-                        window.scrollTo({
-                            top: mapSection.offsetTop,
-                            behavior: 'smooth'
-                        });
-                    }
-                }, 300); // 300ms delay
-            });
-        }
+        card.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A') handleCardClick(article.url);
+        });
 
         return card;
     }
 
-    // Function to initialize the map
-    window.initMap = () => {
-        fetchNews(); // Fetch news, which will then initialize the map
-    };
-
-    function showMapForLocation(location) {
-        map = new google.maps.Map(mapContainer, {
-            center: location,
-            zoom: 15
-        });
-
-        new google.maps.Marker({
-            position: location,
-            map: map,
-            title: "기사 관련 위치",
-        });
-
-        fetchStorages(location);
-    }
-
-    // Function to fetch storage locations from the API
-    async function fetchStorages(location) {
-        try {
-            const storages = await api.getStorages();
-            if (storages && storages.length > 0) {
-                displayNearbyStorages(storages, location);
-            } else {
-                nearbyList.innerHTML = '<p>주변에 등록된 짐보관소가 없습니다.</p>';
-            }
-        } catch (error) {
-            console.error("짐보관소 정보를 불러오는 데 실패했습니다.", error);
-            nearbyList.innerHTML = '<p>정보를 불러오는 중 오류가 발생했습니다.</p>';
+    function displayNearbyStorages(storages) {
+        nearbyList.innerHTML = '';
+        if (!storages || storages.length === 0) {
+            nearbyList.innerHTML = '<p>주변에 등록된 짐보관소가 없습니다.</p>';
+            return;
         }
-    }
 
-    // Function to display nearby storages
-    function displayNearbyStorages(storages, location) {
-        const nearbyStorages = storages
-            .map(storage => {
+        storages.slice(0, 5).forEach(storage => {
+            const listItem = document.createElement('div');
+            listItem.className = 'p-4 bg-white rounded-lg shadow-md mb-2';
+
+            let distanceText = `${Math.round(storage.distance)}m`;
+
+            if (currentUserLocation) {
                 const storageLocation = {
                     lat: storage.location.coordinates[1],
                     lng: storage.location.coordinates[0]
                 };
-                const distance = google.maps.geometry.spherical.computeDistanceBetween(
-                    new google.maps.LatLng(location.lat, location.lng),
+                const distanceFromUser = google.maps.geometry.spherical.computeDistanceBetween(
+                    new google.maps.LatLng(currentUserLocation.lat, currentUserLocation.lng),
                     new google.maps.LatLng(storageLocation.lat, storageLocation.lng)
                 );
-                return { ...storage, distance };
-            })
-            .sort((a, b) => a.distance - b.distance);
+                distanceText += ` (내 위치에서 ${(distanceFromUser / 1000).toFixed(1)}km)`;
+            }
 
-        nearbyList.innerHTML = ''; // Clear previous list
-
-        nearbyStorages.forEach(storage => {
-            // Add marker to the map
-            new google.maps.Marker({
-                position: { lat: storage.location.coordinates[1], lng: storage.location.coordinates[0] },
-                map: map,
-                title: storage.name
-            });
-
-            // Add to the list
-            const listItem = document.createElement('div');
-            listItem.className = 'p-4 bg-white rounded-lg shadow-md';
             listItem.innerHTML = `
                 <h3 class="font-bold text-lg">${storage.name}</h3>
                 <p class="text-gray-600">${storage.address}</p>
-                <p class="text-sm text-blue-600 font-semibold mt-1">${Math.round(storage.distance)}m</p>
+                <p class="text-sm text-blue-600 font-semibold mt-1">${distanceText}</p>
             `;
             nearbyList.appendChild(listItem);
         });
+    }
+
+    // --- Event Handlers ---
+
+    function handleCardClick(articleUrl, shouldScroll = true) {
+        const articleData = articleElements.get(articleUrl);
+        if (!articleData || !articleData.card || !articleData.marker) return;
+
+        // Highlight card
+        articleElements.forEach(val => val.card?.classList.remove('active-news-card'));
+        articleData.card.classList.add('active-news-card');
+
+        // Highlight marker
+        highlightMarker(articleUrl);
+
+        // Pan map and update storages
+        const location = articleData.marker.getPosition().toJSON();
+        map.panTo(location);
+        fetchStorages(location).then(storages => {
+            updateStorageMarkers(storages);
+            displayNearbyStorages(storages);
+        });
+
+        if (shouldScroll) {
+            articleData.card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function handleMarkerClick(articleUrl) {
+        const articleData = articleElements.get(articleUrl);
+        if (!articleData || !articleData.card) return;
+
+        // Defer scroll until after other updates
+        setTimeout(() => {
+            articleData.card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+        
+        handleCardClick(articleUrl, false); // handle all other logic, but don't scroll card again
+    }
+
+    function handleFindMyLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+                currentUserLocation = userLocation;
+                
+                if (!userLocationMarker) {
+                    userLocationMarker = new google.maps.Marker({
+                        position: userLocation,
+                        map: map,
+                        title: '내 위치',
+                        icon: ICONS.user,
+                        zIndex: 1000
+                    });
+                } else {
+                    userLocationMarker.setPosition(userLocation);
+                    userLocationMarker.setMap(map);
+                }
+                
+                map.panTo(userLocation);
+                map.setZoom(14);
+                
+                // Re-sort news list based on user's location
+                const articles = Array.from(articleElements.keys()).map(url => ({
+                    url,
+                    ...articleElements.get(url)
+                }));
+                const mappedArticles = articles.map(a => {
+                    const articleData = articleElements.get(a.url);
+                    return {
+                        ...a,
+                        title: articleData.marker.getTitle(),
+                        location: articleData.marker.getPosition().toJSON()
+                    }
+                });
+                
+                const allArticles = await fetchNews();
+                displayNews(allArticles, userLocation);
+                
+                // Update storages list based on user's location
+                const storages = await fetchStorages(userLocation);
+                updateStorageMarkers(storages);
+                displayNearbyStorages(storages);
+
+            }, () => {
+                alert('위치 정보를 가져올 수 없습니다. 브라우저의 위치 정보 접근 권한을 확인해주세요.');
+            });
+        } else {
+            alert('이 브라우저에서는 위치 정보 기능을 사용할 수 없습니다.');
+        }
     }
 });

@@ -310,13 +310,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // 해시 변경 이벤트 리스너
     window.addEventListener('hashchange', handleHashChange);
 
-    // 네비게이션 링크 클릭 이벤트 (기존 HTML에 있는 링크들이 해시를 변경하도록)
+    // 네비게이션 링크 클릭 이벤트 수정
     document.querySelectorAll('nav a').forEach(link => {
         link.addEventListener('click', (e) => {
-            // 기본 동작 방지 (페이지 새로고침 방지)
+            const href = e.currentTarget.getAttribute('href');
+
+            // 외부 링크(http, https)나, 다른 html 페이지로 이동하는 링크는 기본 동작을 따름
+            if (href.startsWith('http') || href.endsWith('.html')) {
+                return; // 기본 브라우저 동작에 맡김
+            }
+            
+            // 홈으로 가는 링크('/') 처리 또는 해시 링크 처리
             e.preventDefault(); 
-            // 해시 변경
-            window.location.hash = e.target.getAttribute('href');
+            if (href === '/') {
+                window.location.hash = ''; // 해시를 비워서 기본 페이지로
+            } else {
+                window.location.hash = href;
+            }
         });
     });
 

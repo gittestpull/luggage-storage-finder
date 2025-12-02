@@ -177,6 +177,22 @@ This method requires Node.js and MongoDB to be installed and running separately 
     *   `playwright test` is configured for end-to-end testing. Test files are located in the `tests/` directory.
 
 ---
+*   **CLI Agent-Driven Enhancements (December 2025):**
+    *   **Interactive News Page Overhaul:**
+        *   Developed a new, highly interactive "News & Nearby Info" page (`news.html`).
+        *   The page features an interactive Google Map that displays markers for news articles, nearby luggage storage locations, and the user's current location.
+        *   Users can click a news article to center the map on its location and see a sorted list of the 5 closest storage spots.
+        *   A "My Location" feature allows users to center the map on their position, re-sort news by proximity, and find nearby storages.
+        *   The news page layout is improved with a sticky map for desktop and includes Google AdSense for monetization.
+    *   **Backend News System Enhancement:**
+        *   The `update-news.js` script was rewritten to dynamically detect Korean city names in news content and use the Google Geocoding API for accurate coordinate lookup, replacing a previous hardcoded system.
+        *   The `NewsArticle` database model was updated to store the location's name.
+        *   The main server (`app.js`) now automatically updates news content upon startup and then periodically every 6 hours.
+    *   **Frontend & UX Improvements:**
+        *   Added a link to the new news page in the main navigation.
+        *   Improved map `gestureHandling` for a better mobile user experience.
+    *   **Development Environment:**
+        *   Updated `docker-compose.yml` to mount the application directory, enabling hot-reloading for faster development.
 *   **CLI Agent-Driven Enhancements (August 2025):**
     *   **SEO & Site Identity:**
         *   Created `robots.txt` to allow all web crawlers.

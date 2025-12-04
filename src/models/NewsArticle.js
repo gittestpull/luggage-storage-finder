@@ -29,11 +29,11 @@ const newsArticleSchema = new mongoose.Schema({
         enum: ['travel', 'entertainment', 'local'],
         required: true
     },
-    location: {
+    locations: [{
         name: String,
         lat: Number,
         lng: Number
-    }
+    }]
 });
 
 const NewsArticle = mongoose.model('NewsArticle', newsArticleSchema);

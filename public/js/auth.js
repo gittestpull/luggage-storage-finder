@@ -220,7 +220,7 @@ function kakaoLogin() {
                     localStorage.setItem('loginType', 'kakao');
                     // 최신 사용자 정보 가져와서 UI 업데이트
                     try {
-                        const updatedUser = await fetchCurrentUserProfile();
+                        const updatedUser = await api.fetchCurrentUserProfile();
                         localStorage.setItem('userPoints', updatedUser.points);
                         localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
                         localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
@@ -277,7 +277,7 @@ async function handleLoginFormSubmit(e) {
         
         // 최신 사용자 정보 가져와서 UI 업데이트
         try {
-            const updatedUser = await fetchCurrentUserProfile();
+            const updatedUser = await api.fetchCurrentUserProfile();
             localStorage.setItem('userPoints', updatedUser.points);
             localStorage.setItem('userSubmittedReportPoints', updatedUser.submittedReportPoints);
             localStorage.setItem('userApprovedReportPoints', updatedUser.approvedReportPoints);
@@ -323,7 +323,7 @@ async function checkLoginStatus() {
 
     if (userToken) {
         try {
-            const updatedUser = await fetchCurrentUserProfile();
+            const updatedUser = await api.fetchCurrentUserProfile();
             if (updatedUser) {
                 // User is authenticated, update UI and localStorage
                 localStorage.setItem('userPoints', updatedUser.points);

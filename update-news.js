@@ -27,74 +27,138 @@ const LOCATION_KEYWORDS = [
     '제주', '서귀포'
 ];
 
-const getCoordinates = async (title, description) => {
+const getAllLocationsFromText = async (title, description) => {
     const textToSearch = `${title} ${description || ''}`;
-    const foundLocation = LOCATION_KEYWORDS.find(loc => textToSearch.includes(loc));
+    const foundLocations = LOCATION_KEYWORDS.filter(loc => textToSearch.includes(loc));
     
-    // 1. 명확한 지역 키워드가 있으면 그것을 사용.
-    // 2. 없으면, 기사 제목 전체를 쿼리로 사용.
-    // 3. 둘 다 실패하면 '서울'을 기본값으로 사용.
-    const query = foundLocation || title;
+    const locations = [];
+    const processedQueries = new Set(); // 중복 쿼리 방지
+    
+    // 명확한 지역 키워드 검색 및 지오코딩
+    for (const loc of foundLocations) {
+        if (processedQueries.has(loc)) continue;
+        processedQueries.add(loc);
 
-    try {
-        // Step 1: Get coordinates for the query
-        const geoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
-            params: {
-                address: query + ', 대한민국',
-                key: process.env.GOOGLE_MAPS_API_KEY,
-                language: 'ko'
-            }
-        });
-
-        if (geoResponse.data.results && geoResponse.data.results.length > 0) {
-            const { lat, lng } = geoResponse.data.results[0].geometry.location;
-
-            // Step 2: Perform reverse geocoding with the obtained coordinates
-            const reverseGeoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+        try {
+            const geoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
                 params: {
-                    latlng: `${lat},${lng}`,
+                    address: loc + ', 대한민국',
                     key: process.env.GOOGLE_MAPS_API_KEY,
                     language: 'ko'
                 }
             });
 
-            if (reverseGeoResponse.data.results && reverseGeoResponse.data.results.length > 0) {
-                const components = reverseGeoResponse.data.results[0].address_components;
+            if (geoResponse.data.results && geoResponse.data.results.length > 0) {
+                const { lat, lng } = geoResponse.data.results[0].geometry.location;
                 
-                const getComponent = (type) => components.find(c => c.types.includes(type))?.long_name || null;
+                // 역지오코딩을 통해 상세 주소 파싱
+                const reverseGeoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+                    params: {
+                        latlng: `${lat},${lng}`,
+                        key: process.env.GOOGLE_MAPS_API_KEY,
+                        language: 'ko'
+                    }
+                });
 
-                const area = getComponent('administrative_area_level_1'); // 시/도
-                const city = getComponent('locality'); // 시/군
-                const district = getComponent('sublocality_level_1'); // 구
-                const neighborhood = getComponent('sublocality_level_2'); // 동
+                if (reverseGeoResponse.data.results && reverseGeoResponse.data.results.length > 0) {
+                    const components = reverseGeoResponse.data.results[0].address_components;
+                    const getComponent = (type) => components.find(c => c.types.includes(type))?.long_name || null;
 
-                // 주소 조합: 구체적인 것 우선, 중복 방지
-                const addressParts = [];
-                if (area) addressParts.push(area);
-                if (city && city !== area) addressParts.push(city);
-                if (district && district !== city) addressParts.push(district);
-                if (neighborhood) addressParts.push(neighborhood);
-                
-                // 유니크한 주소 부분만 필터링하여 조합
-                const constructed_address = [...new Set(addressParts)].join(' ').trim();
+                    const area = getComponent('administrative_area_level_1'); // 시/도
+                    const city = getComponent('locality'); // 시/군
+                    const district = getComponent('sublocality_level_1'); // 구
+                    const neighborhood = getComponent('sublocality_level_2'); // 동
 
-                // 한국어만 허용하는 정규식
-                const koreanRegex = /^[가-힣\s\d\w-]+$/;
+                    const addressParts = [];
+                    if (area) addressParts.push(area);
+                    if (city && city !== area) addressParts.push(city);
+                    if (district && district !== city) addressParts.push(district);
+                    if (neighborhood) addressParts.push(neighborhood);
+                    
+                    const constructed_address = [...new Set(addressParts)].join(' ').trim();
+                    const koreanRegex = /^[가-힣\s\d\w-]+$/;
 
-                if (constructed_address && koreanRegex.test(constructed_address)) {
-                    return { name: constructed_address, lat, lng };
+                    if (constructed_address && koreanRegex.test(constructed_address)) {
+                        locations.push({ name: constructed_address, lat, lng });
+                    } else {
+                        // 한국어 주소 구성 실패 시, 쿼리 지역명 사용
+                        locations.push({ name: loc, lat, lng });
+                    }
+                } else {
+                    // 역지오코딩 실패 시, 쿼리 지역명 사용
+                    locations.push({ name: loc, lat, lng });
                 }
             }
-            
-            // Reverse geocoding failed, fallback to city name
-            return { name: query, lat, lng };
+        } catch (error) {
+            console.error(`Geocoding process error for location "${loc}":`, error.message);
         }
-    } catch (error) {
-        console.error(`Geocoding process error for query "${query}":`, error.message);
+    }
+
+    // 명확한 지역 키워드가 없었고, 제목에 tvN 같은 회사명이 있을 경우 제목으로 지오코딩 시도
+    if (locations.length === 0 && !foundLocations.length) {
+        try {
+            const geoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+                params: {
+                    address: title + ', 대한민국', // 기사 제목 전체를 쿼리로 사용
+                    key: process.env.GOOGLE_MAPS_API_KEY,
+                    language: 'ko'
+                }
+            });
+
+            if (geoResponse.data.results && geoResponse.data.results.length > 0) {
+                const { lat, lng } = geoResponse.data.results[0].geometry.location;
+                const result = geoResponse.data.results[0];
+                const formatted_address = result.formatted_address;
+                const simple_address = formatted_address.startsWith('대한민국 ') ? formatted_address.substring(5) : formatted_address;
+
+                // 역지오코딩을 통해 상세 주소 파싱 (기존 로직 재활용)
+                const reverseGeoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+                    params: {
+                        latlng: `${lat},${lng}`,
+                        key: process.env.GOOGLE_MAPS_API_KEY,
+                        language: 'ko'
+                    }
+                });
+
+                if (reverseGeoResponse.data.results && reverseGeoResponse.data.results.length > 0) {
+                    const components = reverseGeoResponse.data.results[0].address_components;
+                    const getComponent = (type) => components.find(c => c.types.includes(type))?.long_name || null;
+
+                    const area = getComponent('administrative_area_level_1'); // 시/도
+                    const city = getComponent('locality'); // 시/군
+                    const district = getComponent('sublocality_level_1'); // 구
+                    const neighborhood = getComponent('sublocality_level_2'); // 동
+                    
+                    const addressParts = [];
+                    if (area) addressParts.push(area);
+                    if (city && city !== area) addressParts.push(city);
+                    if (district && district !== city) addressParts.push(district);
+                    if (neighborhood) addressParts.push(neighborhood);
+                    
+                    const constructed_address = [...new Set(addressParts)].join(' ').trim();
+                    const koreanRegex = /^[가-힣\s\d\w-]+$/;
+
+                    if (constructed_address && koreanRegex.test(constructed_address)) {
+                        locations.push({ name: constructed_address, lat, lng });
+                    } else {
+                         // 한국어 주소 구성 실패 시, 원본 제목에서 추출된 주소 사용
+                        locations.push({ name: simple_address || title, lat, lng });
+                    }
+                } else {
+                    locations.push({ name: simple_address || title, lat, lng });
+                }
+            }
+        } catch (error) {
+            console.error(`Geocoding process error for title "${title}":`, error.message);
+        }
     }
     
-    // Fallback to Seoul if everything fails
-    return { name: '서울', lat: 37.5665, lng: 126.9780 };
+    // 모든 시도가 실패하면 기본 서울 위치 반환
+    if (locations.length === 0) {
+        locations.push({ name: '서울', lat: 37.5665, lng: 126.9780 });
+    }
+
+    return locations;
 };
 
 const fetchNews = async (category, query) => {
@@ -111,7 +175,7 @@ const fetchNews = async (category, query) => {
 
         const articles = [];
         for (const article of response.data.articles) {
-            const location = await getCoordinates(article.title, article.description);
+            const articleLocations = await getAllLocationsFromText(article.title, article.description);
             articles.push({
                 title: article.title,
                 description: article.description,
@@ -120,7 +184,7 @@ const fetchNews = async (category, query) => {
                 publishedAt: new Date(article.publishedAt),
                 source: { name: article.source.name },
                 category,
-                location
+                locations: articleLocations // locations 필드 사용
             });
         }
 

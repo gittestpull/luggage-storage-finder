@@ -1,3 +1,6 @@
+/* Google Fonts - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @import "tailwindcss";
 
 /* ============================================
@@ -5,9 +8,6 @@
    - Neo-Brutalism + Soft UI Fusion
    - Modern Korean Design
    ============================================ */
-
-/* Google Fonts - Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
   /* Nano Banana Theme Colors */

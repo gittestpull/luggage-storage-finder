@@ -1,4 +1,11 @@
-require('dotenv').config();
+// 로컬 개발 환경에서만 dotenv 사용
+if (process.env.NODE_ENV !== 'production') {
+    try {
+        require('dotenv').config();
+    } catch (e) {
+        // dotenv not available, use existing env vars
+    }
+}
 const axios = require('axios');
 const mongoose = require('mongoose');
 const NewsArticle = require('./src/models/NewsArticle');
@@ -30,10 +37,10 @@ const LOCATION_KEYWORDS = [
 const getAllLocationsFromText = async (title, description) => {
     const textToSearch = `${title} ${description || ''}`;
     const foundLocations = LOCATION_KEYWORDS.filter(loc => textToSearch.includes(loc));
-    
+
     const locations = [];
     const processedQueries = new Set(); // 중복 쿼리 방지
-    
+
     // 명확한 지역 키워드 검색 및 지오코딩
     for (const loc of foundLocations) {
         if (processedQueries.has(loc)) continue;
@@ -50,7 +57,7 @@ const getAllLocationsFromText = async (title, description) => {
 
             if (geoResponse.data.results && geoResponse.data.results.length > 0) {
                 const { lat, lng } = geoResponse.data.results[0].geometry.location;
-                
+
                 // 역지오코딩을 통해 상세 주소 파싱
                 const reverseGeoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
                     params: {
@@ -74,7 +81,7 @@ const getAllLocationsFromText = async (title, description) => {
                     if (city && city !== area) addressParts.push(city);
                     if (district && district !== city) addressParts.push(district);
                     if (neighborhood) addressParts.push(neighborhood);
-                    
+
                     const constructed_address = [...new Set(addressParts)].join(' ').trim();
                     const koreanRegex = /^[가-힣\s\d\w-]+$/;
 
@@ -128,20 +135,20 @@ const getAllLocationsFromText = async (title, description) => {
                     const city = getComponent('locality'); // 시/군
                     const district = getComponent('sublocality_level_1'); // 구
                     const neighborhood = getComponent('sublocality_level_2'); // 동
-                    
+
                     const addressParts = [];
                     if (area) addressParts.push(area);
                     if (city && city !== area) addressParts.push(city);
                     if (district && district !== city) addressParts.push(district);
                     if (neighborhood) addressParts.push(neighborhood);
-                    
+
                     const constructed_address = [...new Set(addressParts)].join(' ').trim();
                     const koreanRegex = /^[가-힣\s\d\w-]+$/;
 
                     if (constructed_address && koreanRegex.test(constructed_address)) {
                         locations.push({ name: constructed_address, lat, lng });
                     } else {
-                         // 한국어 주소 구성 실패 시, 원본 제목에서 추출된 주소 사용
+                        // 한국어 주소 구성 실패 시, 원본 제목에서 추출된 주소 사용
                         locations.push({ name: simple_address || title, lat, lng });
                     }
                 } else {
@@ -152,7 +159,7 @@ const getAllLocationsFromText = async (title, description) => {
             console.error(`Geocoding process error for title "${title}":`, error.message);
         }
     }
-    
+
     // 모든 시도가 실패하면 기본 서울 위치 반환
     if (locations.length === 0) {
         locations.push({ name: '서울', lat: 37.5665, lng: 126.9780 });
@@ -197,7 +204,7 @@ const fetchNews = async (category, query) => {
 
 const updateNews = async () => {
     console.log('Starting news update...');
-    
+
     // 기존 뉴스 기사 전체 삭제
     console.log('Clearing existing news articles...');
     try {
@@ -206,7 +213,7 @@ const updateNews = async () => {
     } catch (error) {
         console.error('Error clearing existing news articles:', error.message);
     }
-    
+
     console.log('Fetching news...');
     const entertainmentNews = await fetchNews('entertainment', 'k-pop');
     const travelNews = await fetchNews('travel', '경복궁');
@@ -234,3 +241,17 @@ const updateNews = async () => {
 };
 
 module.exports = updateNews;
+
+// 독립 실행 시 main 함수 실행
+if (require.main === module) {
+    (async () => {
+        console.log('Connecting to database...');
+        await connectDB();
+        console.log('Database connected.');
+        await updateNews();
+        console.log('Closing database connection...');
+        await mongoose.connection.close();
+        console.log('Done.');
+        process.exit(0);
+    })();
+}

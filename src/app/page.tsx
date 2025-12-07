@@ -3,23 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Script from 'next/script';
 import { useAuth } from '@/context/AuthContext';
-import AiModal from '@/components/modals/AiModal';
-import EditRequestModal from '@/components/modals/EditRequestModal';
 import { StorageLocation } from '@/types';
-
-interface StorageLocation {
-  _id: string;
-  name: string;
-  address: string;
-  location: { coordinates: [number, number] };
-  is24Hours?: boolean;
-  isPremium?: boolean;
-  smallPrice?: number;
-  largePrice?: number;
-  phoneNumber?: string;
-  openTime?: string;
-  closeTime?: string;
-}
 
 declare global {
   interface Window {
@@ -33,18 +17,19 @@ export default function Home() {
   const [storages, setStorages] = useState<StorageLocation[]>([]);
   const [premiumStorages, setPremiumStorages] = useState<StorageLocation[]>([]);
   const [loading, setLoading] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  const { openModal, modals, closeModal } = useAuth();
+  const { openModal } = useAuth(); // modals, closeModal 미사용 제거
 
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const userMarkerRef = useRef<any>(null);
   const [locatingUser, setLocatingUser] = useState(false);
-  const [editStorage, setEditStorage] = useState<StorageLocation | null>(null);
+  // selectedStorage 등은 지도 인터랙션에 필요
+  const [selectedStorage, setSelectedStorage] = useState<StorageLocation | null>(null);
+  // editStorage 사용 여부 확인 필요하지만 일단 유지
 
   // Handle scroll for header effect
   useEffect(() => {
@@ -59,7 +44,6 @@ export default function Home() {
     fetch('/api/storages', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
-        console.log('Loaded storages:', data.length);
         setStorages(data);
       })
       .catch(err => console.error('Error loading storages:', err));
@@ -79,10 +63,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (mapRef.current && storages.length > 0) {
+    if (mapRef.current && (storages.length > 0 || userLocation)) {
       updateMarkers();
     }
-  }, [storages]);
+  }, [storages, userLocation, selectedStorage]);
 
   const initMap = () => {
     const mapOptions = {
@@ -92,6 +76,10 @@ export default function Home() {
         { featureType: 'all', elementType: 'geometry', stylers: [{ saturation: -10 }] },
         { featureType: 'poi', stylers: [{ visibility: 'off' }] },
       ],
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
     };
     const mapDiv = document.getElementById('mapContainer');
     if (mapDiv) {
@@ -102,6 +90,7 @@ export default function Home() {
 
   const updateMarkers = () => {
     if (!mapRef.current) return;
+
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
     const bounds = new window.google.maps.LatLngBounds();
@@ -111,57 +100,103 @@ export default function Home() {
         const [lng, lat] = storage.location.coordinates;
         if (lat === 0 && lng === 0) return;
 
+        const isSelected = selectedStorage?._id === storage._id;
+        const markerColor = isSelected ? '#ef4444' : (storage.isPremium ? '#f59e0b' : '#6366f1');
+
+        const pinSvg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+            <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 24 16 24s16-12 16-24C32 7.16 24.84 0 16 0z" fill="${markerColor}" stroke="white" stroke-width="2"/>
+            <circle cx="16" cy="14" r="6" fill="white"/>
+          </svg>
+        `;
+
         const marker = new window.google.maps.Marker({
           position: { lat, lng },
           map: mapRef.current,
           title: storage.name,
           icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: storage.isPremium ? '#f59e0b' : '#6366f1',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg),
+            scaledSize: new window.google.maps.Size(isSelected ? 40 : 32, isSelected ? 50 : 40),
+            anchor: new window.google.maps.Point(isSelected ? 20 : 16, isSelected ? 50 : 40),
           },
+          zIndex: isSelected ? 100 : 1,
         });
+
+        const directionsUrl = userLocation
+          ? `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${lat},${lng}`
+          : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
-            <div style="padding: 12px; font-family: Inter, sans-serif;">
-              <h3 style="font-weight: 700; margin-bottom: 8px; color: #1f2937;">${storage.name}</h3>
-              <p style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">${storage.address}</p>
-              ${storage.phoneNumber ? `<p style="font-size: 13px; color: #6366f1;">📞 ${storage.phoneNumber}</p>` : ''}
+            <div class="p-4 min-w-[220px] font-sans">
+              <h3 class="text-base font-bold text-gray-900 mb-1">${storage.name}</h3>
+              <p class="text-xs text-gray-500 mb-2 line-clamp-2">${storage.address}</p>
+              ${storage.phoneNumber ? `<p class="text-xs text-indigo-600 mb-3">📞 ${storage.phoneNumber}</p>` : ''}
+              <a href="${directionsUrl}" target="_blank" 
+                 class="inline-block px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors no-underline text-center w-full">
+                🧭 길찾기
+              </a>
             </div>
           `
         });
 
-        marker.addListener('click', () => infoWindow.open(mapRef.current, marker));
+        marker.addListener('click', () => {
+          setSelectedStorage(storage);
+          infoWindow.open(mapRef.current, marker);
+        });
         markersRef.current.push(marker);
         bounds.extend({ lat, lng });
       }
     });
 
-    if (storages.length > 0) {
+    if (userLocation) {
+      bounds.extend(userLocation);
+      if (!userMarkerRef.current || !userMarkerRef.current.getMap()) {
+        userMarkerRef.current = new window.google.maps.Marker({
+          position: userLocation,
+          map: mapRef.current,
+          title: '내 위치',
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#ef4444',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3,
+          },
+          zIndex: 999,
+        });
+
+        const userInfoWindow = new window.google.maps.InfoWindow({
+          content: '<div class="p-2 font-bold text-red-500">📍 내 위치</div>'
+        });
+        userMarkerRef.current.addListener('click', () => userInfoWindow.open(mapRef.current, userMarkerRef.current));
+      }
+    }
+
+    if (userLocation) {
+      // 이미 줌과 센터는 사용자 액션에 따라 제어되므로 여기서 강제하지 않음
+      // 단, 처음 로드 시에는 필요할 수 있음
+    } else if (storages.length > 0 && !mapRef.current.getCenter()) {
       mapRef.current.fitBounds(bounds);
     }
   };
 
-  // 카드 클릭 시 지도로 이동하고 해당 위치 표시
   const goToMapLocation = (storage: StorageLocation) => {
+    setSelectedStorage(storage); // 상태 업데이트로 마커 색상 변경 트리거
+
     if (!storage.location?.coordinates) return;
     const [lng, lat] = storage.location.coordinates;
     if (lat === 0 && lng === 0) return;
 
-    // 지도 섹션으로 스크롤
     document.getElementById('map')?.scrollIntoView({ behavior: 'smooth' });
 
-    // 잠시 후 지도 중심 이동 및 줌
     setTimeout(() => {
       if (mapRef.current) {
         mapRef.current.setCenter({ lat, lng });
         mapRef.current.setZoom(16);
 
-        // 해당 마커의 InfoWindow 열기
+        // InfoWindow 열기
         const marker = markersRef.current.find(m => m.getTitle() === storage.name);
         if (marker) {
           window.google.maps.event.trigger(marker, 'click');
@@ -184,13 +219,11 @@ export default function Home() {
     }
   };
 
-  // 내 위치 찾기 함수
   const getUserLocation = () => {
     if (!navigator.geolocation) {
       alert('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
       return;
     }
-
     setLocatingUser(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -198,57 +231,24 @@ export default function Home() {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-        setUserLocation(loc);
         setLocatingUser(false);
+        setUserLocation(loc);
+        document.getElementById('map')?.scrollIntoView({ behavior: 'smooth' });
 
+        // 지도 중심 이동
         if (mapRef.current) {
-          // 지도 중심을 내 위치로 이동
           mapRef.current.setCenter(loc);
           mapRef.current.setZoom(15);
-
-          // 기존 내 위치 마커 제거
-          if (userMarkerRef.current) {
-            userMarkerRef.current.setMap(null);
-          }
-
-          // 새 마커 생성 (파란색 마커)
-          userMarkerRef.current = new window.google.maps.Marker({
-            position: loc,
-            map: mapRef.current,
-            title: '내 위치',
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 12,
-              fillColor: '#3b82f6',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 3,
-            },
-            zIndex: 999,
-          });
-
-          // 내 위치 정보창
-          const infoWindow = new window.google.maps.InfoWindow({
-            content: `
-              <div style="padding: 10px; font-family: Inter, sans-serif;">
-                <h3 style="font-weight: 700; color: #3b82f6; margin-bottom: 4px;">📍 내 위치</h3>
-                <p style="font-size: 12px; color: #6b7280;">현재 위치입니다</p>
-              </div>
-            `,
-          });
-          userMarkerRef.current.addListener('click', () => infoWindow.open(mapRef.current, userMarkerRef.current));
         }
       },
       (error) => {
         setLocatingUser(false);
         console.error('위치 정보 오류:', error);
-        alert('위치 정보를 가져올 수 없습니다. 브라우저 설정에서 위치 접근 권한을 확인해주세요.');
+        alert('위치 정보를 가져올 수 없습니다.');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
-
-
 
   const faqItems = [
     { q: '서비스 이용은 무료인가요?', a: '네, 짐보관소 정보를 검색하고 확인하는 모든 기능은 완전히 무료입니다.' },
@@ -264,271 +264,227 @@ export default function Home() {
         strategy="afterInteractive"
       />
 
-
-
       {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title animate-fade-in-up">
-            여행의 짐,<br />
-            <span>편하게 보관하세요</span>
-          </h1>
-          <p className="hero-subtitle animate-fade-in-up animation-delay-200">
-            전국 짐보관소 정보를 한곳에서 검색하세요
-          </p>
+      <section className="relative w-full h-[600px] flex items-center justify-center overflow-hidden bg-gray-900 isolate">
+        {/* Background Gradients */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black z-0"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-yellow-500/10 rounded-full blur-[100px] opacity-50 z-0"></div>
 
-          <div className="search-container animate-fade-in-up animation-delay-300">
-            <div className="search-box">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="지역, 역, 관광지 이름으로 검색"
-                className="search-input"
-              />
-              <button onClick={handleSearch} disabled={loading} className="search-button">
-                {loading ? (
-                  <span>검색 중...</span>
-                ) : (
-                  <>
-                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    검색
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => (window as any).requestPushPermission ? (window as any).requestPushPermission() : alert('잠시만 기다려주세요. 기능이 로딩 중입니다.')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-medium hover:bg-white/20 transition-all hover:scale-105 active:scale-95 shadow-lg"
-              >
-                <span className="text-yellow-300">🔔</span>
-                <span>새로운 보관소 알림 받기</span>
-              </button>
-            </div>
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-medium mb-6 animate-fade-in-up">
+            <span>✨</span>
+            <span>가장 쉬운 짐보관 찾기 서비스</span>
           </div>
 
-          <div className="stats-grid animate-fade-in-up animation-delay-400">
-            <div className="stat-item">
-              <div className="stat-number">{storages.length > 0 ? storages.length.toLocaleString() : '...'}</div>
-              <div className="stat-label">등록된 보관소</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">24시간</div>
-              <div className="stat-label">언제든 검색</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">무료</div>
-              <div className="stat-label">검색 서비스</div>
-            </div>
+          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-white mb-6 animate-fade-in-up animation-delay-200">
+            여행의 짐,<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">
+              편하게 보관하세요
+            </span>
+          </h1>
+
+          <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-2xl mx-auto animate-fade-in-up animation-delay-300">
+            전국 모든 짐보관소를 한번에 검색하고,<br />
+            가벼운 마음으로 여행을 즐기세요.
+          </p>
+
+          <div className="w-full max-w-2xl bg-white/10 backdrop-blur-md border border-white/10 p-3 rounded-2xl flex items-center gap-3 shadow-2xl animate-fade-in-up animation-delay-400">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="지역, 역, 관광지 이름으로 검색..."
+              className="flex-1 bg-transparent border-none text-white placeholder-gray-400 px-4 py-3 focus:outline-none text-lg"
+            />
+
+            <button
+              onClick={getUserLocation}
+              disabled={locatingUser}
+              className="p-3 text-gray-400 hover:text-yellow-400 hover:bg-white/5 rounded-xl transition-all"
+              title="내 위치 찾기"
+            >
+              {locatingUser ? (
+                <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full"></div>
+              ) : (
+                <span className="text-2xl">🎯</span>
+              )}
+            </button>
+
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-black font-bold rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? '검색 중...' : '검색'}
+            </button>
+          </div>
+
+          <div className="mt-8">
+            <button
+              onClick={() => (window as any).requestPushPermission?.()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-sm font-medium backdrop-blur-sm"
+            >
+              <span>🔔</span>
+              <span>새로운 보관소 알림 받기</span>
+            </button>
           </div>
         </div>
       </section>
 
-      <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
-        {/* Premium Section */}
-        <section id="premium" className="section">
-          <h2 className="section-title">⭐ 추천 짐보관소</h2>
-          <p className="section-subtitle">
-            검증된 프리미엄 짐보관소에서 안전하게 보관하세요
-          </p>
+      {/* Sticky Search Bar - Glassmorphism */}
+      {isScrolled && (
+        <div className="fixed top-[72px] left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-xl animate-fade-in-up">
+          <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl rounded-full">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="어디로 가시나요?"
+              className="flex-1 bg-transparent border-none px-4 py-2 text-gray-900 placeholder-gray-500 focus:outline-none text-sm font-medium"
+            />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-            {premiumStorages.map((storage) => (
-              <div key={storage._id} className="card card-premium">
-                <h3 className="card-title">{storage.name}</h3>
-                <p className="card-address">{storage.address}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {storage.is24Hours && <span className="tag tag-24h">🕐 24시간</span>}
-                  {storage.smallPrice && <span className="tag tag-small">소형 ₩{storage.smallPrice.toLocaleString()}</span>}
-                  {storage.largePrice && <span className="tag tag-large">대형 ₩{storage.largePrice.toLocaleString()}</span>}
-                </div>
-                {storage.phoneNumber && (
-                  <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#6366f1' }}>
-                    📞 {storage.phoneNumber}
-                  </p>
-                )}
-              </div>
-            ))}
-            {premiumStorages.length === 0 && (
-              <p style={{ color: '#9ca3af', textAlign: 'center', gridColumn: '1 / -1', padding: '2rem' }}>
-                프리미엄 짐보관소 정보를 불러오는 중...
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* Tips Section */}
-        <section id="about-service" className="section" style={{ background: 'linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: 'var(--radius-2xl)', margin: '2rem 0' }}>
-          <h2 className="section-title">💡 짐보관 꿀팁</h2>
-          <p className="section-subtitle">
-            여행을 더 가볍게 만들어줄 유용한 정보들
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            {[
-              { icon: '📅', title: '예약 가능 여부 확인', desc: '인기 있는 지역의 짐보관소는 미리 예약이 필요할 수 있어요. 방문 전 확인하세요.' },
-              { icon: '📦', title: '보관 물품 규정 확인', desc: '보관소마다 물품 종류와 크기, 무게 제한이 다를 수 있어요. 특히 귀중품은 사전 문의하세요.' },
-              { icon: '🕐', title: '운영 시간 확인', desc: '24시간 운영되지 않는 곳이 많으니 운영 시간을 반드시 확인하세요.' },
-              { icon: '💰', title: '요금 체계 확인', desc: '시간/일 단위 등 요금 체계가 다양해요. 장기 보관 할인도 확인해보세요.' },
-            ].map((tip, i) => (
-              <div key={i} className="card" style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{tip.icon}</div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.75rem', color: '#1f2937' }}>{tip.title}</h3>
-                <p style={{ color: '#6b7280', fontSize: '0.9rem', lineHeight: '1.6' }}>{tip.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Map Section */}
-        <section id="map" className="section">
-          <h2 className="section-title">📍 지도로 찾기</h2>
-          <p className="section-subtitle">
-            내 주변 짐보관소를 지도에서 한눈에 확인하세요
-          </p>
-          <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
               onClick={getUserLocation}
               disabled={locatingUser}
-              className="btn btn-primary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              className="p-2 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
             >
               {locatingUser ? (
-                <>
-                  <span className="animate-spin" style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%' }}></span>
-                  위치 확인 중...
-                </>
+                <div className="animate-spin h-4 w-4 border-2 border-gray-600 border-t-transparent rounded-full"></div>
               ) : (
-                <>
-                  📍 내 위치 찾기
-                </>
+                <span>🎯</span>
               )}
             </button>
-            {userLocation && (
-              <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', color: '#3b82f6', fontWeight: 500 }}>
-                ✓ 현재 위치가 지도에 표시되어 있습니다
-              </span>
-            )}
+
+            <button
+              onClick={handleSearch}
+              className="p-2.5 bg-yellow-400 hover:bg-yellow-500 text-black rounded-full shadow-sm transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
           </div>
-          <div id="mapContainer" className="map-container" style={{ height: '500px', background: '#e5e7eb' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af' }}>
-              지도를 불러오는 중...
-            </div>
+        </div>
+      )}
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+
+        {/* Premium Section */}
+        <section id="premium">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">⭐ 프리미엄 짐보관소</h2>
+            <p className="text-gray-600">검증된 시설에서 안전하게 보관하세요.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {premiumStorages.map((storage) => (
+              <div
+                key={storage._id}
+                onClick={() => goToMapLocation(storage)}
+                className="group relative bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <span className="text-6xl">⭐</span>
+                </div>
+
+                <div className="relative z-10">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors">{storage.name}</h3>
+                  <p className="text-gray-500 text-sm mb-4 line-clamp-2">{storage.address}</p>
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {storage.is24Hours && (
+                      <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">24시간</span>
+                    )}
+                    <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold">프리미엄</span>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <span className="text-amber-600 font-bold text-sm">자세히 보기 &rarr;</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {premiumStorages.length === 0 && (
+              <div className="col-span-full text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                <p className="text-gray-500">등록된 프리미엄 보관소가 없습니다.</p>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Storage List Section */}
-        <section id="list" className="section">
-          <h2 className="section-title">📋 짐보관소 리스트</h2>
-          <p className="section-subtitle">
-            총 {storages.length}개의 짐보관소가 검색되었습니다
-          </p>
+        {/* List Section */}
+        <section id="list">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">🗄️ 검색 결과</h2>
+              <p className="text-gray-500 mt-1">총 <span className="font-bold text-blue-600">{storages.length}</span>개의 보관소를 찾았습니다.</p>
+            </div>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {storages.length > 0 ? (
-              storages.map((storage) => (
+              storages.map(storage => (
                 <div
                   key={storage._id}
-                  className="card"
                   onClick={() => goToMapLocation(storage)}
-                  style={{ cursor: 'pointer' }}
-                  title="클릭하면 지도에서 위치를 확인할 수 있어요"
+                  className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
                 >
-                  <h3 className="card-title">{storage.name}</h3>
-                  <p className="card-address">{storage.address}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {storage.is24Hours && <span className="tag tag-24h">🕐 24시간</span>}
-                    {storage.isPremium && <span className="tag" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#92400e' }}>⭐ 프리미엄</span>}
-                    {storage.smallPrice && <span className="tag tag-small">소형 ₩{storage.smallPrice.toLocaleString()}</span>}
-                    {storage.largePrice && <span className="tag tag-large">대형 ₩{storage.largePrice.toLocaleString()}</span>}
-                  </div>
-                  {storage.phoneNumber && (
-                    <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#6366f1' }}>
-                      📞 {storage.phoneNumber}
-                    </p>
-                  )}
-                  <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>📍 클릭하여 지도에서 보기</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditStorage(storage);
-                      }}
-                      style={{
-                        padding: '0.375rem 0.75rem',
-                        fontSize: '0.75rem',
-                        background: '#f3f4f6',
-                        color: '#374151',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = '#e5e7eb'}
-                      onMouseOut={(e) => e.currentTarget.style.background = '#f3f4f6'}
-                    >
-                      ✏️ 정보 수정 요청
-                    </button>
+                  <h3 className="font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors truncate">{storage.name}</h3>
+                  <p className="text-sm text-gray-500 mb-3 truncate">{storage.address}</p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {storage.is24Hours && <span className="text-[10px] px-2 py-1 bg-blue-50 text-blue-600 rounded font-medium">24h</span>}
+                    {storage.smallPrice && <span className="text-[10px] px-2 py-1 bg-gray-100 text-gray-600 rounded font-medium">소형 ₩{storage.smallPrice.toLocaleString()}</span>}
                   </div>
                 </div>
               ))
             ) : (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem 2rem', color: '#9ca3af' }}>
-                <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ margin: '0 auto 1rem', opacity: 0.5 }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <p style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>검색 결과가 없습니다</p>
-                <p style={{ fontSize: '0.875rem' }}>다른 지역이나 역 이름으로 검색해보세요</p>
+              <div className="col-span-full py-20 text-center">
+                <div className="text-6xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">검색 결과가 없습니다</h3>
+                <p className="text-gray-500">다른 키워드로 검색해보세요.</p>
               </div>
             )}
           </div>
         </section>
 
-        <section id="report" className="section" style={{ background: 'linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%)', borderRadius: 'var(--radius-2xl)', margin: '2rem 0', textAlign: 'center' }}>
-          <h2 className="section-title">📢 짐보관소 제보하기</h2>
-          <p className="section-subtitle">
-            새로운 짐보관소를 알고 계신가요? 간단히 알려주세요!
-          </p>
-          <button
-            onClick={() => openModal('report')}
-            className="btn btn-primary"
-            style={{ fontSize: '1.125rem', padding: '1rem 2.5rem' }}
-          >
-            📝 제보하기
-          </button>
+        {/* Map Section */}
+        <section id="map" className="relative h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-gray-200">
+          <div className="absolute top-4 left-4 z-10 flex gap-2">
+            <div className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-200">
+              <h3 className="font-bold text-gray-900 text-sm">🗺️ 지도 보기</h3>
+            </div>
+          </div>
+
+          <div id="mapContainer" className="w-full h-full bg-gray-100"></div>
         </section>
 
-
-
         {/* FAQ Section */}
-        <section id="faq" className="section">
-          <h2 className="section-title">❓ 자주 묻는 질문</h2>
-          <p className="section-subtitle">
-            궁금하신 점을 빠르게 확인하세요
-          </p>
-
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <section id="faq" className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-10">자주 묻는 질문</h2>
+          <div className="space-y-4">
             {faqItems.map((item, i) => (
-              <div key={i} className="faq-item">
-                <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
-                  <span>Q. {item.q}</span>
-                  <svg
-                    className={`faq-icon ${openFaq === i ? 'faq-icon-open' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+              <div key={i} className="border border-gray-200 rounded-xl overflow-hidden bg-white hover:border-blue-200 transition-colors">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between p-5 text-left font-medium text-gray-900 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="text-blue-600 font-bold">Q.</span>
+                    {item.q}
+                  </span>
+                  <span className={`transform transition-transform ${openFaq === i ? 'rotate-180' : ''}`}>
+                    ▾
+                  </span>
                 </button>
                 {openFaq === i && (
-                  <div className="faq-answer">
-                    A. {item.a}
+                  <div className="p-5 pt-0 bg-gray-50/50 text-gray-600 text-sm leading-relaxed border-t border-gray-100">
+                    <div className="pt-4 flex gap-3">
+                      <span className="text-green-600 font-bold">A.</span>
+                      {item.a}
+                    </div>
                   </div>
                 )}
               </div>
@@ -536,51 +492,25 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Contact Section */}
-        <section id="contact-us" className="section" style={{ textAlign: 'center' }}>
-          <h2 className="section-title">💬 문의하기</h2>
-          <p className="section-subtitle">
-            궁금하신 점이나 제안이 있으시면 언제든 연락주세요
-          </p>
-          <a href="mailto:ysk7998@gmail.com" className="btn btn-primary" style={{ fontSize: '1.125rem' }}>
-            📧 ysk7998@gmail.com
-          </a>
+        {/* Contact/Report Section */}
+        <section className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 sm:p-12 text-center text-white relative overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="text-3xl font-bold mb-4">새로운 짐보관소를 알고 계신가요?</h2>
+            <p className="text-blue-100 mb-8 text-lg">여러분의 제보가 여행자들에게 큰 도움이 됩니다.</p>
+            <button
+              onClick={() => openModal('report')}
+              className="px-8 py-3 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+            >
+              ✍️ 제보하기
+            </button>
+          </div>
+
+          {/* Decor */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
         </section>
+
       </main>
-
-
-
-      {/* 제보하기 플로팅 버튼 (왼쪽 아래) */}
-      <button
-        className="report-floating-btn"
-        onClick={() => openModal('report')}
-        aria-label="짐보관소 제보하기"
-      >
-        <span className="btn-emoji">🧳</span>
-        <span>제보하기</span>
-      </button>
-
-      {/* AI 스마트 추천 플로팅 버튼 (오른쪽 아래) */}
-      <button
-        className="ai-floating-btn"
-        onClick={() => openModal('ai')}
-        aria-label="AI 스마트 추천"
-      >
-        <span className="btn-emoji">✨</span>
-        <span>AI 추천</span>
-      </button>
-
-      <AiModal goToMapLocation={goToMapLocation} />
-
-      {/* 정보 수정 요청 모달 */}
-      {editStorage && (
-        <EditRequestModal
-          storage={editStorage}
-          onClose={() => setEditStorage(null)}
-        />
-      )}
-
-
     </>
   );
 }

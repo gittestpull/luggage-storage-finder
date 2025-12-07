@@ -5,6 +5,8 @@ import connectDB from '@/lib/db';
 
 import { sendPushToAll } from '@/lib/push';
 
+import { getGeocode } from '@/lib/geocoding';
+
 export async function PUT(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -21,9 +23,28 @@ export async function PUT(
 
         // 현재 상태 확인
         const currentStorage = await Storage.findById(id);
-        const wasNotPremium = currentStorage && !currentStorage.isPremium;
+        if (!currentStorage) {
+            return NextResponse.json(
+                { message: '짐보관소를 찾을 수 없습니다.' },
+                { status: 404 }
+            );
+        }
+
+        const wasNotPremium = !currentStorage.isPremium;
+
+        // 주소가 변경된 경우 좌표 업데이트
+        if (body.address && body.address !== currentStorage.address) {
+            const geocodeResult = await getGeocode(body.address);
+            if (geocodeResult) {
+                body.location = {
+                    type: 'Point',
+                    coordinates: [geocodeResult.lng, geocodeResult.lat],
+                };
+            }
+        }
 
         const storage = await Storage.findByIdAndUpdate(id, body, { new: true });
+
         if (!storage) {
             return NextResponse.json(
                 { message: '짐보관소를 찾을 수 없습니다.' },

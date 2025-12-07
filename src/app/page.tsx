@@ -7,19 +7,7 @@ import AiModal from '@/components/modals/AiModal';
 import EditRequestModal from '@/components/modals/EditRequestModal';
 import { StorageLocation } from '@/types';
 
-interface StorageLocation {
-  _id: string;
-  name: string;
-  address: string;
-  location: { coordinates: [number, number] };
-  is24Hours?: boolean;
-  isPremium?: boolean;
-  smallPrice?: number;
-  largePrice?: number;
-  phoneNumber?: string;
-  openTime?: string;
-  closeTime?: string;
-}
+
 
 declare global {
   interface Window {
@@ -127,10 +115,28 @@ export default function Home() {
 
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
-            <div style="padding: 12px; font-family: Inter, sans-serif;">
+            <div style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
               <h3 style="font-weight: 700; margin-bottom: 8px; color: #1f2937;">${storage.name}</h3>
-              <p style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">${storage.address}</p>
-              ${storage.phoneNumber ? `<p style="font-size: 13px; color: #6366f1;">📞 ${storage.phoneNumber}</p>` : ''}
+              <p style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">${storage.address}</p>
+              ${storage.phoneNumber ? `<p style="font-size: 13px; color: #6366f1; margin-bottom: 8px;">📞 ${storage.phoneNumber}</p>` : ''}
+              <a 
+                href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
+                target="_blank"
+                style="
+                  display: block;
+                  text-align: center;
+                  background-color: #3b82f6;
+                  color: white;
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                  text-decoration: none;
+                  font-size: 13px;
+                  font-weight: 500;
+                  margin-top: 8px;
+                "
+              >
+                🗺️ 길찾기
+              </a>
             </div>
           `
         });
@@ -211,18 +217,18 @@ export default function Home() {
             userMarkerRef.current.setMap(null);
           }
 
-          // 새 마커 생성 (파란색 마커)
+          // 새 마커 생성 (내 위치: 초록색)
           userMarkerRef.current = new window.google.maps.Marker({
             position: loc,
             map: mapRef.current,
             title: '내 위치',
             icon: {
               path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 12,
-              fillColor: '#3b82f6',
+              scale: 14, // 크기 약간 확대
+              fillColor: '#22c55e', // 초록색으로 변경
               fillOpacity: 1,
               strokeColor: '#ffffff',
-              strokeWeight: 3,
+              strokeWeight: 4,
             },
             zIndex: 999,
           });
@@ -246,6 +252,10 @@ export default function Home() {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
+  };
+
+  const openEditModal = (storage: StorageLocation) => {
+    setEditStorage(storage);
   };
 
 
@@ -304,10 +314,15 @@ export default function Home() {
             <div className="mt-6 text-center">
               <button
                 onClick={() => (window as any).requestPushPermission ? (window as any).requestPushPermission() : alert('잠시만 기다려주세요. 기능이 로딩 중입니다.')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-medium hover:bg-white/20 transition-all hover:scale-105 active:scale-95 shadow-lg"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-medium hover:bg-white/20 transition-all hover:scale-105 active:scale-95 shadow-lg group relative"
               >
                 <span className="text-yellow-300">🔔</span>
                 <span>새로운 보관소 알림 받기</span>
+                {/* 툴팁 (모바일 숨김) */}
+                <div className="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  새로운 짐보관소 정보가 업데이트되면 알려드려요!
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                </div>
               </button>
             </div>
           </div>
@@ -329,6 +344,130 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 고정 검색바 (스크롤 시 따라옴) */}
+      {isScrolled && (
+        <div style={{
+          position: 'fixed',
+          top: '70px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 90,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px', // 간격 축소 (8px -> 6px)
+          padding: '8px 10px', // 패딩 축소 (12px -> 10px)
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '50px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+          maxWidth: '600px',
+          width: 'calc(100% - 24px)', // 여백 확보
+        }}>
+          <input
+            type="text"
+            placeholder="지역 또는 역 이름으로 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            style={{
+              flex: 1,
+              padding: '10px 12px', // 입력창 패딩 축소
+              border: 'none',
+              background: '#f3f4f6',
+              borderRadius: '25px',
+              fontSize: '14px',
+              outline: 'none',
+              color: '#1f2937', // 텍스트 색상 명시 (가독성 향상)
+            }}
+          />
+
+          {/* 내 위치 버튼 (고정 검색바) */}
+          <div className="relative group">
+            <button
+              onClick={getUserLocation}
+              disabled={locatingUser}
+              style={{
+                padding: '8px', // 버튼 패딩 축소
+                background: '#f3f4f6',
+                border: 'none',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s',
+                minWidth: '36px', // 최소 너비 확보
+                minHeight: '36px',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#e5e7eb'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#f3f4f6'}
+            >
+              {locatingUser ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+              ) : (
+                <span style={{ fontSize: '18px' }}>🎯</span>
+              )}
+            </button>
+            {/* 툴팁 (모바일 숨김) */}
+            <div className="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              내 위치 찾기
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+            </div>
+          </div>
+
+          {/* 검색 버튼 (고정 검색바) */}
+          <div className="relative group">
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              style={{
+                padding: '8px 16px', // 검색 버튼 패딩 축소 (20px -> 16px)
+                background: 'linear-gradient(135deg, #FACC15 0%, #EAB308 100%)',
+                border: 'none',
+                borderRadius: '25px',
+                color: '#18181b',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🔍
+            </button>
+            {/* 툴팁 (모바일 숨김) */}
+            <div className="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              검색하기
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+            </div>
+          </div>
+
+          {/* 알림 버튼 (고정 검색바) */}
+          <div className="relative group">
+            <button
+              onClick={() => (window as any).requestPushPermission ? (window as any).requestPushPermission() : alert('잠시만 기다려주세요.')}
+              style={{
+                padding: '10px',
+                background: '#3b82f6',
+                border: 'none',
+                borderRadius: '50%',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              🔔
+            </button>
+            {/* 툴팁 (모바일 숨김) */}
+            <div className="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              알림 설정
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
         {/* Premium Section */}
         <section id="premium" className="section">
@@ -339,8 +478,21 @@ export default function Home() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
             {premiumStorages.map((storage) => (
-              <div key={storage._id} className="card card-premium">
-                <h3 className="card-title">{storage.name}</h3>
+              <div
+                key={storage._id}
+                className="card card-premium"
+                onClick={() => goToMapLocation(storage)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <h3 className="card-title">{storage.name}</h3>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openEditModal(storage); }}
+                    style={{ fontSize: '12px', padding: '4px 8px', background: '#f3f4f6', borderRadius: '12px', border: 'none', cursor: 'pointer' }}
+                  >
+                    ✏️ 수정
+                  </button>
+                </div>
                 <p className="card-address">{storage.address}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {storage.is24Hours && <span className="tag tag-24h">🕐 24시간</span>}
@@ -549,6 +701,16 @@ export default function Home() {
       </main>
 
 
+
+      {/* 의견 보내기 플로팅 버튼 (왼쪽 아래, 제보하기 위) */}
+      <button
+        onClick={() => openModal('feedback')}
+        aria-label="의견 보내기"
+        className="feedback-floating-btn"
+      >
+        <span style={{ fontSize: '1.2rem' }}>💌</span>
+        <span>의견 보내기</span>
+      </button>
 
       {/* 제보하기 플로팅 버튼 (왼쪽 아래) */}
       <button

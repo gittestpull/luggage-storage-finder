@@ -16,9 +16,10 @@ interface AuthContextType {
         report: boolean;
         photoScan: boolean;
         ai: boolean;
+        feedback: boolean;
     };
-    openModal: (modal: 'login' | 'register' | 'report' | 'photoScan' | 'ai') => void;
-    closeModal: (modal: 'login' | 'register' | 'report' | 'photoScan' | 'ai') => void;
+    openModal: (modal: 'login' | 'register' | 'report' | 'photoScan' | 'ai' | 'feedback') => void;
+    closeModal: (modal: 'login' | 'register' | 'report' | 'photoScan' | 'ai' | 'feedback') => void;
     closeAllModals: () => void;
 }
 
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         report: false,
         photoScan: false,
         ai: false,
+        feedback: false,
     });
 
     useEffect(() => {
@@ -70,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             report: false,
             photoScan: false,
             ai: false,
+            feedback: false,
         });
     };
 

@@ -29,7 +29,7 @@ export default function AdminLogin() {
     };
 
     return (
-        <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="flex items-center justify-center h-screen bg-gray-100 text-gray-900">
             <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
                 <h1 className="text-2xl font-bold text-center mb-6">관리자 로그인</h1>
                 {error && (

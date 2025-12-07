@@ -7,66 +7,64 @@ export default function PWAManager() {
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-            // 서비스 워커 등록
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
+            // next-pwa가 자동으로 서비스 워커를 등록하므로 ready만 기다림
+            navigator.serviceWorker.ready.then(registration => {
+                console.log('Service Worker ready with scope:', registration.scope);
 
-                    // 전역 함수 정의: 알림 구독 요청
-                    (window as any).requestPushPermission = async () => {
-                        // iOS 감지
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-                        // PWA 모드인지 확인 (standalone)
-                        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+                // 전역 함수 정의: 알림 구독 요청
+                (window as any).requestPushPermission = async () => {
+                    // iOS 감지
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+                    // PWA 모드인지 확인 (standalone)
+                    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
 
-                        if (isIOS && !isStandalone) {
-                            setShowIOSGuide(true);
-                            return;
-                        }
+                    if (isIOS && !isStandalone) {
+                        setShowIOSGuide(true);
+                        return;
+                    }
 
-                        if (!('Notification' in window)) {
-                            alert('이 브라우저는 알림을 지원하지 않습니다.');
-                            return;
-                        }
+                    if (!('Notification' in window)) {
+                        alert('이 브라우저는 알림을 지원하지 않습니다.');
+                        return;
+                    }
 
-                        try {
-                            const permission = await Notification.requestPermission();
-                            if (permission === 'granted') {
-                                console.log('알림 권한 허용됨');
+                    try {
+                        const permission = await Notification.requestPermission();
+                        if (permission === 'granted') {
+                            console.log('알림 권한 허용됨');
 
-                                const subscription = await registration.pushManager.subscribe({
-                                    userVisibleOnly: true,
-                                    applicationServerKey: urlBase64ToUint8Array('BE5xeCmV_Tkys3Vjv5b8sNuiNxs3HQuOLuDxm1TKz37QRLVBPPtjLhttBbiSOfgqWLeUnB5y56cZFtzerkodgRQ')
-                                });
+                            const subscription = await registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: urlBase64ToUint8Array('BE5xeCmV_Tkys3Vjv5b8sNuiNxs3HQuOLuDxm1TKz37QRLVBPPtjLhttBbiSOfgqWLeUnB5y56cZFtzerkodgRQ')
+                            });
 
-                                console.log('푸시 구독 성공:', subscription);
+                            console.log('푸시 구독 성공:', subscription);
 
-                                // 백엔드에 구독 정보 전송
-                                const response = await fetch('/api/subscribe', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify(subscription),
-                                });
+                            // 백엔드에 구독 정보 전송
+                            const response = await fetch('/api/subscribe', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(subscription),
+                            });
 
-                                if (response.ok) {
-                                    alert('알림 구독이 완료되었습니다! 🎉\n이제 새로운 프리미엄 보관소 소식을 받아보실 수 있습니다.');
-                                } else {
-                                    throw new Error('서버 전송 실패');
-                                }
+                            if (response.ok) {
+                                alert('알림 구독이 완료되었습니다! 🎉\n이제 새로운 프리미엄 보관소 소식을 받아보실 수 있습니다.');
                             } else {
-                                alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
+                                throw new Error('서버 전송 실패');
                             }
-                        } catch (error) {
-                            console.error('푸시 구독 오류:', error);
-                            alert('알림 구독 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.\n(iOS의 경우 홈 화면에 추가된 앱에서만 동작합니다)');
+                        } else {
+                            alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
                         }
-                    };
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
+                    } catch (error) {
+                        console.error('푸시 구독 오류:', error);
+                        alert('알림 구독 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.\n(iOS의 경우 홈 화면에 추가된 앱에서만 동작합니다)');
+                    }
+                };
+            }).catch(error => {
+                console.error('Service Worker ready error:', error);
+            });
         }
     }, []);
 

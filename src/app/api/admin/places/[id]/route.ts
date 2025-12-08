@@ -3,10 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import Place from '@/models/Place';
 
+interface Params {
+    params: Promise<{
+        id: string;
+    }>
+}
+
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: Params
 ) {
+    const { id } = await params;
     // 어드민 토큰 검증
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -29,7 +36,7 @@ export async function PUT(
         const body = await req.json();
 
         const updatedPlace = await Place.findByIdAndUpdate(
-            params.id,
+            id,
             {
                 $set: {
                     name: body.name,
@@ -54,8 +61,9 @@ export async function PUT(
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: Params
 ) {
+    const { id } = await params;
     // 어드민 토큰 검증
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -64,7 +72,7 @@ export async function DELETE(
 
     try {
         await db();
-        const deletedPlace = await Place.findByIdAndDelete(params.id);
+        const deletedPlace = await Place.findByIdAndDelete(id);
 
         if (!deletedPlace) {
             return NextResponse.json({ success: false, error: 'Place not found' }, { status: 404 });

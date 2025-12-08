@@ -5,6 +5,7 @@ import { Button } from '@/components/ui';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { createPortal } from 'react-dom';
+import { menuLinks } from '@/config/navigation';
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -24,9 +25,11 @@ export default function Header() {
                     </Link>
 
                     <nav className="hidden md:flex items-center space-x-8">
-                        <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">홈</Link>
-                        <Link href="/news" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">뉴스</Link>
-                        <Link href="#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>
+                        {menuLinks.map((link) => (
+                            <Link key={link.name} href={link.path} className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
+                                {link.name}
+                            </Link>
+                        ))}
                         <button
                             onClick={() => (window as any).requestPushPermission && (window as any).requestPushPermission()}
                             className="text-gray-600 hover:text-yellow-600 transition-colors font-medium flex items-center gap-1"
@@ -89,29 +92,16 @@ export default function Header() {
 
                             {/* Navigation Links */}
                             <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-6">
-                                <Link
-                                    href="/"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">🏠</span> 홈
-                                </Link>
-
-                                <Link
-                                    href="/news"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">📰</span> 뉴스
-                                </Link>
-
-                                <Link
-                                    href="#faq"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">❓</span> FAQ
-                                </Link>
+                                {menuLinks.map((link) => (
+                                    <Link
+                                        key={link.name}
+                                        href={link.path}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <span className="w-8">{link.icon}</span> {link.name}
+                                    </Link>
+                                ))}
                             </div>
 
                             {/* Footer Actions */}

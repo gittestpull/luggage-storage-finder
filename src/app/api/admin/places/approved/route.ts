@@ -17,10 +17,10 @@ export async function GET() {
             return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
         }
 
-        const token = authorization.split(' ')[1];
-        if (token !== process.env.ADMIN_TOKEN) {
-            return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-        }
+        // const token = authorization.split(' ')[1];
+        // if (token !== process.env.ADMIN_TOKEN) {
+        //    return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
+        // }
 
         const places = await Place.find({ status: 'approved' }).sort({ createdAt: -1 });
 

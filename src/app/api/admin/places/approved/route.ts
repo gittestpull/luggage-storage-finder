@@ -1,17 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Place from '@/models/Place';
-import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await dbConnect();
 
         // Admin Token Verification
-        const headersList = headers();
-        const authorization = headersList.get('authorization');
+        const authorization = req.headers.get('authorization');
 
         if (!authorization || !authorization.startsWith('Bearer ')) {
             return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });

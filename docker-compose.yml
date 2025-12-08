@@ -16,6 +16,8 @@ services:
       - NEWS_API_KEY=${NEWS_API_KEY}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - CRON_SECRET=${CRON_SECRET}
+      - PRODUCTION_URL=${PRODUCTION_URL}
     restart: unless-stopped
     depends_on:
       - mongo

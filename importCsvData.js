@@ -18,6 +18,7 @@ async function importData() {
             useUnifiedTopology: true,
         });
         console.log('MongoDB connected successfully.');
+        console.log('API Key present:', !!GOOGLE_MAPS_API_KEY);
 
         await Storage.deleteMany({});
         console.log('Existing storage data cleared.');
@@ -31,7 +32,7 @@ async function importData() {
                 trim: true,
             }));
 
-        parser.on('readable', function() {
+        parser.on('readable', function () {
             let record;
             while ((record = parser.read()) !== null) {
                 records.push(record);
@@ -50,8 +51,23 @@ async function importData() {
             let geocodedAddress = '';
 
             if (GOOGLE_MAPS_API_KEY) {
-                // Attempt geocoding with station name first
-                let addressToGeocode = record['역명'].trim();
+                // Improve address accuracy
+                let stationName = record['역명'].trim();
+                if (!stationName.endsWith('역')) {
+                    stationName += '역';
+                }
+
+                let region = '';
+                const operator = record['철도운영기관명'] || '';
+                if (operator.includes('부산')) region = '부산 ';
+                else if (operator.includes('광주')) region = '광주 ';
+                else if (operator.includes('대구')) region = '대구 ';
+                else if (operator.includes('대전')) region = '대전 ';
+                else if (operator.includes('서울') || operator.includes('메트로')) region = '서울 ';
+                else if (operator.includes('인천')) region = '인천 ';
+
+                // Attempt geocoding with enhanced station name first
+                let addressToGeocode = `${region}${stationName}`.trim();
                 try {
                     let geoResponse = await axios.get(
                         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressToGeocode)}&key=${GOOGLE_MAPS_API_KEY}`
@@ -63,8 +79,8 @@ async function importData() {
                         geocodedAddress = addressToGeocode;
                         // console.log(`Geocoded ${geocodedAddress}: Lat ${latitude}, Lng ${longitude}`);
                     } else {
-                        // If station name alone fails, try with detailed location
-                        addressToGeocode = `${record['역명']} ${record['상세위치']}`.trim();
+                        // If enhanced name fails, try with detailed location but still add region if possible
+                        addressToGeocode = `${region}${record['역명']} ${record['상세위치']}`.trim();
                         geoResponse = await axios.get(
                             `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressToGeocode)}&key=${GOOGLE_MAPS_API_KEY}`
                         );
@@ -75,13 +91,15 @@ async function importData() {
                             geocodedAddress = addressToGeocode;
                             // console.log(`Geocoded ${geocodedAddress}: Lat ${latitude}, Lng ${longitude}`);
                         } else {
-                            // console.warn(`Could not geocode address: ${addressToGeocode}`);
+                            console.warn(`Could not geocode address: ${addressToGeocode} - Status: ${geoResponse.data.status}`);
                         }
                     }
                 } catch (geoError) {
                     console.error(`Error geocoding address ${addressToGeocode}:`, geoError.message);
                 }
-                await delay(100); // Add a small delay to respect API rate limits
+                await delay(200); // Add a small delay to respect API rate limits
+            } else {
+                console.warn('GOOGLE_MAPS_API_KEY is missing. Skipping geocoding.');
             }
 
             // Price parsing logic

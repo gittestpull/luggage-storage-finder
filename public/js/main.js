@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 서비스 워커 등록
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array('BEOlOiEIrR-D0n-H140Evw9VmgAr5LUvlkVDZPPlJvO1WtNYfVrRkdlWj-40ILyK9Hs9QeB4oUkft05V3l__nxQ') // VAPID 공개 키
+                    applicationServerKey: urlBase64ToUint8Array('BE5xeCmV_Tkys3Vjv5b8sNuiNxs3HQuOLuDxm1TKz37QRLVBPPtjLhttBbiSOfgqWLeUnB5y56cZFtzerkodgRQ') // VAPID 공개 키
                 });
                 console.log('푸시 구독 성공:', subscription);
                 // 구독 정보를 백엔드로 전송
@@ -97,6 +97,17 @@ document.addEventListener('DOMContentLoaded', function() {
             await requestNotificationPermission(registration, storageId);
         } else {
             console.error('서비스 워커가 등록되지 않아 알림을 받을 수 없습니다. 페이지를 새로고침 해주세요.'); // alert 대신 console.error
+        }
+    };
+
+    // 일반 알림 구독 함수 (전역 노출) - 버튼 클릭 시 호출용
+    window.requestPushPermission = async () => {
+        console.log('일반 알림 구독 요청');
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+            await requestNotificationPermission(registration);
+        } else {
+            alert('서비스 워커가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
         }
     };
 
@@ -267,11 +278,11 @@ document.addEventListener('DOMContentLoaded', function() {
     async function replaceComponent(containerId, componentPath) {
         const container = document.getElementById(containerId);
         if (!container) return false;
-        
+
         // 페이드 아웃 효과
         container.style.opacity = '0';
         container.style.transition = 'opacity 0.3s';
-        
+
         // 페이드 아웃 후 내용 교체
         setTimeout(async () => {
             try {
@@ -279,16 +290,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!response.ok) {
                     throw new Error(`컴포넌트를 불러오지 못했습니다: ${componentPath}`);
                 }
-                
+
                 const html = await response.text();
                 container.innerHTML = html;
-                
+
                 // 페이드 인 효과
                 container.style.opacity = '1';
-                
+
                 // 교체 완료 이벤트 발생
-                window.dispatchEvent(new CustomEvent('componentReplaced', { 
-                    detail: { containerId, componentPath } 
+                window.dispatchEvent(new CustomEvent('componentReplaced', {
+                    detail: { containerId, componentPath }
                 }));
             } catch (error) {
                 console.error(`컴포넌트 교체 실패:`, error);
@@ -319,9 +330,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (href.startsWith('http') || href.endsWith('.html')) {
                 return; // 기본 브라우저 동작에 맡김
             }
-            
+
             // 홈으로 가는 링크('/') 처리 또는 해시 링크 처리
-            e.preventDefault(); 
+            e.preventDefault();
             if (href === '/') {
                 window.location.hash = ''; // 해시를 비워서 기본 페이지로
             } else {
@@ -385,7 +396,7 @@ function initMobileMenu() {
             // 애니메이션을 위한 클래스 토글 (CSS에서 정의됨)
             setTimeout(() => {
                 mobileMenu.classList.toggle('open');
-            }, 10); 
+            }, 10);
         });
 
         // 메뉴 항목 클릭 시 메뉴 닫기
@@ -404,7 +415,7 @@ function initMobileMenu() {
 function initSearch() {
     const searchButton = document.getElementById('searchButton');
     const searchInput = document.getElementById('searchInput');
-    
+
     if (searchButton && searchInput) {
         const performSearch = () => {
             const query = searchInput.value.trim();
@@ -416,7 +427,7 @@ function initSearch() {
         };
 
         searchButton.addEventListener('click', performSearch);
-        
+
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 performSearch();

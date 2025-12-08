@@ -1,19 +1,33 @@
-# Node.js 기반 이미지 사용
-FROM node:18-alpine
+FROM node:20-alpine AS base
 
-# 작업 디렉토리 설정
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# 의존성 파일 복사 및 설치
-COPY package*.json ./
-RUN npm install
-
-# 소스 파일 복사
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-COPY importCsvData.js .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
-# 포트 설정
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# DB 모델 및 설정 파일 복사
+COPY --from=builder --chown=nextjs:nodejs /app/src/config ./src/config
+COPY --from=builder --chown=nextjs:nodejs /app/src/models ./src/models
+USER nextjs
 EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+CMD ["node", "server.js"]
 
-# 실행 명령
-CMD ["npm", "start"]

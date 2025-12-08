@@ -1,44 +1,44 @@
-# 의존성 디렉토리
-node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# 환경 변수 파일
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# 로그 파일
-logs
-*.log
+# testing
+/coverage
 
-# 운영체제 파일
-.DS_Store
-Thumbs.db
+# next.js
+/.next/
+/out/
 
-# 빌드 디렉토리
-/dist
+# production
 /build
 
-# 임시 파일
-.tmp
-.temp
+# misc
+.DS_Store
+*.pem
 
-# 캐시 디렉토리
-.cache
-.npm
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# 업로드된 파일 (multer 사용 시)
-/uploads
+# env files (can opt-in for committing if needed)
+.env*
 
-# 커버리지 보고서
-coverage/
+# vercel
+.vercel
 
-# IDE 설정
-.idea/
-.vscode/
-*.swp
-*.swo
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+#mongo
+mongo-data

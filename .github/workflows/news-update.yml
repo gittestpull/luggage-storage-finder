@@ -1,0 +1,20 @@
+name: Update News Articles
+
+on:
+  schedule:
+    # 6시간마다 실행 (UTC 기준)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # 수동 실행을 위한 옵션
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger News Update API
+        run: |
+          curl -X POST \
+            "${{ secrets.PRODUCTION_URL }}/api/news/update" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"

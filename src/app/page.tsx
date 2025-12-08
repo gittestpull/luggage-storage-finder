@@ -20,16 +20,22 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [storages, setStorages] = useState<StorageLocation[]>([]);
   const [premiumStorages, setPremiumStorages] = useState<StorageLocation[]>([]);
+  const [places, setPlaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  // 레이어 토글 상태
+  const [showStorageLayer, setShowStorageLayer] = useState(true);
+  const [showPlaceLayer, setShowPlaceLayer] = useState(false);
+
   const { openModal, modals, closeModal } = useAuth();
 
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const placeMarkersRef = useRef<any[]>([]);
   const userMarkerRef = useRef<any>(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [editStorage, setEditStorage] = useState<StorageLocation | null>(null);
@@ -56,6 +62,16 @@ export default function Home() {
       .then(res => res.json())
       .then(data => setPremiumStorages(data))
       .catch(err => console.error('Error loading premium:', err));
+
+    // 맛집/카페 데이터 로드
+    fetch('/api/places', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setPlaces(data.data);
+        }
+      })
+      .catch(err => console.error('Error loading places:', err));
   }, []);
 
   useEffect(() => {
@@ -67,10 +83,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (mapRef.current && storages.length > 0) {
+    if (mapRef.current && (storages.length > 0 || places.length > 0)) {
       updateMarkers();
     }
-  }, [storages]);
+  }, [storages, places, showStorageLayer, showPlaceLayer]);
 
   const initMap = () => {
     const mapOptions = {
@@ -90,64 +106,130 @@ export default function Home() {
 
   const updateMarkers = () => {
     if (!mapRef.current) return;
+
+    // 기존 마커 정리
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
+    placeMarkersRef.current.forEach(marker => marker.setMap(null));
+    placeMarkersRef.current = [];
+
     const bounds = new window.google.maps.LatLngBounds();
 
-    storages.forEach(storage => {
-      if (storage.location && storage.location.coordinates) {
-        const [lng, lat] = storage.location.coordinates;
-        if (lat === 0 && lng === 0) return;
+    // 짐보관소 마커 (레이어가 켜져 있을 때만)
+    if (showStorageLayer) {
+      storages.forEach(storage => {
+        if (storage.location && storage.location.coordinates) {
+          const [lng, lat] = storage.location.coordinates;
+          if (lat === 0 && lng === 0) return;
 
-        const marker = new window.google.maps.Marker({
-          position: { lat, lng },
-          map: mapRef.current,
-          title: storage.name,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: storage.isPremium ? '#f59e0b' : '#6366f1',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-          },
-        });
+          const marker = new window.google.maps.Marker({
+            position: { lat, lng },
+            map: mapRef.current,
+            title: storage.name,
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: storage.isPremium ? '#f59e0b' : '#6366f1',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+            },
+          });
 
-        const infoWindow = new window.google.maps.InfoWindow({
-          content: `
-            <div style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
-              <h3 style="font-weight: 700; margin-bottom: 8px; color: #1f2937;">${storage.name}</h3>
-              <p style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">${storage.address}</p>
-              ${storage.phoneNumber ? `<p style="font-size: 13px; color: #6366f1; margin-bottom: 8px;">📞 ${storage.phoneNumber}</p>` : ''}
-              <a 
-                href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
-                target="_blank"
-                style="
-                  display: block;
-                  text-align: center;
-                  background-color: #3b82f6;
-                  color: white;
-                  padding: 8px 12px;
-                  border-radius: 6px;
-                  text-decoration: none;
-                  font-size: 13px;
-                  font-weight: 500;
-                  margin-top: 8px;
-                "
-              >
-                🗺️ 길찾기
-              </a>
-            </div>
-          `
-        });
+          const infoWindow = new window.google.maps.InfoWindow({
+            content: `
+              <div style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
+                <h3 style="font-weight: 700; margin-bottom: 8px; color: #1f2937;">${storage.name}</h3>
+                <p style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">${storage.address}</p>
+                ${storage.phoneNumber ? `<p style="font-size: 13px; color: #6366f1; margin-bottom: 8px;">📞 ${storage.phoneNumber}</p>` : ''}
+                <a 
+                  href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
+                  target="_blank"
+                  style="
+                    display: block;
+                    text-align: center;
+                    background-color: #3b82f6;
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    text-decoration: none;
+                    font-size: 13px;
+                    font-weight: 500;
+                    margin-top: 8px;
+                  "
+                >
+                  🗺️ 길찾기
+                </a>
+              </div>
+            `
+          });
 
-        marker.addListener('click', () => infoWindow.open(mapRef.current, marker));
-        markersRef.current.push(marker);
-        bounds.extend({ lat, lng });
-      }
-    });
+          marker.addListener('click', () => infoWindow.open(mapRef.current, marker));
+          markersRef.current.push(marker);
+          bounds.extend({ lat, lng });
+        }
+      });
+    }
 
-    if (storages.length > 0) {
+    // 맛집/카페 마커 (레이어가 켜져 있을 때만)
+    if (showPlaceLayer) {
+      places.forEach(place => {
+        if (place.location && place.location.coordinates) {
+          const [lng, lat] = place.location.coordinates;
+          if (lat === 0 && lng === 0) return;
+
+          const marker = new window.google.maps.Marker({
+            position: { lat, lng },
+            map: mapRef.current,
+            title: place.name,
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: '#14b8a6', // 청록색
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+            },
+          });
+
+          const infoWindow = new window.google.maps.InfoWindow({
+            content: `
+              <div style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
+                <h3 style="font-weight: 700; margin-bottom: 8px; color: #1f2937;">🍽️ ${place.name}</h3>
+                <p style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">${place.address}</p>
+                ${place.description ? `<p style="font-size: 12px; color: #9ca3af; margin-bottom: 8px;">${place.description}</p>` : ''}
+                <a 
+                  href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
+                  target="_blank"
+                  style="
+                    display: block;
+                    text-align: center;
+                    background-color: #14b8a6;
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    text-decoration: none;
+                    font-size: 13px;
+                    font-weight: 500;
+                    margin-top: 8px;
+                  "
+                >
+                  🗺️ 길찾기
+                </a>
+              </div>
+            `
+          });
+
+          marker.addListener('click', () => infoWindow.open(mapRef.current, marker));
+          placeMarkersRef.current.push(marker);
+          bounds.extend({ lat, lng });
+        }
+      });
+    }
+
+    // 마커가 있으면 bounds 조정
+    const totalMarkers = markersRef.current.length + placeMarkersRef.current.length;
+    if (totalMarkers > 0) {
       mapRef.current.fitBounds(bounds);
     }
   };
@@ -541,8 +623,45 @@ export default function Home() {
         <section id="map" className="section">
           <h2 className="section-title">📍 지도로 찾기</h2>
           <p className="section-subtitle">
-            내 주변 짐보관소를 지도에서 한눈에 확인하세요
+            내 주변 짐보관소와 맛집을 지도에서 한눈에 확인하세요
           </p>
+
+          {/* 레이어 토글 버튼 */}
+          <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setShowStorageLayer(!showStorageLayer)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '20px',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                background: showStorageLayer ? '#6366f1' : '#e5e7eb',
+                color: showStorageLayer ? 'white' : '#6b7280',
+              }}
+            >
+              🧳 보관소 {showStorageLayer ? '✓' : ''}
+            </button>
+            <button
+              onClick={() => setShowPlaceLayer(!showPlaceLayer)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '20px',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                background: showPlaceLayer ? '#14b8a6' : '#e5e7eb',
+                color: showPlaceLayer ? 'white' : '#6b7280',
+              }}
+            >
+              🍽️ 맛집 {showPlaceLayer ? '✓' : ''}
+            </button>
+          </div>
+
           <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
               onClick={getUserLocation}

@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "짐보관소 찾기 서비스 - Next.js 버전",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -11,14 +11,17 @@
   "dependencies": {
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.2",
+    "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "csv-parse": "^6.1.0",
     "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.20.1",
     "next": "^16.0.7",
+    "next-auth": "^4.24.7",
     "nodemailer": "^7.0.11",
     "react": "^19.2.1",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^2.5.5",
     "web-push": "^3.6.7"

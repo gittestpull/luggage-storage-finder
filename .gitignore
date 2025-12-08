@@ -42,3 +42,6 @@ next-env.d.ts
 
 #mongo
 mongo-data
+
+# logs
+dev_server.log

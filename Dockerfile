@@ -22,12 +22,9 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# update-news.js 및 관련 파일 복사
-COPY --from=builder --chown=nextjs:nodejs /app/update-news.js ./update-news.js
+# DB 모델 및 설정 파일 복사
 COPY --from=builder --chown=nextjs:nodejs /app/src/config ./src/config
 COPY --from=builder --chown=nextjs:nodejs /app/src/models ./src/models
-# update-news.js 실행에 필요한 node_modules 복사
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

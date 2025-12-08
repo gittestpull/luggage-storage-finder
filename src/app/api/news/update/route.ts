@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import mongoose from 'mongoose';
-import NewsArticle from '@/models/NewsArticle';
+import { NewsArticle } from '@/models/NewsArticle';
 import connectDB from '@/lib/db';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;

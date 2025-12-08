@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function PhotoScanModal() {
-    const { modals, closeModal, openModal, setAnalysisResult } = useAuth();
+    const { modals, closeModal, openModal, setAnalysisResult, scanMode } = useAuth();
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -12,6 +12,12 @@ export default function PhotoScanModal() {
     const [localAnalysisResult, setLocalAnalysisResult] = useState<any>(null);
 
     if (!modals.photoScan) return null;
+
+    const isStorageMode = scanMode === 'storage';
+    const modeTitle = isStorageMode ? '짐보관소' : '맛집/카페';
+    const modeDescription = isStorageMode
+        ? '짐보관소 간판이나 안내문 사진을 촬영하거나 선택해주세요.'
+        : '맛집/카페의 간판이나 메뉴판 사진을 촬영하거나 선택해주세요.';
 
     const handleClose = () => {
         closeModal('photoScan');
@@ -58,12 +64,24 @@ export default function PhotoScanModal() {
             const res = await fetch('/api/analyze-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: selectedImage }),
+                body: JSON.stringify({
+                    image: selectedImage,
+                    mode: scanMode // 모드 전달
+                }),
             });
 
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || 'AI 분석 중 오류가 발생했습니다.');
+                // 429 = 요청 제한 초과
+                if (res.status === 429) {
+                    throw new Error('AI 분석 요청이 많아 잠시 후 다시 시도해주세요. (약 1분 후)');
+                }
+                // JSON 응답 파싱 시도
+                try {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || 'AI 분석 중 오류가 발생했습니다.');
+                } catch {
+                    throw new Error('AI 서버가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해주세요.');
+                }
             }
 
             const result = await res.json();
@@ -88,7 +106,7 @@ export default function PhotoScanModal() {
             <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
                 <div className="glass-modal-header">
                     <div className="glass-modal-title">
-                        📸 사진으로 등록
+                        📸 {modeTitle} 사진 등록
                     </div>
                     <button className="glass-modal-close" onClick={handleClose}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -110,7 +128,7 @@ export default function PhotoScanModal() {
                     {step === 1 && !error && (
                         <>
                             <p style={{ color: '#6b7280', marginBottom: '1.5rem', textAlign: 'center' }}>
-                                짐보관소 간판이나 안내문 사진을 촬영하거나 선택해주세요.
+                                {modeDescription}
                             </p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <label className="photo-scan-option">
@@ -153,8 +171,8 @@ export default function PhotoScanModal() {
                         </>
                     )}
 
-                    {/* 단계 3: 분석 결과 */}
-                    {step === 3 && localAnalysisResult && (
+                    {/* 단계 3: 분석 결과 - 짐보관소 모드 */}
+                    {step === 3 && localAnalysisResult && isStorageMode && (
                         <>
                             <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -193,9 +211,50 @@ export default function PhotoScanModal() {
                                         </div>
                                     </div>
                                 </div>
-                                <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center' }}>
-                                    ⚠️ AI가 추출한 정보를 확인하고 필요시 수정해주세요.
-                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button onClick={resetState} className="btn btn-secondary" style={{ flex: 1 }}>
+                                    다시 촬영
+                                </button>
+                                <button onClick={applyAnalysisToReport} className="btn btn-primary" style={{ flex: 1 }}>
+                                    제보 폼에 적용
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* 단계 3: 분석 결과 - 맛집/카페 모드 */}
+                    {step === 3 && localAnalysisResult && !isStorageMode && (
+                        <>
+                            <div style={{ background: '#f0fdfa', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                    <span style={{ fontWeight: '600', color: '#0d9488' }}>✅ 분석 완료</span>
+                                    <span style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '20px', background: localAnalysisResult.confidence >= 0.8 ? '#ccfbf1' : localAnalysisResult.confidence >= 0.5 ? '#fef3c7' : '#fee2e2', color: localAnalysisResult.confidence >= 0.8 ? '#115e59' : localAnalysisResult.confidence >= 0.5 ? '#92400e' : '#991b1b' }}>
+                                        정확도: {Math.round((localAnalysisResult.confidence || 0) * 100)}%
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>가게 이름</label>
+                                        <input type="text" value={localAnalysisResult.name || ''} onChange={(e) => setLocalAnalysisResult({ ...localAnalysisResult, name: e.target.value })} className="form-input" style={{ marginTop: '4px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>주소</label>
+                                        <input type="text" value={localAnalysisResult.address || ''} onChange={(e) => setLocalAnalysisResult({ ...localAnalysisResult, address: e.target.value })} className="form-input" style={{ marginTop: '4px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>카테고리</label>
+                                        <input type="text" value={localAnalysisResult.category || ''} onChange={(e) => setLocalAnalysisResult({ ...localAnalysisResult, category: e.target.value })} className="form-input" style={{ marginTop: '4px' }} placeholder="예: 카페, 한식, 양식 등" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>대표 메뉴 / 추천</label>
+                                        <input type="text" value={localAnalysisResult.menu || ''} onChange={(e) => setLocalAnalysisResult({ ...localAnalysisResult, menu: e.target.value })} className="form-input" style={{ marginTop: '4px' }} placeholder="예: 아메리카노, 디저트" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>설명</label>
+                                        <textarea value={localAnalysisResult.description || ''} onChange={(e) => setLocalAnalysisResult({ ...localAnalysisResult, description: e.target.value })} className="form-input" style={{ marginTop: '4px', resize: 'vertical' }} rows={2} placeholder="분위기, 특징 등" />
+                                    </div>
+                                </div>
                             </div>
                             <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <button onClick={resetState} className="btn btn-secondary" style={{ flex: 1 }}>

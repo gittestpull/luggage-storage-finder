@@ -21,6 +21,7 @@ export default function Home() {
   const [storages, setStorages] = useState<StorageLocation[]>([]);
   const [premiumStorages, setPremiumStorages] = useState<StorageLocation[]>([]);
   const [places, setPlaces] = useState<any[]>([]);
+  const [news, setNews] = useState<any[]>([]); // 뉴스 데이터 추가
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,12 +31,14 @@ export default function Home() {
   // 레이어 토글 상태
   const [showStorageLayer, setShowStorageLayer] = useState(true);
   const [showPlaceLayer, setShowPlaceLayer] = useState(false);
+  const [showNewsLayer, setShowNewsLayer] = useState(false); // 뉴스 레이어 추가
 
   const { openModal, modals, closeModal } = useAuth();
 
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const placeMarkersRef = useRef<any[]>([]);
+  const newsMarkersRef = useRef<any[]>([]); // 뉴스 마커 Ref 추가
   const userMarkerRef = useRef<any>(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [editStorage, setEditStorage] = useState<StorageLocation | null>(null);
@@ -72,6 +75,12 @@ export default function Home() {
         }
       })
       .catch(err => console.error('Error loading places:', err));
+
+    // 뉴스 데이터 로드
+    fetch('/api/news', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => setNews(data))
+      .catch(err => console.error('Error loading news:', err));
   }, []);
 
   useEffect(() => {
@@ -83,10 +92,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (mapRef.current && (storages.length > 0 || places.length > 0)) {
+    if (mapRef.current && (storages.length > 0 || places.length > 0 || news.length > 0)) {
       updateMarkers();
     }
-  }, [storages, places, showStorageLayer, showPlaceLayer]);
+  }, [storages, places, news, showStorageLayer, showPlaceLayer, showNewsLayer]);
 
   const initMap = () => {
     const mapOptions = {
@@ -227,8 +236,65 @@ export default function Home() {
       });
     }
 
+    // 뉴스 마커 (레이어가 켜져 있을 때만)
+    if (showNewsLayer) {
+      news.forEach(article => {
+        if (article.locations && article.locations.length > 0) {
+          article.locations.forEach((loc: any) => {
+            if (loc.lat && loc.lng) {
+              const marker = new window.google.maps.Marker({
+                position: { lat: loc.lat, lng: loc.lng },
+                map: mapRef.current,
+                title: article.title,
+                icon: {
+                  path: window.google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: '#ef4444', // 빨간색
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                },
+              });
+
+              const infoWindow = new window.google.maps.InfoWindow({
+                content: `
+                  <div style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
+                    <h3 style="font-weight: 700; margin-bottom: 8px; color: #1f2937; font-size: 14px;">📰 관련 뉴스</h3>
+                    <p style="font-size: 13px; color: #374151; margin-bottom: 4px; font-weight: 600;">${article.title}</p>
+                    <p style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">${loc.name}</p>
+                    <a 
+                      href="${article.url}" 
+                      target="_blank"
+                      style="
+                        display: block;
+                        text-align: center;
+                        background-color: #ef4444;
+                        color: white;
+                        padding: 6px 12px;
+                        border-radius: 6px;
+                        text-decoration: none;
+                        font-size: 12px;
+                        font-weight: 500;
+                        margin-top: 6px;
+                      "
+                    >
+                      기사 보기
+                    </a>
+                  </div>
+                `
+              });
+
+              marker.addListener('click', () => infoWindow.open(mapRef.current, marker));
+              newsMarkersRef.current.push(marker);
+              bounds.extend({ lat: loc.lat, lng: loc.lng });
+            }
+          });
+        }
+      });
+    }
+
     // 마커가 있으면 bounds 조정
-    const totalMarkers = markersRef.current.length + placeMarkersRef.current.length;
+    const totalMarkers = markersRef.current.length + placeMarkersRef.current.length + newsMarkersRef.current.length;
     if (totalMarkers > 0) {
       mapRef.current.fitBounds(bounds);
     }
@@ -659,6 +725,22 @@ export default function Home() {
               }}
             >
               🍽️ 맛집 {showPlaceLayer ? '✓' : ''}
+            </button>
+            <button
+              onClick={() => setShowNewsLayer(!showNewsLayer)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '20px',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                background: showNewsLayer ? '#ef4444' : '#e5e7eb', // 빨간색
+                color: showNewsLayer ? 'white' : '#6b7280',
+              }}
+            >
+              📰 뉴스 {showNewsLayer ? '✓' : ''}
             </button>
           </div>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
+import db from '@/lib/db';
 import Place from '@/models/Place';
 
 interface Params {

@@ -702,36 +702,6 @@ export default function Home() {
 
 
 
-      {/* 의견 보내기 플로팅 버튼 (왼쪽 아래, 제보하기 위) */}
-      <button
-        onClick={() => openModal('feedback')}
-        aria-label="의견 보내기"
-        className="feedback-floating-btn"
-      >
-        <span style={{ fontSize: '1.2rem' }}>💌</span>
-        <span>의견 보내기</span>
-      </button>
-
-      {/* 제보하기 플로팅 버튼 (왼쪽 아래) */}
-      <button
-        className="report-floating-btn"
-        onClick={() => openModal('report')}
-        aria-label="짐보관소 제보하기"
-      >
-        <span className="btn-emoji">🧳</span>
-        <span>제보하기</span>
-      </button>
-
-      {/* AI 스마트 추천 플로팅 버튼 (오른쪽 아래) */}
-      <button
-        className="ai-floating-btn"
-        onClick={() => openModal('ai')}
-        aria-label="AI 스마트 추천"
-      >
-        <span className="btn-emoji">✨</span>
-        <span>AI 추천</span>
-      </button>
-
       <AiModal goToMapLocation={goToMapLocation} />
 
       {/* 정보 수정 요청 모달 */}
@@ -741,7 +711,6 @@ export default function Home() {
           onClose={() => setEditStorage(null)}
         />
       )}
-
 
     </>
   );

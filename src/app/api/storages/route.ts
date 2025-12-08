@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
+import db from '@/lib/db';
 import { Storage } from '@/models';
 
 export async function GET(request: Request) {
     try {
-        await dbConnect();
+        await db();
         const { searchParams } = new URL(request.url);
         const searchQuery = searchParams.get('searchQuery');
         const latitude = searchParams.get('latitude');

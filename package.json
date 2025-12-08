@@ -4,7 +4,7 @@
   "description": "짐보관소 찾기 서비스 - Next.js 버전",
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint"
   },

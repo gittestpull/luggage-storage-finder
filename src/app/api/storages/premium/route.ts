@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
+import db from '@/lib/db';
 import { Storage } from '@/models';
 
 export async function GET() {
     try {
-        await dbConnect();
+        await db();
         const premiumStorages = await Storage.find({ isPremium: true });
         return NextResponse.json(premiumStorages);
     } catch (error) {

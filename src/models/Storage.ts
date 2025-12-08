@@ -48,6 +48,7 @@ const storageSchema = new Schema<IStorage>({
 });
 
 storageSchema.index({ location: '2dsphere' });
+storageSchema.index({ isPremium: 1 });
 
 export const Storage: Model<IStorage> =
     mongoose.models.Storage || mongoose.model<IStorage>('Storage', storageSchema);

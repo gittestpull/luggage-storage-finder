@@ -24,18 +24,18 @@ export interface ITip extends Document {
 }
 
 const tipSchema = new Schema<ITip>({
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    text: { type: String, required: true },
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  text: { type: String, required: true },
 }, {
-    timestamps: true,
+  timestamps: true,
 });
 
 export interface IRating {
-    location: number;
-    taste: number;
-    price: number;
-    service: number;
-    atmosphere: number;
+  location: number;
+  taste: number;
+  price: number;
+  service: number;
+  atmosphere: number;
 }
 
 export interface IPlace extends Document {
@@ -79,6 +79,7 @@ const placeSchema = new Schema<IPlace>({
 });
 
 placeSchema.index({ location: '2dsphere' });
+placeSchema.index({ status: 1, createdAt: -1 });
 
 export const Place: Model<IPlace> =
   mongoose.models.Place || mongoose.model<IPlace>('Place', placeSchema);

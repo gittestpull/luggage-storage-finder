@@ -31,3 +31,37 @@ export async function GET(request: Request) {
         return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }
 }
+
+export async function POST(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        if (mongoose.connection.readyState === 0) {
+            await mongoose.connect(MONGODB_URI);
+        }
+
+        const { id, memo } = await request.json();
+
+        if (!id) {
+            return NextResponse.json({ message: 'Subscription ID is required' }, { status: 400 });
+        }
+
+        const updatedSubscription = await PushSubscription.findByIdAndUpdate(
+            id,
+            { memo },
+            { new: true }
+        );
+
+        if (!updatedSubscription) {
+            return NextResponse.json({ message: 'Subscription not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(updatedSubscription);
+    } catch (error) {
+        console.error('Error updating subscription:', error);
+        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    }
+}

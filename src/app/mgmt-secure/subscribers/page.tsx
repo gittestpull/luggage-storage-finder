@@ -7,6 +7,7 @@ interface Subscription {
     _id: string;
     endpoint: string;
     createdAt: string;
+    memo?: string;
 }
 
 export default function SubscriberManagement() {
@@ -16,6 +17,9 @@ export default function SubscriberManagement() {
     const [selectedSub, setSelectedSub] = useState<Subscription | null>(null);
     const [pushData, setPushData] = useState({ title: '', body: '', url: '' });
     const [sending, setSending] = useState(false);
+    const [memo, setMemo] = useState<{ [key: string]: string }>({});
+    const [saving, setSaving] = useState<{ [key: string]: boolean }>({});
+    const [saved, setSaved] = useState<{ [key: string]: boolean }>({});
 
     const fetchSubscribers = async () => {
         try {
@@ -24,6 +28,12 @@ export default function SubscriberManagement() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setSubscribers(response.data);
+            // Initialize memo state
+            const initialMemos: { [key: string]: string } = {};
+            response.data.forEach((sub: Subscription) => {
+                initialMemos[sub._id] = sub.memo || '';
+            });
+            setMemo(initialMemos);
         } catch (error) {
             console.error('Failed to fetch subscribers', error);
             alert('목록을 불러오는데 실패했습니다.');
@@ -35,6 +45,38 @@ export default function SubscriberManagement() {
     useEffect(() => {
         fetchSubscribers();
     }, []);
+
+    const handleMemoChange = (id: string, value: string) => {
+        setMemo(prev => ({ ...prev, [id]: value }));
+        setSaving(prev => ({ ...prev, [id]: true }));
+        setSaved(prev => ({ ...prev, [id]: false }));
+    };
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            Object.keys(saving).forEach(id => {
+                if (saving[id]) {
+                    const token = localStorage.getItem('adminToken');
+                    axios.post('/api/admin/subscribers', { id, memo: memo[id] }, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }).then(() => {
+                        setSaving(prev => ({ ...prev, [id]: false }));
+                        setSaved(prev => ({ ...prev, [id]: true }));
+                        setTimeout(() => {
+                            setSaved(prev => ({ ...prev, [id]: false }));
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to save memo', err);
+                        setSaving(prev => ({ ...prev, [id]: false }));
+                    });
+                }
+            });
+        }, 1000); // Debounce time
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [memo, saving]);
 
     const openSendModal = (sub: Subscription) => {
         setSelectedSub(sub);
@@ -85,6 +127,7 @@ export default function SubscriberManagement() {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID / Endpoint</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">메모</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
                             </tr>
@@ -95,6 +138,18 @@ export default function SubscriberManagement() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate cursor-help" title={sub.endpoint}>
                                         <div className="font-mono text-xs">{sub._id}</div>
                                         <div className="text-xs text-gray-400 truncate w-48">{sub.endpoint}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <input
+                                            type="text"
+                                            value={memo[sub._id] || ''}
+                                            onChange={(e) => handleMemoChange(sub._id, e.target.value)}
+                                            placeholder="메모 입력"
+                                            className="w-full border rounded px-2 py-1 text-sm"
+                                        />
+                                        <div className="text-xs text-gray-400 mt-1">
+                                            {saving[sub._id] ? '저장 중...' : saved[sub._id] ? '저장됨' : ''}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(sub.createdAt).toLocaleDateString()}
@@ -111,7 +166,7 @@ export default function SubscriberManagement() {
                             ))}
                             {subscribers.length === 0 && (
                                 <tr>
-                                    <td colSpan={3} className="px-6 py-10 text-center text-gray-500">
+                                    <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
                                         구독자가 없습니다.
                                     </td>
                                 </tr>

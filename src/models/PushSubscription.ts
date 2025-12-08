@@ -7,6 +7,7 @@ export interface IPushSubscription extends Document {
     userId?: mongoose.Types.ObjectId;
     storageId?: mongoose.Types.ObjectId;
     createdAt: Date;
+    memo?: string;
 }
 
 const pushSubscriptionSchema = new Schema<IPushSubscription>({
@@ -16,6 +17,7 @@ const pushSubscriptionSchema = new Schema<IPushSubscription>({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: false },
     storageId: { type: Schema.Types.ObjectId, ref: 'Storage', required: false },
     createdAt: { type: Date, default: Date.now },
+    memo: { type: String, required: false },
 });
 
 export const PushSubscription: Model<IPushSubscription> =

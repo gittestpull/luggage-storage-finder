@@ -205,15 +205,6 @@ const fetchNews = async (category, query) => {
 const updateNews = async () => {
     console.log('Starting news update...');
 
-    // 기존 뉴스 기사 전체 삭제
-    console.log('Clearing existing news articles...');
-    try {
-        await NewsArticle.deleteMany({});
-        console.log('Existing news articles cleared.');
-    } catch (error) {
-        console.error('Error clearing existing news articles:', error.message);
-    }
-
     console.log('Fetching news...');
     const entertainmentNews = await fetchNews('entertainment', 'k-pop');
     const travelNews = await fetchNews('travel', '경복궁');
@@ -223,6 +214,17 @@ const updateNews = async () => {
 
     if (allNews.length === 0) {
         console.log('No news fetched. Update process finished.');
+        return;
+    }
+
+    // 기존 뉴스 기사 전체 삭제
+    console.log('Clearing existing news articles...');
+    try {
+        await NewsArticle.deleteMany({});
+        console.log('Existing news articles cleared.');
+    } catch (error) {
+        console.error('Error clearing existing news articles:', error.message);
+        // Do not proceed if clearing fails
         return;
     }
 

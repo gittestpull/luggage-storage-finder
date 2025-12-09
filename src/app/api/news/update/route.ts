@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 import NewsArticle from '@/models/NewsArticle';
 import connectDB from '@/lib/db';
 
@@ -142,8 +143,25 @@ const updateNews = async () => {
 
 export async function POST(req: NextRequest) {
     const authToken = (req.headers.get('authorization') || '').split('Bearer ').at(1);
+    let isAdmin = false;
 
-    if (authToken !== process.env.CRON_SECRET) {
+    // 1. Cron Secret 확인
+    if (authToken === process.env.CRON_SECRET) {
+        isAdmin = true;
+    }
+    // 2. Admin JWT 확인
+    else if (authToken) {
+        try {
+            const decoded = jwt.verify(authToken, process.env.JWT_SECRET || '');
+            if (typeof decoded === 'object' && decoded.role === 'admin') {
+                isAdmin = true;
+            }
+        } catch (error) {
+            // 토큰이 유효하지 않으면 아무것도 하지 않음 (isAdmin은 false 유지)
+        }
+    }
+
+    if (!isAdmin) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 

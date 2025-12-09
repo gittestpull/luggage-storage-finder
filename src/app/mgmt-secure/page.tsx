@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import DashboardStats from '@/components/admin/DashboardStats';
 import RecentActivity from '@/components/admin/RecentActivity';
+import NewsUpdateManager from '@/components/admin/NewsUpdateManager';
 
 export default function AdminDashboard() {
     const [data, setData] = useState<any>(null);
@@ -41,9 +42,9 @@ export default function AdminDashboard() {
                 reportCount={data.reportCount}
                 userCount={data.regularUserCount + data.adminUserCount}
             />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
                 <RecentActivity activities={data.recentActivities} />
-                {/* 추가적인 차트나 통계가 있다면 여기에 배치 */}
+                <NewsUpdateManager />
             </div>
         </div>
     );

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // AI 이미지 분석 API 엔드포인트
-// Google Gemini Vision API를 사용하여 이미지에서 짐보관소 정보 추출
+// Google Gemini Vision API를 사용하여 이미지에서 정보 추출
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { image } = body;
+        const { image, mode = 'storage' } = body;
 
         if (!image) {
             return NextResponse.json(
@@ -24,33 +24,33 @@ export async function POST(request: NextRequest) {
         if (!apiKey) {
             console.error('GEMINI_API_KEY is not set');
             // API 키가 없을 경우 더미 응답 반환 (개발/테스트용)
-            return NextResponse.json({
-                name: '',
-                address: '',
-                openTime: '',
-                closeTime: '',
-                smallPrice: null,
-                largePrice: null,
-                phoneNumber: '',
-                confidence: 0,
-                message: 'AI API 키가 설정되지 않았습니다. .env 파일에 GEMINI_API_KEY를 추가해주세요.'
-            });
+            if (mode === 'storage') {
+                return NextResponse.json({
+                    name: '',
+                    address: '',
+                    openTime: '',
+                    closeTime: '',
+                    smallPrice: null,
+                    largePrice: null,
+                    phoneNumber: '',
+                    confidence: 0,
+                    message: 'AI API 키가 설정되지 않았습니다. .env 파일에 GEMINI_API_KEY를 추가해주세요.'
+                });
+            } else {
+                return NextResponse.json({
+                    name: '',
+                    address: '',
+                    category: '',
+                    menu: '',
+                    description: '',
+                    confidence: 0,
+                    message: 'AI API 키가 설정되지 않았습니다. .env 파일에 GEMINI_API_KEY를 추가해주세요.'
+                });
+            }
         }
 
-        // Gemini API 호출
-        const geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    contents: [
-                        {
-                            parts: [
-                                {
-                                    text: `이 이미지에서 짐보관소/물품보관소/코인락커 관련 정보를 추출해주세요.
+        // 모드에 따른 프롬프트 설정
+        const storagePrompt = `이 이미지에서 짐보관소/물품보관소/코인락커 관련 정보를 추출해주세요.
 
 다음 정보를 찾아서 JSON 형태로 응답해주세요:
 - name: 상호명/이름 (없으면 빈 문자열)
@@ -63,8 +63,36 @@ export async function POST(request: NextRequest) {
 - confidence: 추출 정확도 (0.0 ~ 1.0)
 
 JSON만 응답하고, 추가 설명은 하지 마세요.
-이미지에서 정보를 찾을 수 없으면 빈 값으로 응답하세요.`
-                                },
+이미지에서 정보를 찾을 수 없으면 빈 값으로 응답하세요.`;
+
+        const placePrompt = `이 이미지에서 맛집/카페/음식점 관련 정보를 추출해주세요.
+
+다음 정보를 찾아서 JSON 형태로 응답해주세요:
+- name: 가게 이름/상호명 (없으면 빈 문자열)
+- address: 주소 (없으면 빈 문자열)
+- category: 카테고리 (예: 카페, 한식, 양식, 분식 등, 없으면 빈 문자열)
+- menu: 대표 메뉴나 추천 메뉴 (없으면 빈 문자열)
+- description: 가게 특징이나 분위기 설명 (없으면 빈 문자열)
+- confidence: 추출 정확도 (0.0 ~ 1.0)
+
+JSON만 응답하고, 추가 설명은 하지 마세요.
+이미지에서 정보를 찾을 수 없으면 빈 값으로 응답하세요.`;
+
+        const prompt = mode === 'storage' ? storagePrompt : placePrompt;
+
+        // Gemini API 호출
+        const geminiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
+                                { text: prompt },
                                 {
                                     inline_data: {
                                         mime_type: 'image/jpeg',
@@ -85,6 +113,15 @@ JSON만 응답하고, 추가 설명은 하지 마세요.
         if (!geminiResponse.ok) {
             const errorData = await geminiResponse.json();
             console.error('Gemini API error:', errorData);
+
+            // 요청 제한 초과
+            if (errorData.error?.status === 'RESOURCE_EXHAUSTED') {
+                return NextResponse.json(
+                    { message: 'AI 분석 요청이 많아 잠시 후 다시 시도해주세요. (약 1분 후)' },
+                    { status: 429 }
+                );
+            }
+
             return NextResponse.json(
                 { message: 'AI 분석 중 오류가 발생했습니다.' },
                 { status: 500 }
@@ -116,19 +153,30 @@ JSON만 응답하고, 추가 설명은 하지 마세요.
 
             const parsedResult = JSON.parse(jsonStr.trim());
 
-            // 결과 정규화
-            const result = {
-                name: parsedResult.name || '',
-                address: parsedResult.address || '',
-                openTime: parsedResult.openTime || '',
-                closeTime: parsedResult.closeTime || '',
-                smallPrice: parsedResult.smallPrice ? Number(parsedResult.smallPrice) : null,
-                largePrice: parsedResult.largePrice ? Number(parsedResult.largePrice) : null,
-                phoneNumber: parsedResult.phoneNumber || '',
-                confidence: parsedResult.confidence ? Number(parsedResult.confidence) : 0.5
-            };
-
-            return NextResponse.json(result);
+            // 결과 정규화 (모드에 따라)
+            if (mode === 'storage') {
+                const result = {
+                    name: parsedResult.name || '',
+                    address: parsedResult.address || '',
+                    openTime: parsedResult.openTime || '',
+                    closeTime: parsedResult.closeTime || '',
+                    smallPrice: parsedResult.smallPrice ? Number(parsedResult.smallPrice) : null,
+                    largePrice: parsedResult.largePrice ? Number(parsedResult.largePrice) : null,
+                    phoneNumber: parsedResult.phoneNumber || '',
+                    confidence: parsedResult.confidence ? Number(parsedResult.confidence) : 0.5
+                };
+                return NextResponse.json(result);
+            } else {
+                const result = {
+                    name: parsedResult.name || '',
+                    address: parsedResult.address || '',
+                    category: parsedResult.category || '',
+                    menu: parsedResult.menu || '',
+                    description: parsedResult.description || '',
+                    confidence: parsedResult.confidence ? Number(parsedResult.confidence) : 0.5
+                };
+                return NextResponse.json(result);
+            }
 
         } catch (parseError) {
             console.error('JSON parse error:', parseError, 'Response:', responseText);

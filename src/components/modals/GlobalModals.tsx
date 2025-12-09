@@ -3,7 +3,6 @@
 import AuthModal from './AuthModal';
 import ReportModal from './ReportModal';
 import PhotoScanModal from './PhotoScanModal';
-import FeedbackModal from './FeedbackModal';
 
 export default function GlobalModals() {
     return (
@@ -11,7 +10,6 @@ export default function GlobalModals() {
             <AuthModal />
             <ReportModal />
             <PhotoScanModal />
-            <FeedbackModal />
         </>
     );
 }

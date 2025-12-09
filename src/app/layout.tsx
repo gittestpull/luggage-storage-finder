@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import GlobalModals from "@/components/modals/GlobalModals";
+import FloatingButtons from "@/components/layout/FloatingButtons";
 import PWAManager from "@/components/PWAManager";
 
 const notoSansKR = Noto_Sans_KR({
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
           <Footer />
           <GlobalModals />
+          <FloatingButtons />
         </AuthProvider>
 
         {/* Kakao SDK */}

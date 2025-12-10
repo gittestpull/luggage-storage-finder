@@ -14,12 +14,51 @@ export default function SubscriberManagement() {
     const [subscribers, setSubscribers] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [selectedSub, setSelectedSub] = useState<Subscription | null>(null);
     const [pushData, setPushData] = useState({ title: '', body: '', url: '' });
     const [sending, setSending] = useState(false);
     const [memo, setMemo] = useState<{ [key: string]: string }>({});
     const [saving, setSaving] = useState<{ [key: string]: boolean }>({});
     const [saved, setSaved] = useState<{ [key: string]: boolean }>({});
+
+    const handleBulkSend = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSending(true);
+
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await axios.post('/api/admin/push/send-bulk', {
+                subscriptionIds: selectedIds,
+                ...pushData
+            }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            alert(`알림 전송 완료\n성공: ${response.data.successCount}\n실패: ${response.data.failureCount}`);
+            setIsBulkModalOpen(false);
+            setSelectedIds([]);
+        } catch (error: any) {
+            console.error('Bulk send error:', error);
+            alert('알림 전송 실패: ' + (error.response?.data?.message || '오류가 발생했습니다.'));
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleSelect = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(subId => subId !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedIds(subscribers.map(sub => sub._id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
 
     const fetchSubscribers = async () => {
         try {
@@ -84,6 +123,11 @@ export default function SubscriberManagement() {
         setIsModalOpen(true);
     };
 
+    const openBulkSendModal = () => {
+        setPushData({ title: '', body: '', url: '' });
+        setIsBulkModalOpen(true);
+    };
+
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedSub) return;
@@ -118,14 +162,36 @@ export default function SubscriberManagement() {
             <h1 className="text-3xl font-bold mb-8">구독자 관리</h1>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                    <span className="font-semibold text-gray-700">총 구독자: {subscribers.length}명</span>
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center flex-wrap gap-4">
+                    <div className="flex items-center gap-4">
+                        <span className="font-semibold text-gray-700">총 구독자: {subscribers.length}명</span>
+                        {selectedIds.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-blue-600 font-semibold">{selectedIds.length}명 선택됨</span>
+                                <button
+                                    onClick={openBulkSendModal}
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
+                                    disabled={sending}
+                                >
+                                    선택 알림 발송
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <button onClick={fetchSubscribers} className="text-blue-600 hover:text-blue-800 text-sm">↻ 새로고침</button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-4 py-3 text-left">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300"
+                                        onChange={handleSelectAll}
+                                        checked={subscribers.length > 0 && selectedIds.length === subscribers.length}
+                                    />
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID / Endpoint</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">메모</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
@@ -134,7 +200,15 @@ export default function SubscriberManagement() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {subscribers.map((sub) => (
-                                <tr key={sub._id}>
+                                <tr key={sub._id} className={selectedIds.includes(sub._id) ? 'bg-blue-50' : ''}>
+                                    <td className="px-4 py-4">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-gray-300"
+                                            checked={selectedIds.includes(sub._id)}
+                                            onChange={() => handleSelect(sub._id)}
+                                        />
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate cursor-help" title={sub.endpoint}>
                                         <div className="font-mono text-xs">{sub._id}</div>
                                         <div className="text-xs text-gray-400 truncate w-48">{sub.endpoint}</div>
@@ -166,7 +240,7 @@ export default function SubscriberManagement() {
                             ))}
                             {subscribers.length === 0 && (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
+                                    <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
                                         구독자가 없습니다.
                                     </td>
                                 </tr>
@@ -230,6 +304,69 @@ export default function SubscriberManagement() {
                                     type="submit"
                                     disabled={sending}
                                     className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+                                >
+                                    {sending ? '전송 중...' : '전송하기'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Send Push Modal */}
+            {isBulkModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
+                        <h2 className="text-xl font-bold mb-4">선택 구독자 알림 보내기</h2>
+                        <p className="text-sm text-gray-500 mb-4">
+                            <span className="font-bold text-blue-600">{selectedIds.length}</span>명에게 알림을 보냅니다.
+                        </p>
+
+                        <form onSubmit={handleBulkSend} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full border rounded px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={pushData.title}
+                                    onChange={(e) => setPushData({ ...pushData, title: e.target.value })}
+                                    placeholder="예: 새로운 소식 업데이트"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
+                                <textarea
+                                    required
+                                    className="w-full border rounded px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
+                                    value={pushData.body}
+                                    onChange={(e) => setPushData({ ...pushData, body: e.target.value })}
+                                    placeholder="알림 내용을 입력하세요"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">URL (선택)</label>
+                                <input
+                                    type="text"
+                                    className="w-full border rounded px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={pushData.url}
+                                    onChange={(e) => setPushData({ ...pushData, url: e.target.value })}
+                                    placeholder="/"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsBulkModalOpen(false)}
+                                    className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded"
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={sending}
+                                    className="px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded disabled:opacity-50"
                                 >
                                     {sending ? '전송 중...' : '전송하기'}
                                 </button>

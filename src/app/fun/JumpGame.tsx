@@ -78,6 +78,12 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     };
   }, [gameState]);
 
+  useEffect(() => {
+    if (gameState === 'playing') {
+      gameLoop();
+    }
+  }, [gameState]);
+
   const initGame = (canvas: HTMLCanvasElement) => {
     const width = canvas.width;
     const height = canvas.height;
@@ -154,7 +160,6 @@ export default function JumpGame({ onBack }: JumpGameProps) {
 
     initGame(canvas);
     setGameState('playing');
-    gameLoop();
   };
 
   const gameLoop = () => {
@@ -235,7 +240,7 @@ export default function JumpGame({ onBack }: JumpGameProps) {
           // Distance between platforms increases slightly with score
           const gap = 100 + Math.min(scoreRef.current / 100, 100);
           if (highestY > 100) { // Keep generating
-             platforms.push(generatePlatform(width, highestY - gap));
+            platforms.push(generatePlatform(width, highestY - gap));
           }
         }
       }
@@ -294,7 +299,7 @@ export default function JumpGame({ onBack }: JumpGameProps) {
       // Top highlight
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
       ctx.beginPath();
-      ctx.roundRect(p.x, p.y, p.w, p.h/2, r);
+      ctx.roundRect(p.x, p.y, p.w, p.h / 2, r);
       ctx.fill();
 
       // Border
@@ -305,7 +310,7 @@ export default function JumpGame({ onBack }: JumpGameProps) {
 
     // Draw Player (Suitcase)
     ctx.save();
-    ctx.translate(player.x + player.w/2, player.y + player.h/2);
+    ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
     // Squish effect on jump/land could go here
     if (!player.facingRight) ctx.scale(-1, 1);
 
@@ -331,12 +336,12 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     ctx.beginPath(); ctx.arc(-5, -5, 4, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(5, -5, 4, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'black';
-    ctx.beginPath(); ctx.arc(-4 + (player.vx*0.2), -5, 1.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(6 + (player.vx*0.2), -5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-4 + (player.vx * 0.2), -5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6 + (player.vx * 0.2), -5, 1.5, 0, Math.PI * 2); ctx.fill();
 
     // Stickers (decoration)
     ctx.fillStyle = '#ef4444'; // Red sticker
-    ctx.beginPath(); ctx.arc(8, 5, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(8, 5, 3, 0, Math.PI * 2); ctx.fill();
 
     ctx.restore();
 
@@ -401,7 +406,7 @@ export default function JumpGame({ onBack }: JumpGameProps) {
         {/* High Score Overlay */}
         {highScore > 0 && (
           <div className="absolute top-4 right-4 bg-yellow-100/80 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-yellow-800 border border-yellow-200">
-             최고: {highScore}
+            최고: {highScore}
           </div>
         )}
 
@@ -411,17 +416,17 @@ export default function JumpGame({ onBack }: JumpGameProps) {
             <div className="text-6xl mb-6 animate-bounce">🧳</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">준비되셨나요?</h2>
             <p className="text-gray-500 mb-8 text-center px-4">
-              화살표 키나 화면 하단 버튼을 눌러<br/>이동하세요
+              화살표 키나 화면 하단 버튼을 눌러<br />이동하세요
             </p>
             <Button size="lg" onClick={startGame} className="text-lg px-8 py-6 rounded-xl shadow-lg shadow-blue-500/30">
               게임 시작!
             </Button>
             <Button
-                variant="outline"
-                className="mt-4"
-                onClick={onBack}
+              variant="outline"
+              className="mt-4"
+              onClick={onBack}
             >
-                메뉴로 나가기
+              메뉴로 나가기
             </Button>
           </div>
         )}
@@ -436,11 +441,11 @@ export default function JumpGame({ onBack }: JumpGameProps) {
               다시 도전하기
             </Button>
             <Button
-                variant="outline"
-                className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
-                onClick={onBack}
+              variant="outline"
+              className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
+              onClick={onBack}
             >
-                메뉴로 나가기
+              메뉴로 나가기
             </Button>
           </div>
         )}

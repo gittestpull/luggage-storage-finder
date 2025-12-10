@@ -21,10 +21,18 @@ interface GameObject {
 
 export default function ShootingGame({ onBack }: ShootingGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'victory'>('start');
+  const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
   const [score, setScore] = useState(0);
-  const [weaponLevel, setWeaponLevel] = useState(1);
-  const [bossActive, setBossActive] = useState(false);
+  // UI State (for display only)
+  const [uiWeaponLevel, setUiWeaponLevel] = useState(1);
+  const [uiStage, setUiStage] = useState(1);
+  const [uiBombs, setUiBombs] = useState(1);
+
+  // Game Logic State (Refs for loop stability)
+  const weaponLevelRef = useRef(1);
+  const stageRef = useRef(1);
+  const bombsRef = useRef(1);
+  const scoreRef = useRef(0);
 
   // Game configuration
   const PLAYER_SPEED = 300; // px per second
@@ -32,15 +40,16 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
   const ENEMY_SPEED = 180; // px per second
   const BOSS_HP = 500;
 
-  // Game state refs
+  // Game Objects
   const playerRef = useRef<GameObject>({ x: 0, y: 0, w: 40, h: 40, vx: 0, vy: 0, emoji: '✈️' });
   const bulletsRef = useRef<GameObject[]>([]);
+  const enemyBulletsRef = useRef<GameObject[]>([]);
   const enemiesRef = useRef<GameObject[]>([]);
   const itemsRef = useRef<GameObject[]>([]);
   const particlesRef = useRef<any[]>([]);
   const bossRef = useRef<GameObject | null>(null);
+  const bossActiveRef = useRef(false);
 
-  const scoreRef = useRef(0);
   const timeRef = useRef(0); // Game time in seconds
   const frameRef = useRef(0);
   const keysRef = useRef<{ [key: string]: boolean }>({});
@@ -49,10 +58,13 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
   const shotTimerRef = useRef(0);
   const spawnTimerRef = useRef(0);
 
+  // Sync Refs to UI (Optional helper, but we'll set state directly where needed)
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.key] = true;
       if (e.key === ' ' && gameState === 'gameover') startGame();
+      if ((e.key === 'b' || e.key === 'B') && gameState === 'playing') useBomb();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysRef.current[e.key] = false;
@@ -64,6 +76,16 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      // Do NOT cancel animation frame here to avoid stopping loop on prop updates
+    };
+  }, [gameState]); // Removed 'bombs' dependency
+
+  useEffect(() => {
+    if (gameState === 'playing') {
+      lastTimeRef.current = Date.now();
+      gameLoop();
+    }
+    return () => {
       cancelAnimationFrame(animationFrameRef.current);
     };
   }, [gameState]);
@@ -83,10 +105,13 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     };
 
     bulletsRef.current = [];
+    enemyBulletsRef.current = [];
     enemiesRef.current = [];
     itemsRef.current = [];
     particlesRef.current = [];
     bossRef.current = null;
+    bossActiveRef.current = false;
+
     scoreRef.current = 0;
     timeRef.current = 0;
     frameRef.current = 0;
@@ -94,9 +119,55 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     shotTimerRef.current = 0;
     spawnTimerRef.current = 0;
 
+    // Reset Logic State
+    weaponLevelRef.current = 1;
+    stageRef.current = 1;
+    bombsRef.current = 1;
+
+    // Sync UI
     setScore(0);
-    setWeaponLevel(1);
-    setBossActive(false);
+    setUiWeaponLevel(1);
+    setUiStage(1);
+    setUiBombs(1);
+  };
+
+  const useBomb = () => {
+    if (bombsRef.current > 0) {
+      bombsRef.current -= 1;
+      setUiBombs(bombsRef.current); // Sync UI
+
+      // Clear enemies and bullets
+      enemiesRef.current.forEach(e => {
+        createParticles(e.x + e.w / 2, e.y + e.h / 2, 5, '#ef4444');
+        scoreRef.current += 100;
+      });
+      enemiesRef.current = [];
+      enemyBulletsRef.current = [];
+
+      // Damage Boss
+      if (bossRef.current) {
+        bossRef.current.hp = (bossRef.current.hp || 0) - 50;
+        createParticles(bossRef.current.x + bossRef.current.w / 2, bossRef.current.y + bossRef.current.h / 2, 20, '#ef4444');
+        if ((bossRef.current.hp || 0) <= 0) {
+          handleBossDefeat();
+        }
+      }
+
+      setScore(scoreRef.current);
+    }
+  };
+
+  const handleBossDefeat = () => {
+    bossRef.current = null;
+    scoreRef.current += 5000 * stageRef.current;
+    setScore(scoreRef.current);
+
+    bossActiveRef.current = false;
+
+    stageRef.current += 1;
+    setUiStage(stageRef.current); // Sync UI
+
+    timeRef.current = 0; // Reset time to delay next boss spawn
   };
 
   const createParticles = (x: number, y: number, count: number, color: string) => {
@@ -125,7 +196,6 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
 
     initGame(canvas);
     setGameState('playing');
-    gameLoop();
   };
 
   const spawnEnemy = (width: number) => {
@@ -144,20 +214,23 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
   };
 
   const spawnBoss = (width: number) => {
+    const scale = stageRef.current; // Difficulty multiplier
     bossRef.current = {
       x: width / 2 - 60,
       y: -150,
       w: 120,
       h: 120,
-      vx: 120, // px/s
-      vy: 60, // px/s
-      hp: BOSS_HP,
+      vx: 100 + (scale * 20),
+      vy: 60,
+      hp: BOSS_HP * scale,
       emoji: '👹'
     };
-    setBossActive(true);
+    bossActiveRef.current = true;
   };
 
   const gameLoop = () => {
+    if (gameState !== 'playing') return; // Double check
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -174,13 +247,11 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     // Cap dt to avoid huge jumps
     if (dt > 0.1) dt = 0.1;
 
-    if (gameState !== 'playing') return;
-
     timeRef.current += dt;
 
     // Spawn boss after 60 seconds
-    if (timeRef.current >= 60 && !bossRef.current && !bossActive) {
-        spawnBoss(width);
+    if (timeRef.current >= 60 && !bossRef.current && !bossActiveRef.current) {
+      spawnBoss(width);
     }
 
     // --- Update ---
@@ -198,156 +269,213 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     // Auto Shoot
     shotTimerRef.current += dt;
     if (shotTimerRef.current > 0.15) { // Shoot every 0.15s
-        shotTimerRef.current = 0;
-        const level = Math.min(weaponLevel, 3); // Max level 3
-        if (level === 1) {
-            bulletsRef.current.push({ x: player.x + player.w/2 - 5, y: player.y, w: 10, h: 20, vx: 0, vy: -BULLET_SPEED });
-        } else if (level === 2) {
-            bulletsRef.current.push({ x: player.x + player.w/2 - 15, y: player.y, w: 10, h: 20, vx: 0, vy: -BULLET_SPEED });
-            bulletsRef.current.push({ x: player.x + player.w/2 + 5, y: player.y, w: 10, h: 20, vx: 0, vy: -BULLET_SPEED });
-        } else {
-            bulletsRef.current.push({ x: player.x + player.w/2 - 20, y: player.y, w: 10, h: 20, vx: -120, vy: -BULLET_SPEED });
-            bulletsRef.current.push({ x: player.x + player.w/2 - 5, y: player.y, w: 10, h: 20, vx: 0, vy: -BULLET_SPEED });
-            bulletsRef.current.push({ x: player.x + player.w/2 + 10, y: player.y, w: 10, h: 20, vx: 120, vy: -BULLET_SPEED });
-        }
+      shotTimerRef.current = 0;
+
+      const count = weaponLevelRef.current;
+      const startX = player.x + player.w / 2;
+
+      for (let i = 0; i < count; i++) {
+        const spacing = 15;
+        const offsetIndex = i - (count - 1) / 2;
+
+        const offsetX = offsetIndex * spacing;
+        const vxBox = offsetIndex * 60; // Horizontal velocity for spread
+
+        bulletsRef.current.push({
+          x: startX + offsetX - 5,
+          y: player.y,
+          w: 10, h: 20,
+          vx: vxBox,
+          vy: -BULLET_SPEED
+        });
+      }
     }
 
     // Spawn Enemies
     if (!bossRef.current) {
-        spawnTimerRef.current += dt;
-        const spawnInterval = Math.max(0.3, 1.0 - (timeRef.current / 100)); // Spawn faster over time
-        if (spawnTimerRef.current > spawnInterval) {
-            spawnTimerRef.current = 0;
-            spawnEnemy(width);
-        }
+      spawnTimerRef.current += dt;
+      const spawnInterval = Math.max(0.3, 1.0 - (timeRef.current / 100)); // Spawn faster over time
+      if (spawnTimerRef.current > spawnInterval) {
+        spawnTimerRef.current = 0;
+        spawnEnemy(width);
+      }
     }
 
     // Update Bullets
     for (let i = bulletsRef.current.length - 1; i >= 0; i--) {
-        const b = bulletsRef.current[i];
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-        if (b.y < -50 || b.x < 0 || b.x > width) bulletsRef.current.splice(i, 1);
+      const b = bulletsRef.current[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      if (b.y < -50 || b.x < 0 || b.x > width) bulletsRef.current.splice(i, 1);
     }
 
     // Update Enemies
     for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
-        const e = enemiesRef.current[i];
-        e.y += e.vy * dt;
+      const e = enemiesRef.current[i];
+      e.y += e.vy * dt;
 
-        // Collision with Player
-        if (
-            player.x < e.x + e.w &&
-            player.x + player.w > e.x &&
-            player.y < e.y + e.h &&
-            player.y + player.h > e.y
-        ) {
-            setGameState('gameover');
-            return;
-        }
+      // Collision with Player
+      if (
+        player.x < e.x + e.w &&
+        player.x + player.w > e.x &&
+        player.y < e.y + e.h &&
+        player.y + player.h > e.y
+      ) {
+        setGameState('gameover');
+        return;
+      }
 
-        // Cleanup
-        if (e.y > height) enemiesRef.current.splice(i, 1);
+      // Cleanup
+      if (e.y > height) enemiesRef.current.splice(i, 1);
     }
 
     // Update Boss
     if (bossRef.current) {
-        const boss = bossRef.current;
-        if (boss.y < 50) boss.y += 60 * dt; // Move into position
-        boss.x += boss.vx * dt;
-        if (boss.x < 0 || boss.x + boss.w > width) boss.vx *= -1;
+      const boss = bossRef.current;
+      if (boss.y < 50) boss.y += 60 * dt; // Move into position
+      boss.x += boss.vx * dt;
+      if (boss.x < 0 || boss.x + boss.w > width) boss.vx *= -1;
 
-        // Collision with Player
-        if (
-            player.x < boss.x + boss.w &&
-            player.x + player.w > boss.x &&
-            player.y < boss.y + boss.h &&
-            player.y + player.h > boss.y
-        ) {
-             setGameState('gameover');
-             return;
-        }
+      // Boss Shooting
+      if (Math.random() < 0.02 * stageRef.current) { // Fire rate increases with stage
+        const bx = boss.x + boss.w / 2;
+        const by = boss.y + boss.h;
+        // Aim at player
+        const dx = (player.x + player.w / 2) - bx;
+        const dy = (player.y + player.h / 2) - by;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const speed = 300 + (stageRef.current * 50);
+
+        enemyBulletsRef.current.push({
+          x: bx - 5, y: by, w: 10, h: 10,
+          vx: (dx / dist) * speed, vy: (dy / dist) * speed,
+          emoji: '🔴'
+        });
+      }
+
+      // Collision with Player
+      if (
+        player.x < boss.x + boss.w &&
+        player.x + player.w > boss.x &&
+        player.y < boss.y + boss.h &&
+        player.y + player.h > boss.y
+      ) {
+        setGameState('gameover');
+        return;
+      }
+    }
+
+    // Update Enemy Bullets
+    for (let i = enemyBulletsRef.current.length - 1; i >= 0; i--) {
+      const b = enemyBulletsRef.current[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+
+      // Player Hit
+      if (
+        player.x < b.x + b.w &&
+        player.x + player.w > b.x &&
+        player.y < b.y + b.h &&
+        player.y + player.h > b.y
+      ) {
+        setGameState('gameover');
+        return;
+      }
+
+      if (b.y > height || b.y < -50 || b.x < -50 || b.x > width + 50) {
+        enemyBulletsRef.current.splice(i, 1);
+      }
     }
 
     // Bullet Collisions
     for (let i = bulletsRef.current.length - 1; i >= 0; i--) {
-        const b = bulletsRef.current[i];
-        let hit = false;
+      const b = bulletsRef.current[i];
+      let hit = false;
 
-        // Hit Enemy
-        for (let j = enemiesRef.current.length - 1; j >= 0; j--) {
-            const e = enemiesRef.current[j];
-            if (
-                b.x < e.x + e.w &&
-                b.x + b.w > e.x &&
-                b.y < e.y + e.h &&
-                b.y + b.h > e.y
-            ) {
-                e.hp = (e.hp || 1) - 1;
-                hit = true;
-                createParticles(e.x + e.w/2, e.y + e.h/2, 3, '#fbbf24');
-                if ((e.hp || 0) <= 0) {
-                    enemiesRef.current.splice(j, 1);
-                    scoreRef.current += 100;
-                    setScore(scoreRef.current);
+      // Hit Enemy
+      for (let j = enemiesRef.current.length - 1; j >= 0; j--) {
+        const e = enemiesRef.current[j];
+        if (
+          b.x < e.x + e.w &&
+          b.x + b.w > e.x &&
+          b.y < e.y + e.h &&
+          b.y + b.h > e.y
+        ) {
+          e.hp = (e.hp || 1) - 1;
+          hit = true;
+          createParticles(e.x + e.w / 2, e.y + e.h / 2, 3, '#fbbf24');
+          if ((e.hp || 0) <= 0) {
+            enemiesRef.current.splice(j, 1);
+            scoreRef.current += 100;
+            setScore(scoreRef.current);
 
-                    // Drop Item Chance (20%)
-                    if (Math.random() < 0.2) {
-                        itemsRef.current.push({
-                            x: e.x, y: e.y, w: 30, h: 30, vx: 0, vy: 120, type: 'upgrade', emoji: '⭐'
-                        });
-                    }
-                }
-                break;
+            // Drop Item Chance
+            if (Math.random() < 0.1) { // Reduced from 0.25
+              const type = Math.random() < 0.3 ? 'bomb' : 'upgrade'; // More balanced bomb/star ratio logic if needed, or just keep as is. User said reduce star chance.
+              // Let's make it: Total drop 10%.
+              // If drop, 30% bomb, 70% star.
+              // Star effective rate: 7%. Bomb effective rate: 3%.
+              itemsRef.current.push({
+                x: e.x, y: e.y, w: 30, h: 30, vx: 0, vy: 120,
+                type,
+                emoji: type === 'bomb' ? '💣' : '⭐'
+              });
             }
+          }
+          break;
         }
+      }
 
-        // Hit Boss
-        if (!hit && bossRef.current) {
-            const boss = bossRef.current;
-            if (
-                b.x < boss.x + boss.w &&
-                b.x + b.w > boss.x &&
-                b.y < boss.y + boss.h &&
-                b.y + b.h > boss.y
-            ) {
-                boss.hp = (boss.hp || 1) - 1;
-                hit = true;
-                createParticles(b.x, b.y, 2, '#ef4444');
+      // Hit Boss
+      if (!hit && bossRef.current) {
+        const boss = bossRef.current;
+        if (
+          b.x < boss.x + boss.w &&
+          b.x + b.w > boss.x &&
+          b.y < boss.y + boss.h &&
+          b.y + b.h > boss.y
+        ) {
+          boss.hp = (boss.hp || 1) - 1;
+          hit = true;
+          createParticles(b.x, b.y, 2, '#ef4444');
 
-                if ((boss.hp || 0) <= 0) {
-                    // Boss Dead
-                    bossRef.current = null;
-                    scoreRef.current += 5000;
-                    setScore(scoreRef.current);
-                    setGameState('victory');
-                }
-            }
+          if ((boss.hp || 0) <= 0) {
+            handleBossDefeat();
+          }
         }
+      }
 
-        if (hit) bulletsRef.current.splice(i, 1);
+      if (hit) bulletsRef.current.splice(i, 1);
     }
 
     // Update Items
     for (let i = itemsRef.current.length - 1; i >= 0; i--) {
-        const item = itemsRef.current[i];
-        item.y += item.vy * dt;
+      const item = itemsRef.current[i];
+      item.y += item.vy * dt;
 
-        // Collect Item
-        if (
-            player.x < item.x + item.w &&
-            player.x + player.w > item.x &&
-            player.y < item.y + item.h &&
-            player.y + player.h > item.y
-        ) {
-            itemsRef.current.splice(i, 1);
-            setWeaponLevel(prev => Math.min(prev + 1, 3));
-            scoreRef.current += 500;
-            setScore(scoreRef.current);
-            createParticles(player.x + player.w/2, player.y, 10, '#ffff00');
-        } else if (item.y > height) {
-            itemsRef.current.splice(i, 1);
+      // Collect Item
+      if (
+        player.x < item.x + item.w &&
+        player.x + player.w > item.x &&
+        player.y < item.y + item.h &&
+        player.y + player.h > item.y
+      ) {
+        itemsRef.current.splice(i, 1);
+        if (item.type === 'bomb') {
+          bombsRef.current += 1;
+          setUiBombs(bombsRef.current);
+        } else {
+          if (weaponLevelRef.current < 10) {
+            weaponLevelRef.current += 1;
+            setUiWeaponLevel(weaponLevelRef.current);
+          }
         }
+        scoreRef.current += 500;
+        setScore(scoreRef.current);
+        createParticles(player.x + player.w / 2, player.y, 10, '#ffff00');
+      } else if (item.y > height) {
+        itemsRef.current.splice(i, 1);
+      }
     }
 
     // --- Draw ---
@@ -362,10 +490,10 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
 
     // Stars
     ctx.fillStyle = 'white';
-    for(let k=0; k<20; k++) {
-        const sx = (Math.sin(k * 132 + timeRef.current * 0.2) * width + width) % width;
-        const sy = (Math.cos(k * 45 + timeRef.current * 0.5) * height + height) % height;
-        ctx.fillRect(sx, sy, 2, 2);
+    for (let k = 0; k < 20; k++) {
+      const sx = (Math.sin(k * 132 + timeRef.current * 0.2) * width + width) % width;
+      const sy = (Math.cos(k * 45 + timeRef.current * 0.5) * height + height) % height;
+      ctx.fillRect(sx, sy, 2, 2);
     }
 
     // Draw Player
@@ -374,35 +502,43 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
 
     // Draw Enemies
     enemiesRef.current.forEach(e => {
-        ctx.font = '40px Arial';
-        ctx.fillText(e.emoji || '🧳', e.x, e.y + 35);
+      ctx.font = '40px Arial';
+      ctx.fillText(e.emoji || '🧳', e.x, e.y + 35);
     });
 
     // Draw Boss
     if (bossRef.current) {
-        const boss = bossRef.current;
-        ctx.font = '100px Arial';
-        ctx.fillText(boss.emoji || '👹', boss.x, boss.y + 100);
+      const boss = bossRef.current;
+      ctx.font = '100px Arial';
+      ctx.fillText(boss.emoji || '👹', boss.x, boss.y + 100);
 
-        // HP Bar
-        ctx.fillStyle = 'red';
-        ctx.fillRect(boss.x, boss.y - 20, boss.w, 10);
-        ctx.fillStyle = 'green';
-        ctx.fillRect(boss.x, boss.y - 20, boss.w * ((boss.hp || 1) / BOSS_HP), 10);
+      // HP Bar
+      ctx.fillStyle = 'red';
+      ctx.fillRect(boss.x, boss.y - 20, boss.w, 10);
+      ctx.fillStyle = 'green';
+      ctx.fillRect(boss.x, boss.y - 20, boss.w * ((boss.hp || 1) / BOSS_HP / stageRef.current), 10);
     }
 
     // Draw Bullets
     ctx.fillStyle = '#fbbf24'; // Yellow
     bulletsRef.current.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(b.x + b.w/2, b.y + b.h/2, 5, 0, Math.PI * 2);
-        ctx.fill();
+      ctx.beginPath();
+      ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Draw Enemy Bullets
+    ctx.fillStyle = '#ef4444'; // Red
+    enemyBulletsRef.current.forEach(b => {
+      ctx.beginPath();
+      ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 5, 0, Math.PI * 2);
+      ctx.fill();
     });
 
     // Draw Items
     itemsRef.current.forEach(item => {
-        ctx.font = '30px Arial';
-        ctx.fillText(item.emoji || '⭐', item.x, item.y + 25);
+      ctx.font = '30px Arial';
+      ctx.fillText(item.emoji || '⭐', item.x, item.y + 25);
     });
 
     // Draw Particles
@@ -460,12 +596,28 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
 
         {/* HUD */}
         <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
-            <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10">
+          <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10">
             🏆 {Math.floor(score)}
-            </div>
-            <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10 text-yellow-400">
-            🔫 Lv.{weaponLevel}
-            </div>
+          </div>
+          <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10 text-yellow-400">
+            🔫 Lv.{uiWeaponLevel}
+          </div>
+          <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10 text-blue-300">
+            STAGE {uiStage}
+          </div>
+        </div>
+
+        {/* Bomb Button (Desktop/Mobile hybrid) */}
+        <div className="absolute bottom-4 right-4 pointer-events-auto z-20">
+          <button
+            onClick={useBomb}
+            className="w-16 h-16 rounded-full bg-red-600 border-4 border-red-400 shadow-xl flex items-center justify-center text-3xl hover:scale-105 active:scale-95 transition-transform"
+          >
+            💣
+            <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
+              {uiBombs}
+            </span>
+          </button>
         </div>
 
         {/* Start Screen */}
@@ -474,18 +626,18 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
             <div className="text-6xl mb-6 animate-pulse">✈️</div>
             <h2 className="text-2xl font-bold mb-2">출격 준비 완료!</h2>
             <p className="text-gray-400 mb-8 text-center px-4">
-              화살표 키로 이동, 자동 발사됩니다.<br/>
+              화살표 키로 이동, 자동 발사됩니다.<br />
               1분 뒤 보스가 나타납니다!
             </p>
             <Button size="lg" onClick={startGame} className="text-lg px-8 py-6 rounded-xl bg-blue-600 hover:bg-blue-700">
               게임 시작!
             </Button>
             <Button
-                variant="outline"
-                className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
-                onClick={onBack}
+              variant="outline"
+              className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
+              onClick={onBack}
             >
-                메뉴로 나가기
+              메뉴로 나가기
             </Button>
           </div>
         )}
@@ -500,34 +652,11 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
               다시 도전하기
             </Button>
             <Button
-                variant="outline"
-                className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
-                onClick={onBack}
+              variant="outline"
+              className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
+              onClick={onBack}
             >
-                메뉴로 나가기
-            </Button>
-          </div>
-        )}
-
-        {/* Victory Screen */}
-        {gameState === 'victory' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-blue-900/80 backdrop-blur-sm z-10">
-            <div className="text-6xl mb-4 animate-bounce">🏆</div>
-            <h2 className="text-3xl font-bold mb-2">보스 격파 성공!</h2>
-            <p className="text-gray-200 mb-6 text-center px-4">
-              짐가방 괴물들의 대장을 물리쳤습니다!<br/>
-              당신은 진정한 파일럿입니다.
-            </p>
-            <p className="text-xl mb-6">최종 점수: <span className="text-yellow-400 font-bold">{Math.floor(score)}</span></p>
-            <Button size="lg" onClick={startGame} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none text-lg px-8 py-6 rounded-xl">
-              다시 도전하기
-            </Button>
-            <Button
-                variant="outline"
-                className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
-                onClick={onBack}
-            >
-                메뉴로 나가기
+              메뉴로 나가기
             </Button>
           </div>
         )}

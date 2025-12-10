@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react'; // Ensure session is available
 
 interface Platform {
   x: number;
@@ -27,6 +28,7 @@ export default function FunPage() {
   const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [isDeducting, setIsDeducting] = useState(false); // To prevent double clicks
 
   // Game configuration
   const GRAVITY = 0.4;
@@ -59,7 +61,7 @@ export default function FunPage() {
     // Event listeners
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.key] = true;
-      if (e.key === ' ' && gameState === 'gameover') startGame();
+      if (e.key === ' ' && gameState === 'gameover') tryStartGame();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysRef.current[e.key] = false;
@@ -135,6 +137,60 @@ export default function FunPage() {
         life: 1.0,
         color
       });
+    }
+  };
+
+  const tryStartGame = async () => {
+    if (isDeducting) return;
+    setIsDeducting(true);
+
+    try {
+      // Get token from storage or session if we are handling auth manually in client.
+      // Assuming NextAuth session or simple fetch.
+      const token = localStorage.getItem('token'); // Fallback if using custom token
+      // NOTE: Since verifyAuth uses `req.headers.get('authorization')`, we need to send the token.
+      // If using NextAuth, the session cookie is auto-sent, but verifyAuth seems to check 'Authorization: Bearer <token>'.
+      // I should check how login is implemented in other files.
+
+      // Let's assume we need to pass the token.
+      // If the user is logged in via session cookie, verifyAuth might fail if it strictly requires Bearer header.
+      // Let's check `src/lib/auth.ts` again. It DOES check 'Bearer'.
+
+      // So I need to get the token.
+      // But typically NextAuth uses cookies.
+      // For now, I'll try to fetch without header (if cookies work) or assume the user has a token in localStorage.
+
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/game/start', {
+          method: 'POST',
+          headers: headers
+      });
+
+      if (res.status === 401) {
+          alert("로그인이 필요합니다.");
+          window.location.href = '/login'; // Or wherever login is
+          setIsDeducting(false);
+          return;
+      }
+
+      if (!res.ok) {
+          const data = await res.json();
+          alert(data.message || "게임을 시작할 수 없습니다.");
+          setIsDeducting(false);
+          return;
+      }
+
+      // Success
+      startGame();
+    } catch (e) {
+      console.error(e);
+      alert("오류가 발생했습니다.");
+    } finally {
+      setIsDeducting(false);
     }
   };
 
@@ -382,6 +438,7 @@ export default function FunPage() {
           <span className="text-yellow-500">짐</span>프 (JUMP) 게임!
         </h1>
         <p className="text-gray-600">짐가방을 잃어버리지 않게 최대한 높이 올라가세요!</p>
+        <p className="text-sm text-red-500 mt-1 font-semibold">게임 시작 시 10 포인트가 차감됩니다.</p>
       </div>
 
       <div className="relative w-full max-w-[500px] aspect-[3/4] bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-gray-200">
@@ -410,8 +467,8 @@ export default function FunPage() {
             <p className="text-gray-500 mb-8 text-center px-4">
               화살표 키나 화면 하단 버튼을 눌러<br/>이동하세요
             </p>
-            <Button size="lg" onClick={startGame} className="text-lg px-8 py-6 rounded-xl shadow-lg shadow-blue-500/30">
-              게임 시작!
+            <Button size="lg" onClick={tryStartGame} disabled={isDeducting} className="text-lg px-8 py-6 rounded-xl shadow-lg shadow-blue-500/30">
+              {isDeducting ? '로딩 중...' : '게임 시작! (10P)'}
             </Button>
           </div>
         )}
@@ -422,8 +479,8 @@ export default function FunPage() {
             <div className="text-6xl mb-4">😵</div>
             <h2 className="text-3xl font-bold mb-2">게임 오버!</h2>
             <p className="text-xl mb-6">점수: <span className="text-yellow-400 font-bold">{Math.floor(score)}</span></p>
-            <Button size="lg" onClick={startGame} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none text-lg px-8 py-6 rounded-xl shadow-lg shadow-yellow-500/30">
-              다시 도전하기
+            <Button size="lg" onClick={tryStartGame} disabled={isDeducting} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none text-lg px-8 py-6 rounded-xl shadow-lg shadow-yellow-500/30">
+              {isDeducting ? '로딩 중...' : '다시 도전하기 (10P)'}
             </Button>
             <Link href="/" className="mt-4 text-white/80 hover:text-white underline">
               홈으로 돌아가기

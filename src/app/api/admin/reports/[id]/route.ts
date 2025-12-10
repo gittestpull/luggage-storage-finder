@@ -22,6 +22,21 @@ async function getGeocode(address: string) {
     }
 }
 
+// Helper to calculate points based on User Grade/Tier
+function calculateReward(user: any) {
+    // Total earned from approvals defines the tier
+    const totalEarned = user.approvedReportPoints || 0;
+
+    // Tier Logic
+    if (totalEarned >= 5000) {
+        return 200; // Gold Tier
+    } else if (totalEarned >= 1000) {
+        return 150; // Silver Tier
+    } else {
+        return 100; // Bronze Tier
+    }
+}
+
 export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -110,13 +125,16 @@ export async function PATCH(
                 }).save();
             }
 
-            // 포인트 지급
+            // 포인트 지급 Logic
             if (report.reportedBy) {
-                const APPROVED_REPORT_POINTS = 100;
-                report.reportedBy.approvedReportPoints += APPROVED_REPORT_POINTS;
-                report.reportedBy.points =
-                    report.reportedBy.submittedReportPoints +
-                    report.reportedBy.approvedReportPoints;
+                const rewardPoints = calculateReward(report.reportedBy);
+
+                // Update stats
+                report.reportedBy.approvedReportPoints = (report.reportedBy.approvedReportPoints || 0) + rewardPoints;
+
+                // Update Balance (Add to existing, do not recalculate from scratch)
+                report.reportedBy.points = (report.reportedBy.points || 0) + rewardPoints;
+
                 await report.reportedBy.save();
             }
         }

@@ -27,6 +27,9 @@ export default function Header() {
                         <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">홈</Link>
                         <Link href="/news" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">뉴스</Link>
                         <Link href="/places" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">가볼만한 곳</Link>
+                        <Link href="/fun" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
+                            <span>🎮</span> 재미
+                        </Link>
                         <Link href="#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>
                         <button
                             onClick={() => (window as any).requestPushPermission && (window as any).requestPushPermission()}
@@ -112,6 +115,14 @@ export default function Header() {
                                     className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
                                 >
                                     <span className="w-8">🗺️</span> 가볼만한 곳
+                                </Link>
+
+                                <Link
+                                    href="/fun"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                >
+                                    <span className="w-8">🎮</span> 재미
                                 </Link>
 
                                 <Link

@@ -84,12 +84,14 @@ export default function StorageList({ storages, onRefresh }: StorageListProps) {
                         setSelectedStorage(null);
                         setIsModalOpen(true);
                     }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
                 >
                     짐보관소 추가
                 </button>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Desktop View (Table) */}
+            <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full bg-white rounded-lg shadow overflow-hidden">
                     <thead className="bg-gray-100">
                         <tr>
@@ -153,6 +155,51 @@ export default function StorageList({ storages, onRefresh }: StorageListProps) {
                     </tbody>
                 </table>
             </div>
+
+            {/* Mobile View (Cards) */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+                {storages.map((storage) => (
+                    <div key={storage._id} className="bg-white p-4 rounded-lg shadow space-y-3">
+                        <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                    {storage.name}
+                                    {storage.isPremium && (
+                                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            Premium
+                                        </span>
+                                    )}
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">{storage.address}</p>
+                            </div>
+                            <button
+                                onClick={() => handleToggleStatus(storage)}
+                                className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded-full ${storage.status.isOpen
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                    }`}
+                            >
+                                {storage.status.isOpen ? '운영중' : '중단'}
+                            </button>
+                        </div>
+                        <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
+                            <button
+                                onClick={() => handleEdit(storage)}
+                                className="text-indigo-600 font-medium text-sm hover:text-indigo-900"
+                            >
+                                수정
+                            </button>
+                            <button
+                                onClick={() => handleDelete(storage._id)}
+                                className="text-red-600 font-medium text-sm hover:text-red-900"
+                            >
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             <StorageModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

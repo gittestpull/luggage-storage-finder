@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Script from 'next/script';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import AiModal from '@/components/modals/AiModal';
 import EditRequestModal from '@/components/modals/EditRequestModal';
 import { StorageLocation } from '@/types';
 
@@ -91,11 +91,26 @@ export default function Home() {
     }
   }, []);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     if (mapRef.current && (storages.length > 0 || places.length > 0 || news.length > 0)) {
       updateMarkers();
     }
   }, [storages, places, news, showStorageLayer, showPlaceLayer, showNewsLayer]);
+
+  useEffect(() => {
+    // Check URL for storageId
+    const storageId = searchParams.get('storageId');
+    if (storageId && storages.length > 0) {
+      const storage = storages.find(s => s._id === storageId);
+      if (storage) {
+        goToMapLocation(storage);
+        // Clean up URL
+        window.history.replaceState({}, '', '/');
+      }
+    }
+  }, [storages, searchParams]);
 
   const initMap = () => {
     const mapOptions = {
@@ -418,7 +433,7 @@ export default function Home() {
   return (
     <>
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&callback=initMap`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&loading=async&callback=initMap`}
         strategy="afterInteractive"
       />
 
@@ -902,8 +917,6 @@ export default function Home() {
       </main>
 
 
-
-      <AiModal goToMapLocation={goToMapLocation} />
 
       {/* 정보 수정 요청 모달 */}
       {editStorage && (

@@ -127,15 +127,16 @@ export async function PATCH(
 
             // 포인트 지급 Logic
             if (report.reportedBy) {
-                const rewardPoints = calculateReward(report.reportedBy);
+                const reporter = report.reportedBy as any;
+                const rewardPoints = calculateReward(reporter);
 
                 // Update stats
-                report.reportedBy.approvedReportPoints = (report.reportedBy.approvedReportPoints || 0) + rewardPoints;
+                reporter.approvedReportPoints = (reporter.approvedReportPoints || 0) + rewardPoints;
 
                 // Update Balance (Add to existing, do not recalculate from scratch)
-                report.reportedBy.points = (report.reportedBy.points || 0) + rewardPoints;
+                reporter.points = (reporter.points || 0) + rewardPoints;
 
-                await report.reportedBy.save();
+                await reporter.save();
             }
         }
 

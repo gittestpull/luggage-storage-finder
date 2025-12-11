@@ -4,7 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-export default function Sidebar() {
+interface SidebarProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -109,74 +114,85 @@ export default function Sidebar() {
     ];
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-72 bg-slate-900 border-r border-slate-800 flex flex-col z-50 transition-all duration-300">
-            {/* Logo Section */}
-            <div className="p-8 border-b border-slate-800/50">
-                <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 className="text-white font-bold text-lg tracking-tight">Admin Portal</h1>
-                        <p className="text-slate-500 text-xs">Luggage Storage</p>
-                    </div>
-                </div>
-            </div>
+        <>
+            {/* Mobile Overlay */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    onClick={onClose}
+                />
+            )}
 
-            {/* Navigation */}
-            <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
-                <div className="mb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Menu
-                </div>
-                {navItems.map((item) => {
-                    const active = isActive(item.path);
-                    return (
-                        <Link
-                            key={item.path}
-                            href={item.path}
-                            className={`group flex items-center px-4 py-3.5 text-sm font-medium rounded-xl transition-all duration-200 ${active
-                                ? 'bg-blue-600/10 text-blue-400 shadow-sm'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                                }`}
-                        >
-                            <span className={`mr-3 transition-colors ${active ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
-                                {item.icon}
-                            </span>
-                            {item.name}
-                            {active && (
-                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]" />
-                            )}
-                        </Link>
-                    );
-                })}
-            </nav>
-
-            {/* Footer / Logout */}
-            <div className="p-4 border-t border-slate-800/50 bg-slate-900/50">
-                <button
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
-                    className="w-full group flex items-center justify-between px-5 py-4 bg-slate-800 hover:bg-red-500/10 hover:border-red-500/20 border border-slate-700 rounded-2xl transition-all duration-300"
-                >
+            <aside className={`fixed left-0 top-0 h-screen w-72 bg-slate-900 border-r border-slate-800 flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+                {/* Logo Section */}
+                <div className="p-8 border-b border-slate-800/50">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
-                            <svg className="w-5 h-5 text-slate-400 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
                         </div>
-                        <div className="text-left">
-                            <p className="text-sm font-semibold text-slate-200 group-hover:text-red-400 transition-colors">
-                                {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
-                            </p>
-                            <p className="text-xs text-slate-500 group-hover:text-red-400/70 transition-colors">
-                                관리자 계정 종료
-                            </p>
+                        <div>
+                            <h1 className="text-white font-bold text-lg tracking-tight">Admin Portal</h1>
+                            <p className="text-slate-500 text-xs">Luggage Storage</p>
                         </div>
                     </div>
-                </button>
-            </div>
-        </aside>
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
+                    <div className="mb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Menu
+                    </div>
+                    {navItems.map((item) => {
+                        const active = isActive(item.path);
+                        return (
+                            <Link
+                                key={item.path}
+                                href={item.path}
+                                onClick={onClose}
+                                className={`group flex items-center px-4 py-3.5 text-sm font-medium rounded-xl transition-all duration-200 ${active
+                                    ? 'bg-blue-600/10 text-blue-400 shadow-sm'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                            >
+                                <span className={`mr-3 transition-colors ${active ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                                    {item.icon}
+                                </span>
+                                {item.name}
+                                {active && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]" />
+                                )}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Footer / Logout */}
+                <div className="p-4 border-t border-slate-800/50 bg-slate-900/50">
+                    <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="w-full group flex items-center justify-between px-5 py-4 bg-slate-800 hover:bg-red-500/10 hover:border-red-500/20 border border-slate-700 rounded-2xl transition-all duration-300"
+                    >
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
+                                <svg className="w-5 h-5 text-slate-400 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-semibold text-slate-200 group-hover:text-red-400 transition-colors">
+                                    {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
+                                </p>
+                                <p className="text-xs text-slate-500 group-hover:text-red-400/70 transition-colors">
+                                    관리자 계정 종료
+                                </p>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </aside>
+        </>
     );
 }

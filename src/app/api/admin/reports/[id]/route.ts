@@ -113,11 +113,12 @@ export async function PATCH(
             // 포인트 지급
             if (report.reportedBy) {
                 const APPROVED_REPORT_POINTS = 100;
-                report.reportedBy.approvedReportPoints += APPROVED_REPORT_POINTS;
-                report.reportedBy.points =
-                    report.reportedBy.submittedReportPoints +
-                    report.reportedBy.approvedReportPoints;
-                await report.reportedBy.save();
+                const reporter = report.reportedBy as any;
+                reporter.approvedReportPoints += APPROVED_REPORT_POINTS;
+                reporter.points =
+                    reporter.submittedReportPoints +
+                    reporter.approvedReportPoints;
+                await reporter.save();
             }
         }
 

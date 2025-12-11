@@ -15,6 +15,8 @@ export interface IReport extends Document {
     description?: string;
     reportStatus: 'pending' | 'approved' | 'rejected';
     reportedBy?: mongoose.Types.ObjectId;
+    reportedByUsername?: string; // For attribution if not logged in (or as fallback)
+
     createdAt: Date;
 }
 
@@ -36,6 +38,7 @@ const reportSchema = new Schema<IReport>({
     description: String,
     reportStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     reportedBy: { type: Schema.Types.ObjectId, ref: 'User', required: false },
+    reportedByUsername: { type: String, required: false },
     createdAt: { type: Date, default: Date.now },
 });
 

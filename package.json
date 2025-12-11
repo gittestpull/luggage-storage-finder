@@ -29,6 +29,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
     "@types/bcryptjs": "^2.4.6",
+    "@types/google.maps": "^3.58.1",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22",
     "@types/nodemailer": "^7.0.4",

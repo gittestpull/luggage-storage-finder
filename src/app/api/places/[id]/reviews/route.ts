@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import dbConnect from '@/lib/db';
 import Place from '@/models/Place';
 import { getToken } from 'next-auth/jwt';
 import { saveFile } from '@/lib/fileHandler';
 
 interface Params {
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
     await dbConnect();
+    const { id } = await params;
     try {
         const token = await getToken({ req });
         if (!token) {
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         const text = formData.get('text') as string;
         const photo = formData.get('photo') as File | null;
 
-        const place = await Place.findById(params.id);
+        const place = await Place.findById(id);
         if (!place) {
             return NextResponse.json({ success: false, error: 'Place not found' }, { status: 404 });
         }
@@ -38,11 +39,11 @@ export async function POST(req: NextRequest, { params }: Params) {
             user: token.sub,
         };
 
-        place.reviews.push(review);
+        place.reviews.push(review as any);
         await place.save();
 
         // Populate user details before sending back
-        const updatedPlace = await Place.findById(params.id).populate('reviews.user', 'username').populate('tips.user', 'username');
+        const updatedPlace = await Place.findById(id).populate('reviews.user', 'username').populate('tips.user', 'username');
 
         return NextResponse.json({ success: true, data: updatedPlace });
     } catch (error) {

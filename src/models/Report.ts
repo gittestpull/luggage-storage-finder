@@ -11,6 +11,7 @@ export interface IReport extends Document {
     is24Hours?: boolean;
     smallPrice?: number;
     largePrice?: number;
+    phoneNumber?: string;
     description?: string;
     reportStatus: 'pending' | 'approved' | 'rejected';
     reportedBy?: mongoose.Types.ObjectId;

@@ -62,6 +62,9 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
       keysRef.current[e.key] = true;
       if (e.key === ' ' && gameState === 'gameover') startGame();
       if ((e.key === 'b' || e.key === 'B') && gameState === 'playing') useBomb();
@@ -201,6 +204,10 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
   const spawnEnemy = (width: number) => {
     const w = 40;
     const x = Math.random() * (width - w);
+
+    // Stage 2+: Chance to spawn a tracking enemy
+    const isTracker = stageRef.current >= 2 && Math.random() < 0.4;
+
     enemiesRef.current.push({
       x,
       y: -50,
@@ -208,8 +215,9 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
       h: 40,
       vx: 0,
       vy: ENEMY_SPEED + (timeRef.current * 2), // Get faster over time
-      hp: 1 + Math.floor(timeRef.current / 30),
-      emoji: '🧳'
+      hp: (1 + Math.floor(timeRef.current / 30)) * (isTracker ? 1.5 : 1),
+      emoji: isTracker ? '🛸' : '🧳',
+      type: isTracker ? 'tracker' : 'normal'
     });
   };
 
@@ -312,6 +320,23 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     // Update Enemies
     for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
       const e = enemiesRef.current[i];
+
+      // Tracker Logic: Follow player x
+      if (e.type === 'tracker') {
+        const centerE = e.x + e.w / 2;
+        const centerP = player.x + player.w / 2;
+        const diff = centerP - centerE;
+
+        // Simple steering
+        const TRACKING_SPEED = 80 + (stageRef.current * 10);
+        if (Math.abs(diff) > 5) {
+          e.vx = diff > 0 ? TRACKING_SPEED : -TRACKING_SPEED;
+        } else {
+          e.vx = 0;
+        }
+      }
+
+      e.x += e.vx * dt;
       e.y += e.vy * dt;
 
       // Collision with Player

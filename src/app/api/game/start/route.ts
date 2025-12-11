@@ -1,44 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth'; // We need to check session
+import { verifyAuth } from '@/lib/auth';
 import User from '@/models/User';
+import { Game } from '@/models';
 import connectDB from '@/lib/db';
 
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
+        const { gameId } = await req.json();
 
         // 1. Identify User
-        // We can use session (verifyAuth) or accept username if we want to allow "Guest with Username" to play?
-        // But for deducting points, we MUST strictly verify ownership. So Auth is required OR a secure way.
-        // Given the "No Login" requirement was for *Reporting*, usually Games require Login to use points.
-        // However, if the user isn't logged in but provided a username, anyone could drain their points.
-        // So I will enforce strict Auth for deducting points.
-
         const session = await verifyAuth(req);
         if (!session || !session.user) {
-             return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
+            return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
         }
 
         const userId = session.user.id;
-        const COST_TO_PLAY = 10;
 
+        // 2. Get Game Config
+        // If gameId is not provided, we can default to 'jump' or error out. 
+        // For backwards compatibility or safety, let's assume if no gameId, fallback to 10 cost (but strict auth).
+        let cost = 10;
+        let isPaid = true;
+
+        if (gameId) {
+            const game = await Game.findOne({ gameId });
+            if (game) {
+                isPaid = game.isPaid;
+                cost = game.cost;
+            }
+        }
+
+        // If free, just return success (maybe log stats later)
+        if (!isPaid) {
+            return NextResponse.json({
+                success: true,
+                remainingPoints: 0, // Frontend should re-fetch user or we can return actual points if needed, but for free game it doesn't change.
+                message: '무료 게임 시작!'
+            });
+        }
+
+        // 3. Paid Logic
         const user = await User.findById(userId);
         if (!user) {
             return NextResponse.json({ message: '사용자를 찾을 수 없습니다.' }, { status: 404 });
         }
 
-        if (user.points < COST_TO_PLAY) {
+        if (user.points < cost) {
             return NextResponse.json({ message: '포인트가 부족합니다.' }, { status: 402 });
         }
 
         // Deduct points
-        user.points -= COST_TO_PLAY;
+        user.points -= cost;
         await user.save();
 
         return NextResponse.json({
             success: true,
             remainingPoints: user.points,
-            message: '게임 시작! 10포인트가 차감되었습니다.'
+            message: `게임 시작! ${cost}포인트가 차감되었습니다.`
         });
 
     } catch (error) {

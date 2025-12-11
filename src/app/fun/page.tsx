@@ -1,12 +1,95 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import JumpGame from './JumpGame';
 import ShootingGame from './ShootingGame';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui';
+
+interface GameConfig {
+  gameId: string;
+  name: string;
+  isPaid: boolean;
+  cost: number;
+}
 
 export default function FunPage() {
   const [activeGame, setActiveGame] = useState<'jump' | 'shooting' | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { user, openModal, login } = useAuth();
+  const [loadingGame, setLoadingGame] = useState(false);
+  const [gameConfigs, setGameConfigs] = useState<GameConfig[]>([]);
+
+  useEffect(() => {
+    fetch('/api/games')
+      .then(res => res.json())
+      .then(data => setGameConfigs(data))
+      .catch(err => console.error('Failed to load game configs', err));
+  }, []);
+
+  const getGameConfig = (gameId: string) => gameConfigs.find(g => g.gameId === gameId);
+
+  const handleStartGame = async (gameType: 'jump' | 'shooting') => {
+    const config = getGameConfig(gameType);
+    const isPaid = config?.isPaid ?? true; // Default to paid if loading fails (safe fail)
+    const cost = config?.cost ?? 10;
+
+    if (isPaid) {
+      if (!user) {
+        if (confirm('이 게임은 로그인이 필요합니다. 로그인 하시겠습니까?')) {
+          openModal('login');
+        }
+        return;
+      }
+
+      if (user.points < cost) {
+        alert(`포인트가 부족합니다. (필요 포인트: ${cost} P)`);
+        return;
+      }
+
+      if (!confirm(`게임 시작 시 ${cost} 포인트가 차감됩니다. 시작하시겠습니까?`)) {
+        return;
+      }
+    }
+
+    setLoadingGame(true);
+    try {
+      // If paid, call API. If free, we might still want to call API for stats?
+      // For now, only call API if paid or if we want to track 'play count' for free games too.
+      // The current backend deducts points unconditionally if logic passes, 
+      // so we need to update backend to respect cost or handle free games.
+      // BUT, the implementation plan said: "If isPaid is false, start immediately without deduction."
+      // So checking isPaid here.
+
+      if (isPaid) {
+        const response = await fetch('/api/game/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: gameType }) // Pass gameId so backend knows cost (if updated)
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            login(token, { ...user!, points: data.remainingPoints });
+          }
+          setActiveGame(gameType);
+        } else {
+          alert(data.message || '게임 시작 오류');
+        }
+      } else {
+        // Free game
+        setActiveGame(gameType);
+      }
+
+    } catch (error) {
+      console.error('Game start error:', error);
+      alert('서버 연결 중 오류가 발생했습니다.');
+    } finally {
+      setLoadingGame(false);
+    }
+  };
 
   if (activeGame === 'jump') {
     return <JumpGame onBack={() => setActiveGame(null)} />;
@@ -16,8 +99,11 @@ export default function FunPage() {
     return <ShootingGame onBack={() => setActiveGame(null)} />;
   }
 
+  const jumpConfig = getGameConfig('jump');
+  const shootingConfig = getGameConfig('shooting');
+
   const faqItems = [
-    { q: '게임 이용은 무료인가요?', a: '네, 모든 미니게임은 무료로 즐기실 수 있습니다. 심심할 때 언제든 방문해주세요!' },
+    { q: '게임 이용은 무료인가요?', a: '게임마다 다릅니다. 유료 게임은 포인트가 차감되며, 무료 게임은 자유롭게 즐기실 수 있습니다.' },
     { q: '점수를 저장할 수 있나요?', a: '현재는 점수 저장 기능을 제공하지 않지만, 추후 랭킹 시스템이 도입될 예정입니다.' },
     { q: '모바일에서도 플레이 가능한가요?', a: '네, 모든 게임은 모바일 환경에 최적화되어 있어 스마트폰에서도 편하게 즐기실 수 있습니다.' },
     { q: '새로운 게임은 언제 추가되나요?', a: '지속적으로 새로운 미니게임을 개발 중이며, 곧 업데이트될 예정입니다. 기대해주세요!' },
@@ -37,7 +123,7 @@ export default function FunPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl px-4">
         {/* Jump Game Card */}
         <div
-          onClick={() => setActiveGame('jump')}
+          onClick={() => !loadingGame && handleStartGame('jump')}
           className="group relative bg-white rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent hover:border-yellow-400"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -46,18 +132,26 @@ export default function FunPage() {
               🧳
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">짐프 (JUMP)</h2>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500 mb-4">
               짐가방을 잃어버리지 않게<br />최대한 높이 점프하세요!
             </p>
-            <span className="inline-block px-6 py-2 bg-yellow-400 text-white font-bold rounded-full shadow-lg group-hover:bg-yellow-500 transition-colors">
-              플레이 하기
-            </span>
+            {jumpConfig && (
+              <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 ${jumpConfig.isPaid ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                }`}>
+                {jumpConfig.isPaid ? `${jumpConfig.cost} Point` : '무료 (Free)'}
+              </span>
+            )}
+            <div>
+              <span className="inline-block px-6 py-2 bg-yellow-400 text-white font-bold rounded-full shadow-lg group-hover:bg-yellow-500 transition-colors">
+                플레이 하기
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Shooting Game Card */}
         <div
-          onClick={() => setActiveGame('shooting')}
+          onClick={() => !loadingGame && handleStartGame('shooting')}
           className="group relative bg-gray-900 rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent hover:border-blue-400"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-black opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -66,12 +160,20 @@ export default function FunPage() {
               ✈️
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">비행기 슈팅</h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-gray-400 mb-4">
               짐가방 괴물을 물리치고<br />보스를 격파하세요!
             </p>
-            <span className="inline-block px-6 py-2 bg-blue-500 text-white font-bold rounded-full shadow-lg group-hover:bg-blue-600 transition-colors">
-              플레이 하기
-            </span>
+            {shootingConfig && (
+              <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 ${shootingConfig.isPaid ? 'bg-yellow-400 text-black' : 'bg-green-500 text-white'
+                }`}>
+                {shootingConfig.isPaid ? `${shootingConfig.cost} Point` : '무료 (Free)'}
+              </span>
+            )}
+            <div>
+              <span className="inline-block px-6 py-2 bg-blue-500 text-white font-bold rounded-full shadow-lg group-hover:bg-blue-600 transition-colors">
+                플레이 하기
+              </span>
+            </div>
           </div>
         </div>
       </div>

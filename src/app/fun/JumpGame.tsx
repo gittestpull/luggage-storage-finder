@@ -29,7 +29,9 @@ export default function JumpGame({ onBack }: JumpGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(0);
+  const [time, setTime] = useState(0); // Time in seconds
+  const [bestScore, setBestScore] = useState(0);
+  const [bestTime, setBestTime] = useState(0);
 
   // Game configuration
   const GRAVITY = 0.4;
@@ -51,13 +53,21 @@ export default function JumpGame({ onBack }: JumpGameProps) {
   const particlesRef = useRef<Particle[]>([]);
   const cameraYRef = useRef(0);
   const scoreRef = useRef(0);
+  const startTimeRef = useRef(0);
   const animationFrameRef = useRef<number>(0);
   const keysRef = useRef<{ [key: string]: boolean }>({});
 
   useEffect(() => {
-    // Load high score
-    const saved = localStorage.getItem('luggageJumpHighScore');
-    if (saved) setHighScore(parseInt(saved));
+    // Load best score from API
+    fetch('/api/game/score?gameId=jump')
+      .then(res => res.json())
+      .then(data => {
+        if (data.score) {
+          setBestScore(data.score);
+          setBestTime(data.time);
+        }
+      })
+      .catch(err => console.error('Failed to load score', err));
 
     // Event listeners
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -113,7 +123,9 @@ export default function JumpGame({ onBack }: JumpGameProps) {
 
     cameraYRef.current = 0;
     scoreRef.current = 0;
+    startTimeRef.current = Date.now();
     setScore(0);
+    setTime(0);
     particlesRef.current = [];
   };
 
@@ -132,6 +144,33 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     }
 
     return { x, y, w, h: 20, type, vx };
+  };
+
+  const saveScore = async (finalScore: number, finalTime: number) => {
+    try {
+      await fetch('/api/game/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'jump',
+          score: finalScore,
+          time: finalTime
+        })
+      });
+
+      // Reload best to confirm
+      fetch('/api/game/score?gameId=jump')
+        .then(res => res.json())
+        .then(data => {
+          if (data.score) {
+            setBestScore(data.score);
+            setBestTime(data.time);
+          }
+        });
+
+    } catch (err) {
+      console.error('Failed to save score', err);
+    }
   };
 
   const createParticles = (x: number, y: number, count: number, color: string) => {
@@ -172,6 +211,10 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     const height = canvas.height;
     const player = playerRef.current;
     const platforms = platformsRef.current;
+
+    // Timer Update
+    const currentTime = (Date.now() - startTimeRef.current) / 1000;
+    setTime(currentTime);
 
     // --- Update ---
 
@@ -257,10 +300,10 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     // Game Over check
     if (player.y > height) {
       setGameState('gameover');
-      if (scoreRef.current > highScore) {
-        setHighScore(scoreRef.current);
-        localStorage.setItem('luggageJumpHighScore', scoreRef.current.toString());
-      }
+      const finalScore = Math.floor(scoreRef.current);
+      const finalTime = parseFloat(((Date.now() - startTimeRef.current) / 1000).toFixed(2));
+
+      saveScore(finalScore, finalTime);
       return; // Stop loop
     }
 
@@ -399,14 +442,19 @@ export default function JumpGame({ onBack }: JumpGameProps) {
         />
 
         {/* Score Overlay */}
-        <div className="absolute top-4 left-4 bg-white/80 backdrop-blur px-4 py-2 rounded-full font-bold text-gray-800 shadow-sm border border-gray-100">
-          🏆 {Math.floor(score)}
+        <div className="absolute top-4 left-4 flex gap-2">
+          <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-full font-bold text-gray-800 shadow-sm border border-gray-100">
+            🏆 {Math.floor(score)}
+          </div>
+          <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-full font-bold text-blue-600 shadow-sm border border-gray-100">
+            ⏱️ {time.toFixed(1)}s
+          </div>
         </div>
 
         {/* High Score Overlay */}
-        {highScore > 0 && (
+        {bestScore > 0 && (
           <div className="absolute top-4 right-4 bg-yellow-100/80 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-yellow-800 border border-yellow-200">
-            최고: {highScore}
+            최고: {bestScore} ({bestTime}s)
           </div>
         )}
 
@@ -436,7 +484,10 @@ export default function JumpGame({ onBack }: JumpGameProps) {
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-10 text-white">
             <div className="text-6xl mb-4">😵</div>
             <h2 className="text-3xl font-bold mb-2">게임 오버!</h2>
-            <p className="text-xl mb-6">점수: <span className="text-yellow-400 font-bold">{Math.floor(score)}</span></p>
+            <div className="text-xl mb-6 space-y-1">
+              <p>점수: <span className="text-yellow-400 font-bold">{Math.floor(score)}</span></p>
+              <p>시간: <span className="text-blue-300 font-bold">{time.toFixed(2)}초</span></p>
+            </div>
             <Button size="lg" onClick={startGame} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none text-lg px-8 py-6 rounded-xl shadow-lg shadow-yellow-500/30">
               다시 도전하기
             </Button>

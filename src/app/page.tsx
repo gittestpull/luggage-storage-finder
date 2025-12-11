@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-export default function Home() {
+function HomeContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [storages, setStorages] = useState<StorageLocation[]>([]);
   const [premiumStorages, setPremiumStorages] = useState<StorageLocation[]>([]);
@@ -927,5 +927,15 @@ export default function Home() {
       )}
 
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+    </div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

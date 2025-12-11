@@ -30,7 +30,7 @@ export default function Header() {
                         <Link href="/fun" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
                             <span>🎮</span> 재미
                         </Link>
-                        <Link href="#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>
+                        <Link href="/#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>
                         <button
                             onClick={() => (window as any).requestPushPermission && (window as any).requestPushPermission()}
                             className="text-gray-600 hover:text-yellow-600 transition-colors font-medium flex items-center gap-1"
@@ -126,7 +126,7 @@ export default function Header() {
                                 </Link>
 
                                 <Link
-                                    href="#faq"
+                                    href="/#faq"
                                     onClick={() => setIsMenuOpen(false)}
                                     className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
                                 >

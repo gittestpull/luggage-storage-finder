@@ -21,7 +21,7 @@ export default function Footer() {
                         <ul className="space-y-2">
                             <li><Link href="/" className="hover:text-white transition-colors">짐보관소 찾기</Link></li>
                             <li><Link href="/news" className="hover:text-white transition-colors">여행 뉴스</Link></li>
-                            <li><Link href="#faq" className="hover:text-white transition-colors">자주 묻는 질문</Link></li>
+                            <li><Link href="/#faq" className="hover:text-white transition-colors">자주 묻는 질문</Link></li>
                         </ul>
                     </div>
                     <div>

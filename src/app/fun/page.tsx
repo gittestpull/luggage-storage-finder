@@ -100,7 +100,7 @@ export default function FunPage() {
   }
 
   if (activeGame === 'fortune') {
-    return <FortuneGame onBack={() => setActiveGame(null)} />;
+    return <FortuneGame onBack={() => setActiveGame(null)} user={user} />;
   }
 
   const jumpConfig = getGameConfig('jump');

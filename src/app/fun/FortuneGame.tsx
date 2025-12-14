@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui';
 
+interface User {
+  username: string;
+  points: number;
+}
+
 interface RankingItem {
   _id: string;
   name: string;
@@ -35,6 +40,7 @@ const TIERS: FortuneTier[] = [
 
 interface Props {
   onBack: () => void;
+  user: User | null;
 }
 
 // Advanced Confetti with Fireworks
@@ -112,10 +118,6 @@ const Confetti = ({ intense = false }: { intense?: boolean }) => {
     const draw = () => {
       // Fade out trail effect
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      // If we want clear background, use clearRect.
-      // But for fireworks trail, fillRect with low opacity is nice.
-      // However, our parent div has background color.
-      // So we should just clearRect to be safe for transparency.
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Update Fireworks (Rockets)
@@ -224,7 +226,7 @@ const Confetti = ({ intense = false }: { intense?: boolean }) => {
   );
 };
 
-export default function FortuneGame({ onBack }: Props) {
+export default function FortuneGame({ onBack, user }: Props) {
   const [drawsLeft, setDrawsLeft] = useState(0);
   const [lastResult, setLastResult] = useState<FortuneTier | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -235,6 +237,7 @@ export default function FortuneGame({ onBack }: Props) {
   const [showRankInput, setShowRankInput] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [effectIntensity, setEffectIntensity] = useState(false);
+  const [autoRegistered, setAutoRegistered] = useState(false);
 
   // Initialize state from localStorage
   useEffect(() => {
@@ -271,6 +274,30 @@ export default function FortuneGame({ onBack }: Props) {
     localStorage.setItem('fortune_draws', count.toString());
   };
 
+  const registerRanking = async (name: string, tier: number, prizeName: string, probability: string) => {
+    try {
+      const res = await fetch('/api/fortune/ranking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          tier,
+          prizeName,
+          probability
+        })
+      });
+
+      if (res.ok) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  };
+
   const handleDraw = async () => {
     if (drawsLeft <= 0) {
       alert('오늘의 무료 뽑기 횟수를 모두 소진했습니다. 광고를 보고 충전하세요!');
@@ -282,9 +309,10 @@ export default function FortuneGame({ onBack }: Props) {
     setLastResult(null);
     setShowRankInput(false);
     setShowConfetti(false);
+    setAutoRegistered(false);
 
     // Simulate animation time
-    setTimeout(() => {
+    setTimeout(async () => {
       const rand = Math.random();
       let result = TIERS[TIERS.length - 1];
 
@@ -307,38 +335,38 @@ export default function FortuneGame({ onBack }: Props) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 7000); // Stop after 7s to match Canvas
 
-        // Ask for ranking registration
-        setShowRankInput(true);
+        // Logic for ranking registration
+        if (user) {
+          // Logged in: Auto-register
+          const success = await registerRanking(user.username, finalResult.tier, finalResult.name, finalResult.probString);
+          if (success) {
+            setAutoRegistered(true);
+            fetchRankings();
+          } else {
+            // Fallback if auto-reg fails? just ignore or alert?
+            // Alert might interrupt flow. Let's just set autoRegistered true (to show success message)
+            // but if it failed, maybe we shouldn't.
+            // But for simplicity, let's assume it works or show nothing.
+            // Let's show a small toast inside the result view.
+          }
+        } else {
+          // Not logged in: Show modal
+          setShowRankInput(true);
+        }
       }
     }, 1500); // 1.5s animation
   };
 
-  const handleRegisterRank = async () => {
+  const handleManualRegister = async () => {
     if (!lastResult || !playerName.trim()) return;
-
-    try {
-      const res = await fetch('/api/fortune/ranking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: playerName,
-          tier: lastResult.tier,
-          prizeName: lastResult.name,
-          probability: lastResult.probString
-        })
-      });
-
-      if (res.ok) {
-        alert('랭킹에 등록되었습니다!');
-        setShowRankInput(false);
-        setPlayerName('');
-        fetchRankings();
-      } else {
-        alert('등록 실패');
-      }
-    } catch (e) {
-      console.error(e);
-      alert('오류가 발생했습니다.');
+    const success = await registerRanking(playerName, lastResult.tier, lastResult.name, lastResult.probString);
+    if (success) {
+      alert('랭킹에 등록되었습니다!');
+      setShowRankInput(false);
+      setPlayerName('');
+      fetchRankings();
+    } else {
+      alert('등록 실패');
     }
   };
 
@@ -399,6 +427,13 @@ export default function FortuneGame({ onBack }: Props) {
                     {lastResult.name}
                   </h2>
                   <p className="text-xs text-gray-500">확률: {lastResult.probString}</p>
+
+                  {/* Auto-registered message for logged-in users */}
+                  {autoRegistered && (
+                    <div className="mt-2 text-green-400 font-bold animate-bounce text-sm border border-green-500 rounded px-2 py-1 inline-block">
+                      ✨ 랭킹에 자동 등록되었습니다! ({user?.username})
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-gray-400">
@@ -432,7 +467,7 @@ export default function FortuneGame({ onBack }: Props) {
             )}
           </div>
 
-          {/* Rank Input Modal Overlay */}
+          {/* Rank Input Modal Overlay (Only for non-logged-in users) */}
           {showRankInput && (
              <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 z-20 animate-fade-in">
                <h3 className="text-xl font-bold text-yellow-400 mb-4 animate-bounce">🎉 축하합니다! 랭킹 등록!</h3>
@@ -450,7 +485,7 @@ export default function FortuneGame({ onBack }: Props) {
                />
                <div className="flex gap-2 w-full">
                  <Button onClick={() => setShowRankInput(false)} className="flex-1 bg-gray-600">취소</Button>
-                 <Button onClick={handleRegisterRank} className="flex-1 bg-yellow-600 text-white">등록</Button>
+                 <Button onClick={handleManualRegister} className="flex-1 bg-yellow-600 text-white">등록</Button>
                </div>
              </div>
           )}

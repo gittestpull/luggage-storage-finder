@@ -27,6 +27,14 @@ export default function PlacesPage() {
     const [loading, setLoading] = useState(true);
     const mapRef = useRef<any>(null);
     const markersRef = useRef<any[]>([]);
+    const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+    const faqItems = [
+        { q: '서비스 이용은 무료인가요?', a: '네, 짐보관소 정보를 검색하고 확인하는 모든 기능은 완전히 무료입니다.' },
+        { q: '짐보관소 정보가 실제와 다를 경우 어떻게 하나요?', a: '제보하기 기능을 통해 수정 제보를 해주시거나, 문의하기를 통해 알려주시면 신속하게 반영합니다.' },
+        { q: '제보를 하면 어떤 혜택이 있나요?', a: '새로운 짐보관소를 제보하여 관리자의 승인을 받으면 소정의 포인트를 지급해 드립니다.' },
+        { q: '회원가입 시 수집된 개인정보는 안전하게 관리되나요?', a: '네, 저희는 이용자의 개인정보를 매우 중요하게 생각하며, 관련 법령에 따라 안전하게 관리합니다.' },
+    ];
 
     useEffect(() => {
         const fetchPlaces = async () => {
@@ -163,7 +171,7 @@ export default function PlacesPage() {
     return (
         <>
             <Script
-                src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&callback=initPlacesMap`}
+                src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&loading=async&callback=initPlacesMap`}
                 strategy="afterInteractive"
             />
 
@@ -223,6 +231,39 @@ export default function PlacesPage() {
                         ))}
                     </div>
                 )}
+
+                {/* FAQ Section */}
+                <section id="faq" className="mt-16 mb-8">
+                    <h2 className="text-xl font-semibold mb-4 text-center">❓ 자주 묻는 질문</h2>
+                    <p className="text-gray-600 mb-8 text-center text-sm">
+                        궁금하신 점을 빠르게 확인하세요
+                    </p>
+                    <div className="max-w-3xl mx-auto space-y-4">
+                        {faqItems.map((item, i) => (
+                            <div key={i} className="border border-gray-200 rounded-lg overflow-hidden">
+                                <button
+                                    className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors text-left"
+                                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                                >
+                                    <span className="font-medium text-gray-800">Q. {item.q}</span>
+                                    <svg
+                                        className={`w-5 h-5 text-gray-500 transform transition-transform ${openFaq === i ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                {openFaq === i && (
+                                    <div className="p-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
+                                        A. {item.a}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </section>
             </div>
         </>
     );

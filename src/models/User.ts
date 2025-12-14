@@ -5,12 +5,13 @@ export interface IUser extends Document {
     username: string;
     password: string;
     isAdmin: boolean;
-    points: number;
-    submittedReportPoints: number;
-    approvedReportPoints: number;
+    points: number; // Current balance (can be spent)
+    submittedReportPoints: number; // Lifetime accumulation (stats)
+    approvedReportPoints: number; // Lifetime accumulation (stats)
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
+    deductPoints(amount: number): Promise<boolean>;
 }
 
 const userSchema = new Schema<IUser>({
@@ -32,6 +33,16 @@ userSchema.pre('save', async function () {
 
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
     return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to safely deduct points
+userSchema.methods.deductPoints = async function (amount: number): Promise<boolean> {
+    if (this.points >= amount) {
+        this.points -= amount;
+        await this.save();
+        return true;
+    }
+    return false;
 };
 
 export const User: Model<IUser> =

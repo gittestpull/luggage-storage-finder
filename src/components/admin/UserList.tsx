@@ -73,10 +73,10 @@ export default function UserList({ users, onRefresh }: UserListProps) {
 
     return (
         <div>
-            <div className="mb-4 flex justify-end gap-2">
+            <div className="mb-4 flex flex-wrap justify-end gap-2">
                 <button
                     onClick={handleMigrate}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-sm"
                 >
                     가입일 마이그레이션
                 </button>
@@ -85,12 +85,14 @@ export default function UserList({ users, onRefresh }: UserListProps) {
                         setSelectedUser(null);
                         setIsModalOpen(true);
                     }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
                 >
                     사용자 추가
                 </button>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Desktop View (Table) */}
+            <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full bg-white rounded-lg shadow overflow-hidden">
                     <thead className="bg-gray-100">
                         <tr>
@@ -156,6 +158,47 @@ export default function UserList({ users, onRefresh }: UserListProps) {
                     </tbody>
                 </table>
             </div>
+
+            {/* Mobile View (Cards) */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+                {users.map((user) => (
+                    <div key={user._id} className="bg-white p-4 rounded-lg shadow space-y-3">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">{user.username}</h3>
+                                <p className="text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <span
+                                className={`px-2 py-1 text-xs font-semibold rounded-full ${user.isAdmin
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                    }`}
+                            >
+                                {user.isAdmin ? '관리자' : '일반'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-500">포인트:</span>
+                            <span className="font-medium text-gray-900">{user.points}</span>
+                        </div>
+                        <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
+                            <button
+                                onClick={() => handleEdit(user)}
+                                className="text-indigo-600 font-medium text-sm hover:text-indigo-900"
+                            >
+                                수정
+                            </button>
+                            <button
+                                onClick={() => handleDelete(user._id)}
+                                className="text-red-600 font-medium text-sm hover:text-red-900"
+                            >
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             <UserModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

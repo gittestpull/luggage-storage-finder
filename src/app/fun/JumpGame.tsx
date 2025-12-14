@@ -29,7 +29,12 @@ export default function JumpGame({ onBack }: JumpGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(0);
+  const [time, setTime] = useState(0); // Time in seconds
+  const [bestScore, setBestScore] = useState(0);
+  const [bestTime, setBestTime] = useState(0);
+  const [myNickname, setMyNickname] = useState(''); // Current user's nickname for the record
+  const [globalBest, setGlobalBest] = useState<{ score: number, time: number, userName: string } | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   // Game configuration
   const GRAVITY = 0.4;
@@ -51,13 +56,28 @@ export default function JumpGame({ onBack }: JumpGameProps) {
   const particlesRef = useRef<Particle[]>([]);
   const cameraYRef = useRef(0);
   const scoreRef = useRef(0);
+  const startTimeRef = useRef(0);
   const animationFrameRef = useRef<number>(0);
   const keysRef = useRef<{ [key: string]: boolean }>({});
 
   useEffect(() => {
-    // Load high score
-    const saved = localStorage.getItem('luggageJumpHighScore');
-    if (saved) setHighScore(parseInt(saved));
+    // Load best score from API
+    fetch('/api/game/score?gameId=jump')
+      .then(res => res.json())
+      .then(data => {
+        // Use API auth flag
+        setIsAnonymous(!data.authenticated);
+
+        if (data.personal) {
+          setBestScore(data.personal.score);
+          setBestTime(data.personal.time);
+          if (data.personal.nickname) setMyNickname(data.personal.nickname);
+        }
+        if (data.global) {
+          setGlobalBest(data.global);
+        }
+      })
+      .catch(err => console.error('Failed to load score', err));
 
     // Event listeners
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -113,7 +133,9 @@ export default function JumpGame({ onBack }: JumpGameProps) {
 
     cameraYRef.current = 0;
     scoreRef.current = 0;
+    startTimeRef.current = Date.now();
     setScore(0);
+    setTime(0);
     particlesRef.current = [];
   };
 
@@ -132,6 +154,43 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     }
 
     return { x, y, w, h: 20, type, vx };
+  };
+
+  const saveScore = async (finalScore: number, finalTime: number, customNickname?: string) => {
+    try {
+      // Optimistic updateto UI (Personal)
+      if (finalScore > bestScore || (finalScore === bestScore && finalTime < bestTime)) {
+        setBestScore(finalScore);
+        setBestTime(finalTime);
+      }
+
+      await fetch('/api/game/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'jump',
+          score: finalScore,
+          time: finalTime,
+          nickname: customNickname || myNickname // Use provided or state
+        })
+      });
+
+      // Reload to ensure server sync and get updated global
+      fetch('/api/game/score?gameId=jump')
+        .then(res => res.json())
+        .then(data => {
+          if (data.personal) {
+            setBestScore(data.personal.score);
+            setBestTime(data.personal.time);
+          }
+          if (data.global) {
+            setGlobalBest(data.global);
+          }
+        });
+
+    } catch (err) {
+      console.error('Failed to save score', err);
+    }
   };
 
   const createParticles = (x: number, y: number, count: number, color: string) => {
@@ -172,6 +231,10 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     const height = canvas.height;
     const player = playerRef.current;
     const platforms = platformsRef.current;
+
+    // Timer Update
+    const currentTime = (Date.now() - startTimeRef.current) / 1000;
+    setTime(currentTime);
 
     // --- Update ---
 
@@ -257,10 +320,10 @@ export default function JumpGame({ onBack }: JumpGameProps) {
     // Game Over check
     if (player.y > height) {
       setGameState('gameover');
-      if (scoreRef.current > highScore) {
-        setHighScore(scoreRef.current);
-        localStorage.setItem('luggageJumpHighScore', scoreRef.current.toString());
-      }
+      const finalScore = Math.floor(scoreRef.current);
+      const finalTime = parseFloat(((Date.now() - startTimeRef.current) / 1000).toFixed(2));
+
+      saveScore(finalScore, finalTime);
       return; // Stop loop
     }
 
@@ -399,31 +462,72 @@ export default function JumpGame({ onBack }: JumpGameProps) {
         />
 
         {/* Score Overlay */}
-        <div className="absolute top-4 left-4 bg-white/80 backdrop-blur px-4 py-2 rounded-full font-bold text-gray-800 shadow-sm border border-gray-100">
-          🏆 {Math.floor(score)}
+        <div className="absolute top-4 left-4 flex gap-2">
+          <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-full font-bold text-gray-800 shadow-sm border border-gray-100">
+            🏆 {Math.floor(score)}
+          </div>
+          <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-full font-bold text-blue-600 shadow-sm border border-gray-100">
+            ⏱️ {time.toFixed(1)}s
+          </div>
         </div>
 
         {/* High Score Overlay */}
-        {highScore > 0 && (
+        {bestScore > 0 && (
           <div className="absolute top-4 right-4 bg-yellow-100/80 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-yellow-800 border border-yellow-200">
-            최고: {highScore}
+            최고: {bestScore} ({bestTime}s)
           </div>
         )}
 
         {/* Start Screen */}
         {gameState === 'start' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10">
-            <div className="text-6xl mb-6 animate-bounce">🧳</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">준비되셨나요?</h2>
-            <p className="text-gray-500 mb-8 text-center px-4">
-              화살표 키나 화면 하단 버튼을 눌러<br />이동하세요
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10 p-6 overscroll-contain overflow-y-auto">
+            <div className="text-6xl mb-4 animate-bounce">🧳</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">준비되셨나요?</h2>
+
+            <div className="grid grid-cols-2 gap-3 w-full max-w-sm mb-6">
+              {/* My Best */}
+              {bestScore > 0 ? (
+                <div className="p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 shadow-sm text-center">
+                  <div className="text-[10px] uppercase tracking-widest text-yellow-600 font-bold mb-1">My Best</div>
+                  <div className="text-2xl font-black text-yellow-500 mb-1">{bestScore}</div>
+                  <div className="text-xs text-yellow-700 bg-white/50 rounded-full px-2 py-0.5 inline-block">
+                    {bestTime}s
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-center flex flex-col justify-center items-center text-gray-400 text-xs">
+                  <div>기록 없음</div>
+                  <div>도전해보세요!</div>
+                </div>
+              )}
+
+              {/* Global Best */}
+              {globalBest ? (
+                <div className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 shadow-sm text-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 bg-purple-500 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-bold">1st</div>
+                  <div className="text-[10px] uppercase tracking-widest text-purple-600 font-bold mb-1 truncate px-1">{globalBest.userName}</div>
+                  <div className="text-2xl font-black text-purple-500 mb-1">{globalBest.score}</div>
+                  <div className="text-xs text-purple-700 bg-white/50 rounded-full px-2 py-0.5 inline-block">
+                    {globalBest.time}s
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-center flex flex-col justify-center items-center text-gray-400 text-xs">
+                  <div>전체 기록 없음</div>
+                  <div>1등을 노려보세요!</div>
+                </div>
+              )}
+            </div>
+
+            <p className="text-gray-500 mb-6 text-center text-sm">
+              화살표 키나 화면 하단 버튼을 눌러<br />최대한 높이 올라가세요!
             </p>
-            <Button size="lg" onClick={startGame} className="text-lg px-8 py-6 rounded-xl shadow-lg shadow-blue-500/30">
-              게임 시작!
+            <Button size="lg" onClick={startGame} className="text-xl font-bold px-8 py-6 rounded-2xl shadow-xl shadow-blue-500/30 w-full max-w-xs bg-blue-600 hover:bg-blue-700 mb-3 min-h-[72px] relative overflow-hidden transition-all active:scale-95">
+              <span className="relative z-10">게임 시작! 🚀</span>
             </Button>
             <Button
               variant="outline"
-              className="mt-4"
+              className="w-full max-w-xs py-4 text-base min-h-[56px]"
               onClick={onBack}
             >
               메뉴로 나가기
@@ -433,16 +537,70 @@ export default function JumpGame({ onBack }: JumpGameProps) {
 
         {/* Game Over Screen */}
         {gameState === 'gameover' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-10 text-white">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-10 text-white p-6">
             <div className="text-6xl mb-4">😵</div>
-            <h2 className="text-3xl font-bold mb-2">게임 오버!</h2>
-            <p className="text-xl mb-6">점수: <span className="text-yellow-400 font-bold">{Math.floor(score)}</span></p>
-            <Button size="lg" onClick={startGame} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none text-lg px-8 py-6 rounded-xl shadow-lg shadow-yellow-500/30">
-              다시 도전하기
+            <h2 className="text-3xl font-bold mb-6">게임 오버!</h2>
+
+            {/* New Record Celebration */}
+            {(score > bestScore || (score === bestScore && score > 0 && time < bestTime)) && (
+              <div className="mb-6 animate-pulse">
+                <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full font-black text-lg shadow-lg border-2 border-white transform rotate-2 inline-block">🎉 New Record! 🎉</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 w-full max-w-sm mb-6">
+              <div className="bg-white/10 p-4 rounded-xl text-center backdrop-blur-md border border-white/10 col-span-2">
+                <div className="text-gray-400 text-xs mb-1">이번 점수</div>
+                <div className="text-4xl font-bold text-white mb-1">{Math.floor(score)}</div>
+                <div className="text-sm text-blue-300 font-mono">{time.toFixed(2)}초</div>
+              </div>
+
+              <div className="bg-yellow-500/10 p-3 rounded-xl text-center backdrop-blur-md border border-yellow-500/30">
+                <div className="text-yellow-200/70 text-[10px] mb-1 uppercase">My Best</div>
+                <div className="text-xl font-bold text-yellow-400">{bestScore > 0 ? bestScore : '-'}</div>
+                <div className="text-[10px] text-yellow-200/70">{bestScore > 0 ? `${bestTime}s` : '-'}</div>
+              </div>
+
+              <div className="bg-purple-500/10 p-3 rounded-xl text-center backdrop-blur-md border border-purple-500/30">
+                <div className="text-purple-200/70 text-[10px] mb-1 uppercase">World Best</div>
+                <div className="text-xl font-bold text-purple-400">{globalBest ? globalBest.score : '-'}</div>
+                <div className="text-[10px] text-purple-200/70">{globalBest ? `${globalBest.time}s` : '-'}</div>
+              </div>
+            </div>
+
+            {/* Nickname & Save Section */}
+            {isAnonymous ? (
+              <div className="bg-white/5 p-3 rounded-lg mb-4 w-full text-center">
+                <p className="text-gray-400 text-xs mb-1">비회원 기록 저장됨 (자동)</p>
+                <p className="text-sm font-bold text-gray-200">랜덤 닉네임이 부여되었습니다.</p>
+              </div>
+            ) : (
+              <div className="bg-white/10 p-3 rounded-xl mb-6 w-full max-w-xs backdrop-blur-md">
+                <label className="text-xs text-gray-300 block mb-1">기록에 남길 별명</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={myNickname}
+                    onChange={(e) => setMyNickname(e.target.value)}
+                    className="flex-1 bg-black/20 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-400 font-bold"
+                    placeholder="별명 입력"
+                  />
+                  <button
+                    onClick={() => saveScore(score, time, myNickname)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-lg font-bold transition-colors"
+                  >
+                    변경
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <Button size="lg" onClick={startGame} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none text-xl font-black px-8 py-6 rounded-2xl shadow-xl shadow-yellow-500/30 w-full max-w-xs mb-3 min-h-[72px] transition-all active:scale-95">
+              다시 도전하기 🔄
             </Button>
             <Button
               variant="outline"
-              className="mt-4 bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
+              className="bg-transparent text-white border-white/30 hover:bg-white/10 hover:text-white w-full max-w-xs"
               onClick={onBack}
             >
               메뉴로 나가기

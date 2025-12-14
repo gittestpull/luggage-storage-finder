@@ -7,14 +7,14 @@ import Script from 'next/script';
 import { useAuth } from '@/context/AuthContext';
 
 interface Location {
-  lat: number;
-  lng: number;
+    lat: number;
+    lng: number;
 }
 
 export default function AddPlaceModal() {
     const { modals, closeModal } = useAuth();
     const router = useRouter();
-    
+
     const [name, setName] = useState('');
     const [address, setAddress] = useState('');
     const [description, setDescription] = useState('');
@@ -60,7 +60,7 @@ export default function AddPlaceModal() {
         formData.append('name', name);
         formData.append('address', address);
         formData.append('description', description);
-        
+
         // The new schema in Place.ts does not have lat/lng, but the old Storage.ts does.
         // I will assume the `places` collection is using the `Place` schema, which does not have location coordinates.
         // The user's request was to add a map, which implies coordinates are needed.
@@ -96,13 +96,13 @@ export default function AddPlaceModal() {
             setIsSubmitting(false);
         }
     };
-    
+
     const initMap = useCallback(() => {
         const mapDiv = document.getElementById('add-place-map');
         if (!mapDiv) return;
 
         const initialLocation = { lat: 37.5665, lng: 126.9780 };
-        
+
         const map = new google.maps.Map(mapDiv, {
             center: initialLocation,
             zoom: 12,
@@ -136,7 +136,7 @@ export default function AddPlaceModal() {
             autocomplete.addListener('place_changed', () => {
                 const place = autocomplete.getPlace();
                 if (!place.geometry || !place.geometry.location) return;
-                
+
                 if (place.geometry.viewport) map.fitBounds(place.geometry.viewport);
                 else {
                     map.setCenter(place.geometry.location);
@@ -144,10 +144,10 @@ export default function AddPlaceModal() {
                 }
                 marker.setPosition(place.geometry.location);
                 marker.setVisible(true);
-                
+
                 setAddress(place.formatted_address || '');
-                if(place.name) setName(prev => prev || place.name);
-                
+                if (place.name) setName(prev => prev || place.name || '');
+
                 const { lat, lng } = place.geometry.location;
                 setLocation({ lat: lat(), lng: lng() });
             });
@@ -167,7 +167,7 @@ export default function AddPlaceModal() {
     return (
         <>
             <Script
-                src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initAddPlaceMap`}
+                src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initAddPlaceMap`}
                 strategy="lazyOnload"
             />
             <div className="modal-overlay" onClick={handleClose}>
@@ -177,7 +177,7 @@ export default function AddPlaceModal() {
                         <button className="glass-modal-close" onClick={handleClose}>&times;</button>
                     </div>
                     <div className="glass-modal-body" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-                         <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
                                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">장소 이름</label>
                                 <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className="form-input" required />
@@ -190,13 +190,13 @@ export default function AddPlaceModal() {
                             <div id="add-place-map" className="w-full h-64 mt-2 rounded-lg bg-gray-200"></div>
                             <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">간단한 설명</label>
-                                <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="form-input" placeholder="예: 24시간 운영, 가격 정보 등"/>
+                                <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="form-input" placeholder="예: 24시간 운영, 가격 정보 등" />
                             </div>
-                             <div>
+                            <div>
                                 <label htmlFor="photos" className="block text-sm font-medium text-gray-700 mb-1">사진 (선택)</label>
-                                <input type="file" id="photos" name="photos" onChange={handlePhotoChange} multiple className="form-input"/>
+                                <input type="file" id="photos" name="photos" onChange={handlePhotoChange} multiple className="form-input" />
                             </div>
-                            
+
                             {message && (
                                 <div className={`p-3 rounded-md text-sm ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                     {message.text}
@@ -214,8 +214,8 @@ export default function AddPlaceModal() {
     );
 }
 declare global {
-  interface Window {
-    initAddPlaceMap?: () => void;
-  }
+    interface Window {
+        initAddPlaceMap?: () => void;
+    }
 }
 

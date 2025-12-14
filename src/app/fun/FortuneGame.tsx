@@ -37,7 +37,7 @@ interface Props {
   onBack: () => void;
 }
 
-// Simple internal Confetti Component using Canvas
+// Advanced Confetti with Fireworks
 const Confetti = ({ intense = false }: { intense?: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -48,7 +48,6 @@ const Confetti = ({ intense = false }: { intense?: boolean }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas to full screen
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -56,57 +55,159 @@ const Confetti = ({ intense = false }: { intense?: boolean }) => {
     resize();
     window.addEventListener('resize', resize);
 
-    const colors = intense
-      ? ['#FFD700', '#FF0000', '#FFFFFF', '#00FFFF', '#FF00FF'] // Intense: Gold, Red, White, Cyan, Magenta
-      : ['#FFD700', '#C0C0C0', '#FFFFFF']; // Simple: Gold, Silver, White
-
-    const particleCount = intense ? 300 : 100;
+    // --- Particle System ---
     const particles: any[] = [];
+    const fireworks: any[] = [];
 
-    for (let i = 0; i < particleCount; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height - canvas.height, // Start above
-        vx: Math.random() * 4 - 2,
-        vy: Math.random() * 5 + 2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * (intense ? 8 : 5) + 2,
+    const colors = intense
+      ? ['#FFD700', '#FF0000', '#FFFFFF', '#00FFFF', '#FF00FF', '#00FF00', '#FFA500']
+      : ['#FFD700', '#C0C0C0', '#FFFFFF', '#87CEEB'];
+
+    // Helper: Create a standard falling particle
+    const createParticle = (x: number, y: number, color: string, speedMult: number = 1) => {
+      return {
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 4 * speedMult,
+        vy: (Math.random() * 3 + 1) * speedMult,
+        color,
+        size: Math.random() * (intense ? 6 : 4) + 2,
+        alpha: 1,
         rotation: Math.random() * 360,
-        rotationSpeed: Math.random() * 10 - 5
-      });
+        rotationSpeed: (Math.random() - 0.5) * 10,
+        type: 'confetti'
+      };
+    };
+
+    // Helper: Create a firework explosion particle
+    const createSpark = (x: number, y: number, color: string) => {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 5 + 2;
+      return {
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color,
+        size: Math.random() * 3 + 1,
+        alpha: 1,
+        decay: Math.random() * 0.02 + 0.01,
+        type: 'spark'
+      };
+    };
+
+    // Initial Confetti Burst
+    const burstCount = intense ? 400 : 150;
+    for (let i = 0; i < burstCount; i++) {
+      particles.push(createParticle(
+        Math.random() * canvas.width,
+        Math.random() * canvas.height - canvas.height,
+        colors[Math.floor(Math.random() * colors.length)]
+      ));
     }
 
     let animationId: number;
+    let frames = 0;
 
     const draw = () => {
+      // Fade out trail effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      // If we want clear background, use clearRect.
+      // But for fireworks trail, fillRect with low opacity is nice.
+      // However, our parent div has background color.
+      // So we should just clearRect to be safe for transparency.
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      particles.forEach((p, i) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.rotation += p.rotationSpeed;
+      // Update Fireworks (Rockets)
+      if (intense && frames % 40 === 0) { // Launch every ~0.6s
+         fireworks.push({
+            x: Math.random() * canvas.width,
+            y: canvas.height,
+            targetY: canvas.height * 0.2 + Math.random() * (canvas.height * 0.5),
+            color: colors[Math.floor(Math.random() * colors.length)],
+            vx: (Math.random() - 0.5) * 2,
+            vy: -(Math.random() * 3 + 8),
+            type: 'rocket'
+         });
+      }
 
-        // Reset if out of bounds
-        if (p.y > canvas.height) {
-            p.y = -20;
-            p.x = Math.random() * canvas.width;
+      // Render Fireworks Logic
+      for (let i = fireworks.length - 1; i >= 0; i--) {
+        const f = fireworks[i];
+        f.x += f.vx;
+        f.y += f.vy;
+        f.vy += 0.1; // Gravity on rocket
+
+        // Draw Rocket
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = f.color;
+        ctx.fill();
+
+        // Explode condition
+        if (f.vy >= 0 || f.y <= f.targetY) {
+           // Boom!
+           for (let j = 0; j < 50; j++) {
+              particles.push(createSpark(f.x, f.y, f.color));
+           }
+           fireworks.splice(i, 1);
         }
+      }
 
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rotation * Math.PI) / 180);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-        ctx.restore();
-      });
+      // Update Particles (Confetti + Sparks)
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
 
+        if (p.type === 'spark') {
+           p.x += p.vx;
+           p.y += p.vy;
+           p.vy += 0.1; // Gravity
+           p.alpha -= p.decay;
+           if (p.alpha <= 0) {
+             particles.splice(i, 1);
+             continue;
+           }
+           ctx.globalAlpha = p.alpha;
+           ctx.beginPath();
+           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+           ctx.fillStyle = p.color;
+           ctx.fill();
+           ctx.globalAlpha = 1;
+        } else {
+           // Confetti
+           p.x += p.vx;
+           p.y += p.vy;
+           p.rotation += p.rotationSpeed;
+
+           if (p.y > canvas.height) {
+              if (intense) { // Loop confetti for intense mode
+                  p.y = -20;
+                  p.x = Math.random() * canvas.width;
+              } else {
+                 // Remove if not looping (or make loop?)
+                 // Let's loop for simple mode too but less frequent
+                 p.y = -20;
+                 p.x = Math.random() * canvas.width;
+              }
+           }
+
+           ctx.save();
+           ctx.translate(p.x, p.y);
+           ctx.rotate((p.rotation * Math.PI) / 180);
+           ctx.fillStyle = p.color;
+           ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+           ctx.restore();
+        }
+      }
+
+      frames++;
       animationId = requestAnimationFrame(draw);
     };
 
     draw();
 
-    // Stop after 5 seconds
-    const timer = setTimeout(() => cancelAnimationFrame(animationId), 5000);
+    // Stop after 7 seconds (longer for fireworks)
+    const timer = setTimeout(() => cancelAnimationFrame(animationId), 7000);
 
     return () => {
       window.removeEventListener('resize', resize);
@@ -204,7 +305,7 @@ export default function FortuneGame({ onBack }: Props) {
         // Trigger effects for Tier 6 or better
         setEffectIntensity(finalResult.tier <= 3); // Intense for tier 1-3
         setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000); // Stop after 5s
+        setTimeout(() => setShowConfetti(false), 7000); // Stop after 7s to match Canvas
 
         // Ask for ranking registration
         setShowRankInput(true);

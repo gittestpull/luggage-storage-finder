@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import JumpGame from './JumpGame';
 import ShootingGame from './ShootingGame';
+import FortuneGame from './FortuneGame';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui';
 
@@ -14,7 +15,7 @@ interface GameConfig {
 }
 
 export default function FunPage() {
-  const [activeGame, setActiveGame] = useState<'jump' | 'shooting' | null>(null);
+  const [activeGame, setActiveGame] = useState<'jump' | 'shooting' | 'fortune' | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const { user, openModal, login } = useAuth();
   const [loadingGame, setLoadingGame] = useState(false);
@@ -29,9 +30,15 @@ export default function FunPage() {
 
   const getGameConfig = (gameId: string) => gameConfigs.find(g => g.gameId === gameId);
 
-  const handleStartGame = async (gameType: 'jump' | 'shooting') => {
+  const handleStartGame = async (gameType: 'jump' | 'shooting' | 'fortune') => {
+    // Fortune Game has its own logic for cost/limits
+    if (gameType === 'fortune') {
+      setActiveGame(gameType);
+      return;
+    }
+
     const config = getGameConfig(gameType);
-    const isPaid = config?.isPaid ?? true; // Default to paid if loading fails (safe fail)
+    const isPaid = config?.isPaid ?? true;
     const cost = config?.cost ?? 10;
 
     if (isPaid) {
@@ -54,18 +61,11 @@ export default function FunPage() {
 
     setLoadingGame(true);
     try {
-      // If paid, call API. If free, we might still want to call API for stats?
-      // For now, only call API if paid or if we want to track 'play count' for free games too.
-      // The current backend deducts points unconditionally if logic passes, 
-      // so we need to update backend to respect cost or handle free games.
-      // BUT, the implementation plan said: "If isPaid is false, start immediately without deduction."
-      // So checking isPaid here.
-
       if (isPaid) {
         const response = await fetch('/api/game/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameId: gameType }) // Pass gameId so backend knows cost (if updated)
+          body: JSON.stringify({ gameId: gameType })
         });
         const data = await response.json();
 
@@ -99,6 +99,10 @@ export default function FunPage() {
     return <ShootingGame onBack={() => setActiveGame(null)} />;
   }
 
+  if (activeGame === 'fortune') {
+    return <FortuneGame onBack={() => setActiveGame(null)} />;
+  }
+
   const jumpConfig = getGameConfig('jump');
   const shootingConfig = getGameConfig('shooting');
 
@@ -120,7 +124,32 @@ export default function FunPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4">
+        {/* Fortune Game Card (New) */}
+        <div
+          onClick={() => handleStartGame('fortune')}
+          className="group relative bg-purple-900 rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent hover:border-purple-400"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-800 to-black opacity-50 group-hover:opacity-100 transition-opacity" />
+          <div className="p-8 flex flex-col items-center text-center relative z-10">
+            <div className="text-8xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
+              🔮
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">운세 가챠</h2>
+            <p className="text-purple-200 mb-4">
+              10억분의 1 확률!<br />오늘의 행운을 뽑아보세요.
+            </p>
+            <span className="inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 bg-purple-600 text-white">
+               무료 (Free) / 하루 10회
+            </span>
+            <div>
+              <span className="inline-block px-6 py-2 bg-purple-500 text-white font-bold rounded-full shadow-lg group-hover:bg-purple-600 transition-colors">
+                운세 뽑기
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Jump Game Card */}
         <div
           onClick={() => !loadingGame && handleStartGame('jump')}

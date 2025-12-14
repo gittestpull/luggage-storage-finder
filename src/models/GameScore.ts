@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IGameScore extends Document {
-    userId: mongoose.Types.ObjectId;
+    userId?: mongoose.Types.ObjectId;
+    nickname: string;
     gameId: string;
     score: number;
     time: number; // in seconds
@@ -11,7 +12,8 @@ export interface IGameScore extends Document {
 
 const gameScoreSchema = new Schema<IGameScore>(
     {
-        userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        userId: { type: Schema.Types.ObjectId, ref: 'User' }, // Optional
+        nickname: { type: String, required: true },
         gameId: { type: String, required: true },
         score: { type: Number, required: true },
         time: { type: Number, required: true },
@@ -22,8 +24,11 @@ const gameScoreSchema = new Schema<IGameScore>(
 );
 
 // Compound index to quickly find user's score for a specific game
-// We strictly want one record per user per game (the best one)
-gameScoreSchema.index({ userId: 1, gameId: 1 }, { unique: true });
+// Partial index ensures uniqueness ONLY when userId exists
+gameScoreSchema.index({ userId: 1, gameId: 1 }, {
+    unique: true,
+    partialFilterExpression: { userId: { $type: "objectId" } }
+});
 
 export const GameScore: Model<IGameScore> = mongoose.models.GameScore || mongoose.model<IGameScore>('GameScore', gameScoreSchema);
 

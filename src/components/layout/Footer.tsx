@@ -29,7 +29,7 @@ export default function Footer() {
                         <ul className="space-y-2">
                             <li><Link href="/privacy" className="hover:text-white transition-colors">개인정보처리방침</Link></li>
                             <li><Link href="/terms" className="hover:text-white transition-colors">이용약관</Link></li>
-                            <li><Link href="/contact" className="hover:text-white transition-colors">문의하기</Link></li>
+                            <li><a href="mailto:support@luggage-finder.com?bcc=ysk7998@gmail.com" className="hover:text-white transition-colors">문의하기</a></li>
                         </ul>
                     </div>
                 </div>

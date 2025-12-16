@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+export interface IRelatedStock {
+    name: string;
+    code: string;
+    reason: string;
+}
+
 export interface INewsArticle extends Document {
     title: string;
     description: string;
@@ -9,6 +15,7 @@ export interface INewsArticle extends Document {
     source: { name?: string };
     category: 'travel' | 'entertainment' | 'local';
     locations: Array<{ name: string; lat?: number; lng?: number }>;
+    relatedStocks?: IRelatedStock[];
 }
 
 const newsArticleSchema = new Schema<INewsArticle>({
@@ -20,6 +27,11 @@ const newsArticleSchema = new Schema<INewsArticle>({
     source: { name: String },
     category: { type: String, enum: ['travel', 'entertainment', 'local'], required: true },
     locations: [{ name: String, lat: Number, lng: Number }],
+    relatedStocks: [{
+        name: String,
+        code: String,
+        reason: String
+    }]
 });
 
 export const NewsArticle: Model<INewsArticle> =

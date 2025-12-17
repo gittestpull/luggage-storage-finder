@@ -30,3 +30,23 @@ export async function verifyAdmin(req: NextRequest) {
         return null;
     }
 }
+
+export async function verifyAuth(req: NextRequest) {
+    try {
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return null;
+        }
+
+        const token = authHeader.split(' ')[1];
+        const decoded: any = jwt.verify(token, JWT_SECRET);
+
+        if (!decoded.userId) {
+            return null;
+        }
+
+        return { user: { id: decoded.userId } };
+    } catch (error) {
+        return null;
+    }
+}

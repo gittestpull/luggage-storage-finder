@@ -9,25 +9,47 @@ const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const NEWS_API_URL = 'https://newsapi.org/v2/everything';
 
-const LOCATION_KEYWORDS = [
-    // 서울시 자치구 (가나다 순) - 더 구체적인 것을 먼저 찾도록 서울보다 앞에 배치
-    '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구',
-    '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구',
-    '용산구', '은평구', '종로구', '중구', '중랑구',
-    // 주요 광역시 및 시 (가나다 순)
-    '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종',
-    '수원', '고양', '용인', '성남', '부천', '안산', '남양주', '안양', '화성', '평택', '의정부',
-    '파주', '시흥', '김포', '광명', '군포', '오산', '이천', '양주', '구리', '안성', '포천',
-    '의왕', '하남', '여주', '동두천', '과천',
-    '춘천', '원주', '강릉', '동해', '태백', '속초', '삼척',
-    '청주', '충주', '제천',
-    '천안', '공주', '보령', '아산', '서산', '논산', '계룡', '당진',
-    '전주', '군산', '익산', '정읍', '남원', '김제',
-    '목포', '여수', '순천', '나주', '광양',
-    '포항', '경주', '김천', '안동', '구미', '영주', '영천', '상주', '문경', '경산',
-    '창원', '진주', '통영', '사천', '김해', '밀양', '거제', '양산',
-    '제주', '서귀포'
+
+type LocationDefinition = {
+    keyword: string;
+    query: string;
+};
+
+const LOCATION_DEFINITIONS: LocationDefinition[] = [
+    // 1. 서울 주요 랜드마크 (구체적인 위치) -> '서울' 붙임
+    ...[
+        '홍대', '명동', '이태원', '강남역', '신촌', '여의도', '잠실', '성수', '건대', '대학로', '압구정', '가로수길', '삼성동', '코엑스', '광화문', '인사동', '북촌', '삼청동', '동대문', '남대문', '노량진', '용산역', '서울역', '김포공항', '인천공항'
+    ].map(k => ({ keyword: k, query: `${k}, 서울` })),
+
+    // 2. 서울시 주요 동 -> '서울' 붙임
+    ...[
+        '가락동', '가산동', '가양동', '갈현동', '개봉동', '개포동', '거여동', '공덕동', '공릉동', '구의동', '군자동', '길동', '내곡동', '노량진동', '논현동', '대림동', '대방동', '대치동', '도곡동', '독산동', '둔촌동', '마곡동', '망원동', '면목동', '목동', '문정동', '미아동', '방배동', '방이동', '봉천동', '불광동', '사당동', '상계동', '상암동', '서교동', '서초동', '석관동', '석촌동', '성산동', '성수동', '세곡동', '수서동', '신림동', '신사동', '신오쿠보', '신정동', '신천동', '쌍문동', '아현동', '암사동', '압구정동', '양재동', '역삼동', '연남동', '연희동', '염창동', '영등포동', '오금동', '오류동', '옥수동', '우면동', '월계동', '을지로', '응암동', '이촌동', '이태원동', '일원동', '자양동', '잠실동', '잠원동', '장안동', '장지동', '전농동', '정릉동', '중계동', '중곡동', '천호동', '청담동', '청량리', '평창동', '풍납동', '한남동', '합정동', '행당동', '혜화동', '홍은동', '홍제동', '화곡동', '화양동', '휘경동', '흑석동'
+    ].map(k => ({ keyword: k, query: `${k}, 서울` })),
+
+    // 3. 서울시 자치구 -> '서울' 붙임
+    ...[
+        '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구',
+        '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구',
+        '용산구', '은평구', '종로구', '중구', '중랑구'
+    ].map(k => ({ keyword: k, query: `${k}, 서울` })),
+
+    // 4. 주요 광역시 및 시 -> '대한민국' 붙임 (인천공항 등 예외 처리 필요할 수 있으나 키워드 분리됨)
+    ...[
+        '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종',
+        '수원', '고양', '용인', '성남', '부천', '안산', '남양주', '안양', '화성', '평택', '의정부',
+        '파주', '시흥', '김포', '광명', '군포', '오산', '이천', '양주', '구리', '안성', '포천',
+        '의왕', '하남', '여주', '동두천', '과천',
+        '춘천', '원주', '강릉', '동해', '태백', '속초', '삼척',
+        '청주', '충주', '제천',
+        '천안', '공주', '보령', '아산', '서산', '논산', '계룡', '당진',
+        '전주', '군산', '익산', '정읍', '남원', '김제',
+        '목포', '여수', '순천', '나주', '광양',
+        '포항', '경주', '김천', '안동', '구미', '영주', '영천', '상주', '문경', '경산',
+        '창원', '진주', '통영', '사천', '김해', '밀양', '거제', '양산',
+        '제주', '서귀포'
+    ].map(k => ({ keyword: k, query: `${k}, 대한민국` }))
 ];
+
 
 interface Location {
     name: string;
@@ -37,15 +59,15 @@ interface Location {
 
 const geoCache = new Map<string, { lat: number, lng: number }>();
 
-const getGeoForLocation = async (locName: string): Promise<{ lat: number, lng: number } | null> => {
-    if (geoCache.has(locName)) {
-        return geoCache.get(locName)!;
+const getGeoForLocation = async (locDef: LocationDefinition): Promise<{ lat: number, lng: number } | null> => {
+    if (geoCache.has(locDef.keyword)) {
+        return geoCache.get(locDef.keyword)!;
     }
 
     try {
         const geoResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
             params: {
-                address: locName + ', 대한민국',
+                address: locDef.query,
                 key: GOOGLE_MAPS_API_KEY,
                 language: 'ko'
             }
@@ -54,18 +76,18 @@ const getGeoForLocation = async (locName: string): Promise<{ lat: number, lng: n
         if (geoResponse.data.results && geoResponse.data.results.length > 0) {
             const { lat, lng } = geoResponse.data.results[0].geometry.location;
             const result = { lat, lng };
-            geoCache.set(locName, result);
+            geoCache.set(locDef.keyword, result);
             return result;
         }
     } catch (error: any) {
-        console.error(`Geocoding process error for location "${locName}":`, error.message);
+        console.error(`Geocoding process error for location "${locDef.keyword}":`, error.message);
     }
     return null;
 };
 
 const getAllLocationsFromText = async (title: string, description: string | null): Promise<Location[]> => {
     const textToSearch = `${title} ${description || ''}`;
-    const foundLocations = LOCATION_KEYWORDS.filter(loc => textToSearch.includes(loc));
+    const foundLocations = LOCATION_DEFINITIONS.filter(def => textToSearch.includes(def.keyword));
 
     const locations: Location[] = [];
     const processedQueries = new Set<string>();
@@ -73,13 +95,13 @@ const getAllLocationsFromText = async (title: string, description: string | null
     // Location lookups can technically run in parallel too, but since we have a cache,
     // we should just await them sequentially per article or use Promise.all.
     // Using Promise.all here is better.
-    const promises = foundLocations.map(async (loc) => {
-        if (processedQueries.has(loc)) return;
-        processedQueries.add(loc);
+    const promises = foundLocations.map(async (def) => {
+        if (processedQueries.has(def.keyword)) return;
+        processedQueries.add(def.keyword);
 
-        const geo = await getGeoForLocation(loc);
+        const geo = await getGeoForLocation(def);
         if (geo) {
-            locations.push({ name: loc, ...geo });
+            locations.push({ name: def.keyword, ...geo });
         }
     });
 

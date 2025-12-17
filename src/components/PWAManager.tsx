@@ -50,8 +50,10 @@ export default function PWAManager() {
                                     body: JSON.stringify(subscription),
                                 });
 
-                                if (response.ok) {
+                                if (response.status === 201) {
                                     alert('알림 구독이 완료되었습니다! 🎉\n이제 새로운 프리미엄 보관소 소식을 받아보실 수 있습니다.');
+                                } else if (response.status === 200) {
+                                    alert('이미 알림을 구독 중입니다.');
                                 } else {
                                     throw new Error('서버 전송 실패');
                                 }

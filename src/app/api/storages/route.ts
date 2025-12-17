@@ -22,11 +22,17 @@ export async function GET(request: Request) {
         }
 
         if (latitude && longitude && radius) {
-            const EARTH_RADIUS_KM = 6378.1;
-            const radiusInRadians = parseFloat(radius) / EARTH_RADIUS_KM;
+            // $near operator sorts by distance. Requires 2dsphere index.
+            // radius is in km, convert to meters for $maxDistance
+            const maxDistanceMeters = parseFloat(radius) * 1000;
+
             query.location = {
-                $geoWithin: {
-                    $centerSphere: [[parseFloat(longitude), parseFloat(latitude)], radiusInRadians],
+                $near: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+                    },
+                    $maxDistance: maxDistanceMeters,
                 },
             };
         }

@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import JumpGame from './JumpGame';
 import ShootingGame from './ShootingGame';
+import FarmingGame from './FarmingGame';
+
+export default function FunPage() {
+  const [activeGame, setActiveGame] = useState<'jump' | 'shooting' | 'farming' | null>(null);
 import FortuneGame from './FortuneGame';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui';
@@ -97,6 +101,10 @@ export default function FunPage() {
 
   if (activeGame === 'shooting') {
     return <ShootingGame onBack={() => setActiveGame(null)} />;
+  }
+
+  if (activeGame === 'farming') {
+    return <FarmingGame onBack={() => setActiveGame(null)} />;
   }
 
   if (activeGame === 'fortune') {
@@ -203,6 +211,27 @@ export default function FunPage() {
                 플레이 하기
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Farming Game Card */}
+        <div
+          onClick={() => setActiveGame('farming')}
+          className="group relative bg-green-50 rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent hover:border-green-400 md:col-span-2"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-green-50 opacity-50 group-hover:opacity-100 transition-opacity" />
+          <div className="p-8 flex flex-col items-center text-center relative z-10">
+            <div className="text-8xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
+              🧑‍🌾
+            </div>
+            <h2 className="text-2xl font-bold text-green-900 mb-2">지갑 농장</h2>
+            <p className="text-green-700 mb-6">
+              식물을 키워 부자가 되어보세요!<br/>
+              전설의 황금나무를 심는 그날까지!
+            </p>
+            <span className="inline-block px-6 py-2 bg-green-600 text-white font-bold rounded-full shadow-lg group-hover:bg-green-700 transition-colors">
+              농장 가꾸기
+            </span>
           </div>
         </div>
       </div>

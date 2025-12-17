@@ -7,8 +7,8 @@ import Script from 'next/script';
 
 // Define the type for the location state
 interface Location {
-    lat: number;
-    lng: number;
+  lat: number;
+  lng: number;
 }
 
 export default function NewPlaceForm() {
@@ -142,7 +142,7 @@ export default function NewPlaceForm() {
                 marker.setVisible(true);
 
                 setAddress(place.formatted_address || '');
-                if (place.name) setName(prev => prev || place.name || '');
+                if(place.name) setName(prev => prev || place.name)
 
                 const lat = place.geometry.location.lat();
                 const lng = place.geometry.location.lng();
@@ -161,7 +161,7 @@ export default function NewPlaceForm() {
     return (
         <>
             <Script
-                src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initMap`}
+                src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`}
                 strategy="afterInteractive"
                 async
                 defer
@@ -198,9 +198,9 @@ export default function NewPlaceForm() {
                                     placeholder="예: 서울역 1번 출구 앞, 24시간 운영, 대형 캐리어 가능"
                                 />
                             </div>
-                            <div>
+                             <div>
                                 <label htmlFor="photos" className="block text-sm font-medium text-gray-700 mb-1">사진 (선택)</label>
-                                <input type="file" id="photos" name="photos" onChange={handlePhotoChange} multiple className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                                <input type="file" id="photos" name="photos" onChange={handlePhotoChange} multiple className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"/>
                             </div>
                         </div>
                     </div>
@@ -218,7 +218,7 @@ export default function NewPlaceForm() {
                                 className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="정확한 주소 또는 건물 이름을 입력하세요"
                             />
-                            <p className="mt-2 text-sm text-gray-500">주소를 검색하거나, 지도에서 핀을 드래그하여 정확한 위치를 지정할 수 있습니다.</p>
+                             <p className="mt-2 text-sm text-gray-500">주소를 검색하거나, 지도에서 핀을 드래그하여 정확한 위치를 지정할 수 있습니다.</p>
                         </div>
                         <div id="map" className="w-full h-80 mt-4 rounded-lg bg-gray-200"></div>
                     </div>

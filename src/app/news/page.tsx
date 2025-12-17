@@ -50,9 +50,6 @@ export default function NewsPage() {
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [showMobileMap, setShowMobileMap] = useState(false);
 
-    const [userStorages, setUserStorages] = useState<Storage[]>([]);
-    const [routePoints, setRoutePoints] = useState<Storage[]>([]); // Route selection state
-
     useEffect(() => {
         // Fetch news articles
         fetch('/api/news')
@@ -75,6 +72,30 @@ export default function NewsPage() {
             });
     }, []);
 
+    // Fetch nearby storages when selected location changes
+    useEffect(() => {
+        if (!selectedArticle?.locations?.[selectedLocationIndex]) return;
+
+        const loc = selectedArticle.locations[selectedLocationIndex];
+        if (!loc.lat || !loc.lng) return;
+
+        fetch(`/api/storages?latitude=${loc.lat}&longitude=${loc.lng}&radius=10`)
+            .then(res => res.json())
+            .then(data => {
+                // Calculate distance for each storage
+                const storagesWithDistance = data.slice(0, 5).map((storage: Storage) => {
+                    const storageCoords = storage.location.coordinates;
+                    const distance = calculateDistance(
+                        loc.lat!, loc.lng!,
+                        storageCoords[1], storageCoords[0]
+                    );
+                    return { ...storage, distance };
+                });
+                setNearbyStorages(storagesWithDistance);
+            })
+            .catch(err => console.error('Error fetching storages:', err));
+    }, [selectedArticle, selectedLocationIndex]);
+
     const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
         const R = 6371; // km
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -85,42 +106,6 @@ export default function NewsPage() {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     };
-
-    const fetchAndSetStorages = useCallback(async (lat: number, lng: number, setter: (storages: Storage[]) => void) => {
-        try {
-            const res = await fetch(`/api/storages?latitude=${lat}&longitude=${lng}&radius=10`);
-            const data = await res.json();
-            // Calculate distance for each storage
-            const storagesWithDistance = data.slice(0, 5).map((storage: Storage) => {
-                const storageCoords = storage.location.coordinates;
-                const distance = calculateDistance(
-                    lat, lng,
-                    storageCoords[1], storageCoords[0]
-                );
-                return { ...storage, distance };
-            });
-            setter(storagesWithDistance);
-        } catch (err) {
-            console.error('Error fetching storages:', err);
-        }
-    }, []);
-
-    // Fetch nearby storages when selected location changes
-    useEffect(() => {
-        if (!selectedArticle?.locations?.[selectedLocationIndex]) return;
-
-        const loc = selectedArticle.locations[selectedLocationIndex];
-        if (!loc.lat || !loc.lng) return;
-
-        fetchAndSetStorages(loc.lat, loc.lng, setNearbyStorages);
-    }, [selectedArticle, selectedLocationIndex, fetchAndSetStorages]);
-
-    // Fetch user nearby storages when user location changes
-    useEffect(() => {
-        if (!userLocation) return;
-        fetchAndSetStorages(userLocation.lat, userLocation.lng, setUserStorages);
-    }, [userLocation, fetchAndSetStorages]);
-
 
     const handleLocationClick = useCallback((article: NewsArticle, locationIndex: number) => {
         setSelectedArticle(article);
@@ -166,45 +151,6 @@ export default function NewsPage() {
         }
     };
 
-    // Route Selection Logic
-    const toggleRoutePoint = (storage: Storage) => {
-        setRoutePoints(prev => {
-            const exists = prev.find(p => p._id === storage._id);
-            if (exists) {
-                // Remove if exists
-                return prev.filter(p => p._id !== storage._id);
-            } else {
-                // Add to end
-                return [...prev, storage];
-            }
-        });
-    };
-
-    const getRouteLabel = (storageId: string) => {
-        const index = routePoints.findIndex(p => p._id === storageId);
-        if (index === -1) return null;
-
-        if (index === 0) return { number: 1, text: '출발', color: 'bg-green-500' };
-        if (index === routePoints.length - 1 && routePoints.length > 1) return { number: index + 1, text: '도착', color: 'bg-red-500' };
-        return { number: index + 1, text: '경유', color: 'bg-blue-500' };
-    };
-
-    const handleOpenRoute = () => {
-        if (routePoints.length < 2) return;
-
-        const origin = `${routePoints[0].location.coordinates[1]},${routePoints[0].location.coordinates[0]}`;
-        const destination = `${routePoints[routePoints.length - 1].location.coordinates[1]},${routePoints[routePoints.length - 1].location.coordinates[0]}`;
-
-        let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-
-        if (routePoints.length > 2) {
-            const waypoints = routePoints.slice(1, -1).map(p => `${p.location.coordinates[1]},${p.location.coordinates[0]}`).join('|');
-            url += `&waypoints=${waypoints}`;
-        }
-
-        window.open(url, '_blank');
-    };
-
     // Build markers for the map
     const buildMapMarkers = (): MapMarker[] => {
         const markers: MapMarker[] = [];
@@ -223,7 +169,7 @@ export default function NewsPage() {
             });
         }
 
-        // Storage markers (Article Nearby - Red)
+        // Storage markers
         nearbyStorages.forEach(storage => {
             markers.push({
                 position: {
@@ -231,24 +177,8 @@ export default function NewsPage() {
                     lng: storage.location.coordinates[0]
                 },
                 title: storage.name,
-                icon: MARKER_ICONS.storage, // Red
+                icon: MARKER_ICONS.storage,
             });
-        });
-
-        // Storage markers (User Nearby - Yellow)
-        userStorages.forEach(storage => {
-            // Avoid duplicates if already shown
-            const exists = nearbyStorages.find(s => s._id === storage._id);
-            if (!exists) {
-                markers.push({
-                    position: {
-                        lat: storage.location.coordinates[1],
-                        lng: storage.location.coordinates[0]
-                    },
-                    title: storage.name,
-                    icon: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png', // Yellow for my nearby
-                });
-            }
         });
 
         // User location marker
@@ -368,7 +298,7 @@ export default function NewsPage() {
 
                     {/* Sidebar - Map & Nearby Storages */}
                     <aside className={`w-full lg:w-1/3 ${showMobileMap ? 'fixed inset-0 z-50 bg-white p-4 lg:relative lg:p-0' : 'hidden lg:block'}`}>
-                        <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24 max-h-[90vh] overflow-y-auto">
+                        <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
                             {/* Mobile close button */}
                             <button
                                 className="lg:hidden absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"
@@ -408,109 +338,45 @@ export default function NewsPage() {
                                 </div>
                             )}
 
-                            {/* Storage List - Article Nearby */}
-                            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                <span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
-                                기사 주변 짐보관소
-                            </h3>
-                            <div className="space-y-3 mb-6">
+                            {/* Storage List */}
+                            <h3 className="text-lg font-bold text-gray-900 mb-3">🏪 주변 짐보관소</h3>
+                            <div className="space-y-3 max-h-64 overflow-y-auto">
                                 {nearbyStorages.length === 0 ? (
-                                    <p className="text-gray-500 text-sm py-2">기사 위치 주변에 보관소가 없습니다.</p>
+                                    <p className="text-gray-500 text-center py-4">기사 위치를 선택하세요</p>
                                 ) : (
-                                    nearbyStorages.map((storage) => {
-                                        const routeInfo = getRouteLabel(storage._id);
-                                        return (
-                                            <div
-                                                key={storage._id}
-                                                onClick={() => toggleRoutePoint(storage)}
-                                                className={`p-3 border rounded-lg hover:shadow-sm transition-all cursor-pointer relative
-                                                    ${routeInfo ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
-                                            >
-                                                <h4 className="font-medium text-gray-900 text-sm flex justify-between items-start">
-                                                    <span>{storage.name}</span>
-                                                    {routeInfo && (
-                                                        <span className={`${routeInfo.color} text-white text-[10px] px-1.5 py-0.5 rounded-full ml-2 flex-shrink-0`}>
-                                                            {routeInfo.number}. {routeInfo.text}
-                                                        </span>
-                                                    )}
-                                                </h4>
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <span className="text-xs text-gray-500 truncate max-w-[70%]">{storage.address}</span>
-                                                    {storage.distance && (
-                                                        <span className="text-xs text-blue-600 font-bold">
-                                                            {storage.distance < 1
-                                                                ? `${Math.round(storage.distance * 1000)}m`
-                                                                : `${storage.distance.toFixed(1)}km`}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                    nearbyStorages.map((storage) => (
+                                        <div
+                                            key={storage._id}
+                                            className="p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all"
+                                        >
+                                            <h4 className="font-medium text-gray-900">{storage.name}</h4>
+                                            <p className="text-sm text-gray-500 mt-1">{storage.address}</p>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                {storage.is24Hours && (
+                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">24시간</span>
+                                                )}
+                                                {storage.distance && (
+                                                    <span className="text-xs text-blue-600 font-medium">
+                                                        {storage.distance < 1
+                                                            ? `${Math.round(storage.distance * 1000)}m`
+                                                            : `${storage.distance.toFixed(1)}km`}
+                                                    </span>
+                                                )}
                                             </div>
-                                        );
-                                    })
+                                        </div>
+                                    ))
                                 )}
                             </div>
 
-                            {/* Storage List - User Nearby */}
-                            {userLocation && (
-                                <>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span>
-                                        내 주변 짐보관소
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {userStorages.length === 0 ? (
-                                            <p className="text-gray-500 text-sm py-2">내 주변에 보관소가 없습니다.</p>
-                                        ) : (
-                                            userStorages.map((storage) => {
-                                                const routeInfo = getRouteLabel(storage._id);
-                                                return (
-                                                    <div
-                                                        key={storage._id}
-                                                        onClick={() => toggleRoutePoint(storage)}
-                                                        className={`p-3 border rounded-lg hover:shadow-sm transition-all cursor-pointer relative
-                                                            ${routeInfo ? 'border-yellow-500 bg-yellow-50' : 'border-yellow-200 bg-yellow-50 hover:border-yellow-400'}`}
-                                                    >
-                                                        <h4 className="font-medium text-gray-900 text-sm flex justify-between items-start">
-                                                            <span>{storage.name}</span>
-                                                            {routeInfo && (
-                                                                <span className={`${routeInfo.color} text-white text-[10px] px-1.5 py-0.5 rounded-full ml-2 flex-shrink-0`}>
-                                                                    {routeInfo.number}. {routeInfo.text}
-                                                                </span>
-                                                            )}
-                                                        </h4>
-                                                        <div className="flex items-center justify-between mt-1">
-                                                            <span className="text-xs text-gray-500 truncate max-w-[70%]">{storage.address}</span>
-                                                            {storage.distance && (
-                                                                <span className="text-xs text-yellow-700 font-bold">
-                                                                    {storage.distance < 1
-                                                                        ? `${Math.round(storage.distance * 1000)}m`
-                                                                        : `${storage.distance.toFixed(1)}km`}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                </>
-                            )}
+                            <Link href="/" className="block mt-6">
+                                <Button variant="outline" className="w-full">
+                                    더 많은 보관소 찾기
+                                </Button>
+                            </Link>
                         </div>
                     </aside>
                 </div>
             </main>
-
-            {/* Route Action Button */}
-            {routePoints.length >= 2 && (
-                <div className="fixed bottom-24 right-6 left-6 lg:left-auto lg:bottom-6 lg:w-auto flex justify-center z-50 animate-fade-in-up">
-                    <button
-                        onClick={handleOpenRoute}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-xl hover:bg-blue-700 transition-transform hover:scale-105 flex items-center gap-2 font-bold"
-                    >
-                        🗺️ 구글맵으로 경로 열기 ({routePoints.length})
-                    </button>
-                </div>
-            )}
 
             {/* Mobile FAB for showing map */}
             <button

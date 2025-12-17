@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
+import db from '@/lib/db';
 import Place from '@/models/Place';
 import { getToken } from 'next-auth/jwt';
 
 interface Params {
-    params: Promise<{
+    params: {
         id: string;
-    }>
+    }
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
     await dbConnect();
-    const { id } = await params;
     try {
         const token = await getToken({ req });
         if (!token) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const body = await req.json();
-        const place = await Place.findById(id);
+        const place = await Place.findById(params.id);
         if (!place) {
             return NextResponse.json({ success: false, error: 'Place not found' }, { status: 404 });
         }
@@ -26,7 +25,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             ...body,
             user: token.sub,
         };
-        place.tips.push(tip as any);
+        place.tips.push(tip);
         await place.save();
         return NextResponse.json({ success: true, data: place });
     } catch (error) {

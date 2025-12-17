@@ -30,7 +30,7 @@ export default function Header() {
                         <Link href="/fun" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
                             <span>🎮</span> 재미
                         </Link>
-                        <Link href="/#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>
+                        <Link href="#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>
                         <button
                             onClick={() => (window as any).requestPushPermission && (window as any).requestPushPermission()}
                             className="text-gray-600 hover:text-yellow-600 transition-colors font-medium flex items-center gap-1"
@@ -42,14 +42,9 @@ export default function Header() {
                     <div className="hidden md:flex items-center space-x-3">
                         {user ? (
                             <div className="flex items-center space-x-3">
-                                <div className="flex flex-col items-end mr-2">
-                                    <span className="text-sm font-medium text-gray-700">
-                                        {user?.username?.split('@')[0]}님
-                                    </span>
-                                    <span className="text-xs text-yellow-600 font-bold">
-                                        {user?.points?.toLocaleString() || 0} P
-                                    </span>
-                                </div>
+                                <span className="text-sm font-medium text-gray-700">
+                                    {user?.username?.split('@')[0]}님
+                                </span>
                                 <Button variant="ghost" size="sm" onClick={logout}>로그아웃</Button>
                             </div>
                         ) : (
@@ -131,7 +126,7 @@ export default function Header() {
                                 </Link>
 
                                 <Link
-                                    href="/#faq"
+                                    href="#faq"
                                     onClick={() => setIsMenuOpen(false)}
                                     className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
                                 >
@@ -153,13 +148,8 @@ export default function Header() {
 
                                 {user ? (
                                     <div className="space-y-3">
-                                        <div className="text-center">
-                                            <div className="font-medium text-gray-600">
-                                                {user?.username?.split('@')[0]}님 안녕하세요!
-                                            </div>
-                                            <div className="text-sm text-yellow-600 font-bold mt-1">
-                                                보유 포인트: {user?.points?.toLocaleString() || 0} P
-                                            </div>
+                                        <div className="text-center font-medium text-gray-600">
+                                            {user?.username?.split('@')[0]}님 안녕하세요!
                                         </div>
                                         <Button variant="outline" className="w-full py-4 text-lg" onClick={() => { logout(); setIsMenuOpen(false); }}>
                                             로그아웃

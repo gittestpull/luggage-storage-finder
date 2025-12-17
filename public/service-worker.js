@@ -58,11 +58,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // chrome-extension 등 지원하지 않는 스킴 무시
-  if (!event.request.url.startsWith('http')) {
-    return;
-  }
-
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {

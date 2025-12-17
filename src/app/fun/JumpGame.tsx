@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui';
+import AdSenseModal from '@/components/modals/AdSenseModal';
 
 interface JumpGameProps {
   onBack: () => void;
@@ -30,6 +31,7 @@ export default function JumpGame({ onBack }: JumpGameProps) {
   const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [showAd, setShowAd] = useState(false);
 
   // Game configuration
   const GRAVITY = 0.4;
@@ -148,6 +150,22 @@ export default function JumpGame({ onBack }: JumpGameProps) {
   };
 
   const startGame = () => {
+    // Check play count logic
+    const countKey = 'jump_game_count';
+    const currentCount = parseInt(localStorage.getItem(countKey) || '0', 10) + 1;
+    localStorage.setItem(countKey, currentCount.toString());
+
+    // Show ad every 10th game
+    if (currentCount % 10 === 0) {
+      setShowAd(true);
+      return;
+    }
+
+    startActualGame();
+  };
+
+  const startActualGame = () => {
+    setShowAd(false);
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -391,6 +409,8 @@ export default function JumpGame({ onBack }: JumpGameProps) {
         </h1>
         <p className="text-gray-600">짐가방을 잃어버리지 않게 최대한 높이 올라가세요!</p>
       </div>
+
+      {showAd && <AdSenseModal onClose={startActualGame} />}
 
       <div className="relative w-full max-w-[500px] aspect-[3/4] bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-gray-200">
         <canvas

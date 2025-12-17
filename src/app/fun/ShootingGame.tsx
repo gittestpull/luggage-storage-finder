@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui';
+import AdSenseModal from '@/components/modals/AdSenseModal';
 
 interface ShootingGameProps {
   onBack: () => void;
@@ -23,6 +24,7 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
   const [score, setScore] = useState(0);
+  const [showAd, setShowAd] = useState(false);
   // UI State (for display only)
   const [uiWeaponLevel, setUiWeaponLevel] = useState(1);
   const [uiStage, setUiStage] = useState(1);
@@ -184,6 +186,22 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
   };
 
   const startGame = () => {
+    // Check play count logic
+    const countKey = 'shooting_game_count';
+    const currentCount = parseInt(localStorage.getItem(countKey) || '0', 10) + 1;
+    localStorage.setItem(countKey, currentCount.toString());
+
+    // Show ad every 10th game
+    if (currentCount % 10 === 0) {
+      setShowAd(true);
+      return;
+    }
+
+    startActualGame();
+  };
+
+  const startActualGame = () => {
+    setShowAd(false);
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -587,6 +605,8 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
         </h1>
         <p className="text-gray-400">짐가방 괴물을 물리치고 보스를 이기세요!</p>
       </div>
+
+      {showAd && <AdSenseModal onClose={startActualGame} />}
 
       <div className="relative w-full max-w-[500px] aspect-[3/4] bg-gray-800 rounded-2xl shadow-xl overflow-hidden border-4 border-gray-700">
         <canvas

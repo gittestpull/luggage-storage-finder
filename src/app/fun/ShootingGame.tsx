@@ -29,12 +29,16 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
   const [uiWeaponLevel, setUiWeaponLevel] = useState(1);
   const [uiStage, setUiStage] = useState(1);
   const [uiBombs, setUiBombs] = useState(1);
+  const [uiShotgunCount, setUiShotgunCount] = useState(0);
 
   // Game Logic State (Refs for loop stability)
   const weaponLevelRef = useRef(1);
   const stageRef = useRef(1);
   const bombsRef = useRef(1);
   const scoreRef = useRef(0);
+  const shotgunActiveRef = useRef(false);
+  const shotgunTimerRef = useRef(0);
+  const shotgunCountRef = useRef(0);
 
   // Game configuration
   const PLAYER_SPEED = 300; // px per second
@@ -70,6 +74,7 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
       keysRef.current[e.key] = true;
       if (e.key === ' ' && gameState === 'gameover') startGame();
       if ((e.key === 'b' || e.key === 'B') && gameState === 'playing') useBomb();
+      if ((e.key === 'm' || e.key === 'M') && gameState === 'playing') useShotgun(); // Manual activate
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysRef.current[e.key] = false;
@@ -128,12 +133,16 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     weaponLevelRef.current = 1;
     stageRef.current = 1;
     bombsRef.current = 1;
+    shotgunActiveRef.current = false;
+    shotgunTimerRef.current = 0;
+    shotgunCountRef.current = 0; // Start with 0 stored
 
     // Sync UI
     setScore(0);
     setUiWeaponLevel(1);
     setUiStage(1);
     setUiBombs(1);
+    setUiShotgunCount(0);
   };
 
   const useBomb = () => {
@@ -159,6 +168,17 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
       }
 
       setScore(scoreRef.current);
+    }
+  };
+
+  const useShotgun = () => {
+    if (shotgunCountRef.current > 0) {
+      shotgunCountRef.current -= 1;
+      setUiShotgunCount(shotgunCountRef.current);
+
+      shotgunActiveRef.current = true;
+      shotgunTimerRef.current = 30; // 30 seconds
+      createParticles(playerRef.current.x + playerRef.current.w / 2, playerRef.current.y, 15, '#3b82f6');
     }
   };
 
@@ -273,7 +293,18 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     // Cap dt to avoid huge jumps
     if (dt > 0.1) dt = 0.1;
 
+    if (dt > 0.1) dt = 0.1;
+
     timeRef.current += dt;
+
+    // Update Shotgun Timer
+    if (shotgunActiveRef.current) {
+      shotgunTimerRef.current -= dt;
+      if (shotgunTimerRef.current <= 0) {
+        shotgunActiveRef.current = false;
+        shotgunTimerRef.current = 0;
+      }
+    }
 
     // Spawn boss after 60 seconds
     if (timeRef.current >= 60 && !bossRef.current && !bossActiveRef.current) {
@@ -297,23 +328,43 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
     if (shotTimerRef.current > 0.15) { // Shoot every 0.15s
       shotTimerRef.current = 0;
 
-      const count = weaponLevelRef.current;
-      const startX = player.x + player.w / 2;
+      if (shotgunActiveRef.current) {
+        // Shotgun Mode: 3-way spread
+        const startX = player.x + player.w / 2;
 
-      for (let i = 0; i < count; i++) {
-        const spacing = 15;
-        const offsetIndex = i - (count - 1) / 2;
-
-        const offsetX = offsetIndex * spacing;
-        const vxBox = offsetIndex * 60; // Horizontal velocity for spread
-
+        // Center
         bulletsRef.current.push({
-          x: startX + offsetX - 5,
-          y: player.y,
-          w: 10, h: 20,
-          vx: vxBox,
-          vy: -BULLET_SPEED
+          x: startX - 5, y: player.y, w: 10, h: 20, vx: 0, vy: -BULLET_SPEED
         });
+        // Left
+        bulletsRef.current.push({
+          x: startX - 5, y: player.y, w: 10, h: 20, vx: -150, vy: -BULLET_SPEED
+        });
+        // Right
+        bulletsRef.current.push({
+          x: startX - 5, y: player.y, w: 10, h: 20, vx: 150, vy: -BULLET_SPEED
+        });
+
+      } else {
+        // Normal Mode
+        const count = weaponLevelRef.current;
+        const startX = player.x + player.w / 2;
+
+        for (let i = 0; i < count; i++) {
+          const spacing = 15;
+          const offsetIndex = i - (count - 1) / 2;
+
+          const offsetX = offsetIndex * spacing;
+          const vxBox = offsetIndex * 60; // Horizontal velocity for spread
+
+          bulletsRef.current.push({
+            x: startX + offsetX - 5,
+            y: player.y,
+            w: 10, h: 20,
+            vx: vxBox,
+            vy: -BULLET_SPEED
+          });
+        }
       }
     }
 
@@ -453,15 +504,22 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
             setScore(scoreRef.current);
 
             // Drop Item Chance
-            if (Math.random() < 0.1) { // Reduced from 0.25
-              const type = Math.random() < 0.3 ? 'bomb' : 'upgrade'; // More balanced bomb/star ratio logic if needed, or just keep as is. User said reduce star chance.
-              // Let's make it: Total drop 10%.
-              // If drop, 30% bomb, 70% star.
-              // Star effective rate: 7%. Bomb effective rate: 3%.
+            if (Math.random() < 0.1) { // 10% total drop rate
+              let type = 'upgrade';
+              const rand = Math.random();
+
+              if (rand < 0.2) {
+                type = 'shotgun'; // Increased to 20% of drops (2% total) for better playability
+              } else if (rand < 0.35) {
+                type = 'bomb'; // 30% of drops
+              } else {
+                type = 'upgrade'; // 65% of drops
+              }
+
               itemsRef.current.push({
                 x: e.x, y: e.y, w: 30, h: 30, vx: 0, vy: 120,
                 type,
-                emoji: type === 'bomb' ? '💣' : '⭐'
+                emoji: type === 'bomb' ? '💣' : (type === 'shotgun' ? '🔫' : '⭐')
               });
             }
           }
@@ -507,6 +565,17 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
         if (item.type === 'bomb') {
           bombsRef.current += 1;
           setUiBombs(bombsRef.current);
+        } else if (item.type === 'shotgun') {
+          if (shotgunCountRef.current < 3) {
+            shotgunCountRef.current += 1;
+            setUiShotgunCount(shotgunCountRef.current);
+            createParticles(player.x + player.w / 2, player.y, 10, '#3b82f6');
+          } else {
+            // Max storage reached, maybe small score bonus instead?
+            scoreRef.current += 1000;
+            setScore(scoreRef.current);
+            createParticles(player.x + player.w / 2, player.y, 5, '#3b82f6');
+          }
         } else {
           if (weaponLevelRef.current < 10) {
             weaponLevelRef.current += 1;
@@ -584,6 +653,13 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
       ctx.fillText(item.emoji || '⭐', item.x, item.y + 25);
     });
 
+    // Draw Shotgun Timer Indicator
+    if (shotgunActiveRef.current) {
+      ctx.font = 'bold 20px Arial';
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText(`🔫 ${Math.ceil(shotgunTimerRef.current)}s`, player.x - 10, player.y - 10);
+    }
+
     // Draw Particles
     for (let i = particlesRef.current.length - 1; i >= 0; i--) {
       const p = particlesRef.current[i];
@@ -647,6 +723,9 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
           <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10 text-yellow-400">
             🔫 Lv.{uiWeaponLevel}
           </div>
+          <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10 text-cyan-400">
+            📦 {uiShotgunCount}/3
+          </div>
           <div className="bg-black/50 backdrop-blur px-4 py-2 rounded-full font-bold shadow-sm border border-white/10 text-blue-300">
             STAGE {uiStage}
           </div>
@@ -661,6 +740,21 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
             💣
             <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
               {uiBombs}
+            </span>
+          </button>
+        </div>
+
+        {/* Shotgun Manual Button (Mobile) */}
+        <div className="absolute bottom-4 left-4 pointer-events-auto z-20">
+          <button
+            onClick={useShotgun}
+            className={`w-14 h-14 rounded-full border-4 shadow-xl flex items-center justify-center text-2xl transition-transform ${uiShotgunCount > 0 ? 'bg-blue-600 border-blue-400 hover:scale-105 active:scale-95' : 'bg-gray-700 border-gray-500 opacity-50'
+              }`}
+            disabled={uiShotgunCount === 0}
+          >
+            🔫
+            <span className="absolute -top-2 -right-2 bg-cyan-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
+              {uiShotgunCount}
             </span>
           </button>
         </div>
@@ -732,7 +826,7 @@ export default function ShootingGame({ onBack }: ShootingGameProps) {
       </div>
 
       <div className="mt-8 text-center text-gray-500 text-sm">
-        PC: 방향키로 이동 | Mobile: 하단 버튼 터치
+        PC: 방향키로 이동, B: 폭탄, M: 샷건 | Mobile: 하단 버튼 터치
       </div>
     </div>
   );

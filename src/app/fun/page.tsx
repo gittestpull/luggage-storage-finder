@@ -199,9 +199,19 @@ export default function FunPage() {
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
           미니 게임 천국 🎮
         </h1>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 mb-8">
           심심할 때 즐기는 짐가방 미니게임!
         </p>
+
+        {/* Release Notes */}
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-4 mx-4">
+          <h3 className="font-bold text-blue-600 mb-2">📢 업데이트 소식</h3>
+          <ul className="text-sm text-gray-600 space-y-1 text-left inline-block">
+            <li>• [슈팅 게임] 샷건 아이템(🔫) 추가: 드물게 등장하며 3방향 공격!</li>
+            <li>• [슈팅 게임] 샷건 아이템 최대 3개 저장 가능 (M키 또는 버튼으로 사용)</li>
+            <li>• [슈팅 게임] 적 처치 시 아이템 드랍률 조정 및 밸런스 패치</li>
+          </ul>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4">

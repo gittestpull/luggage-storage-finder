@@ -90,19 +90,31 @@ export default function StockAnalysisPage({ params }: { params: Promise<{ code: 
                                 <h2 className="font-bold text-lg text-slate-800">📉 공매도 종합 현황 (KRX)</h2>
                                 <span className="text-xs text-slate-400">한국거래소 실시간 화면</span>
                             </div>
-                            <div className="h-[600px] w-full relative">
-                                {/* Use KRX Mobile or Desktop URL depending on responsiveness. Mobile URL often blocks iframe. 
-                                    Using the URL discovered in curl command: 
-                                    https://data.krx.co.kr/comm/srt/srtLoader/index.cmd?screenId=MDCSTAT300&isuCd={code} 
-                                    Note: This might be X-Frame-Options blocked. If so, we fallback to link. 
-                                    But user asked for "Screenshot style". 
-                                */}
-                                <iframe
-                                    src={`https://data.krx.co.kr/comm/srt/srtLoader/index.cmd?screenId=MDCSTAT300&isuCd=${code}`}
-                                    className="w-full h-full border-none"
-                                    title="KRX Short Selling"
-                                />
-                                {/* Overlay for interaction protection if needed, or just let user scroll */}
+                            <div className="h-[400px] w-full flex flex-col items-center justify-center bg-slate-50 text-center p-6 space-y-4">
+                                <div className="text-4xl">⚠️</div>
+                                <h3 className="font-bold text-slate-800">공매도 현황 데이터 보안 정책</h3>
+                                <p className="text-sm text-slate-500 max-w-md">
+                                    한국거래소(KRX)와 네이버 증권의 데이터 보안 정책으로 인해<br />
+                                    공매도 현황은 외부 페이지에서만 확인 가능합니다.
+                                </p>
+                                <div className="flex gap-3 mt-4">
+                                    <a
+                                        href={`https://data.krx.co.kr/comm/srt/srtLoader/index.cmd?screenId=MDCSTAT300&isuCd=${code}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-sm shadow-sm transition-colors"
+                                    >
+                                        KRX 공매도 원본 보기 ↗
+                                    </a>
+                                    <a
+                                        href={`https://finance.naver.com/item/short_trade.naver?code=${code}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-bold text-sm shadow-sm transition-colors"
+                                    >
+                                        네이버 증권 공매도 보기 ↗
+                                    </a>
+                                </div>
                             </div>
                         </div>
 

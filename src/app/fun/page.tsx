@@ -168,6 +168,16 @@ export default function FunPage() {
     }
   };
 
+  if (activeGame === 'jump') {
+    return <JumpGame onBack={() => setActiveGame(null)} />;
+  }
+
+  if (activeGame === 'shooting') {
+    return <ShootingGame onBack={() => setActiveGame(null)} />;
+  }
+
+  if (activeGame === 'fortune') {
+    return <FortuneGame onBack={() => setActiveGame(null)} user={user} />;
   // Render Active Game
   if (activeGame) {
     const Component = GAME_REGISTRY[activeGame]?.component;

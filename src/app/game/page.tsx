@@ -18,7 +18,7 @@ type Player = Entity & {
   maxHp: number;
   str: number;
   speed: number;
-  weaponLevel: number; // Affects fire rate or projectile count
+  weaponLevel: number; // 1 to 3 (multishot)
 };
 
 type Enemy = Entity & {
@@ -37,9 +37,10 @@ type Projectile = Entity & {
 };
 
 type Item = Entity & {
-  type: 'potion_hp' | 'potion_str' | 'weapon';
+  type: 'potion_hp' | 'potion_str' | 'weapon' | 'bomb';
   value: number;
   life: number;
+  glow?: boolean;
 };
 
 type Particle = {
@@ -62,7 +63,10 @@ export default function GamePage() {
   const [stats, setStats] = useState({ hp: 100, maxHp: 100, str: 3, level: 1 });
   const [score, setScore] = useState(0);
 
-  // We use refs for game state to avoid closure staleness in the loop
+  // Audio Context Ref
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Game State Ref
   const gameStateRef = useRef({
     playing: true,
     day: 1,
@@ -88,10 +92,17 @@ export default function GamePage() {
     keys: {} as Record<string, boolean>,
     lastFireTime: 0,
     lastSpawnTime: 0,
-    spawnInterval: 1.0, // Initial spawn rate
+    spawnInterval: 1.0,
+    screenShake: 0, // Shake magnitude
+    flash: 0, // Flash intensity (0-1)
   });
 
   useEffect(() => {
+    // Init Audio Context
+    if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -111,6 +122,45 @@ export default function GamePage() {
     let uniqueIdCounter = 1;
 
     const getUniqueId = () => uniqueIdCounter++;
+
+    // Helper: Play Sound
+    const playSound = (type: 'shoot' | 'bomb' | 'powerup') => {
+        if (!audioCtxRef.current) return;
+        const actx = audioCtxRef.current;
+        if (actx.state === 'suspended') actx.resume();
+
+        const osc = actx.createOscillator();
+        const gain = actx.createGain();
+        osc.connect(gain);
+        gain.connect(actx.destination);
+
+        const now = actx.currentTime;
+        if (type === 'shoot') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'bomb') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(100, now);
+            osc.frequency.exponentialRampToValueAtTime(10, now + 0.5);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+        } else if (type === 'powerup') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.linearRampToValueAtTime(800, now + 0.2);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+        }
+    };
 
     // Input Handling
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -171,42 +221,57 @@ export default function GamePage() {
     };
 
     // Helper: Spawn Item
-    const spawnItem = (x: number, y: number) => {
+    const spawnItem = (x: number, y: number, forceType?: Item['type']) => {
       const rand = Math.random();
       let type: Item['type'] = 'potion_hp';
       let color = '#ef4444'; // red
+      let glow = false;
 
-      if (rand < 0.6) {
-        // 60% HP
-        type = 'potion_hp';
-        color = '#ef4444';
-      } else if (rand < 0.9) {
-        // 30% STR
-        type = 'potion_str';
-        color = '#3b82f6';
+      if (forceType) {
+          type = forceType;
       } else {
-        // 10% Weapon
-        type = 'weapon';
-        color = '#fbbf24';
+        if (rand < 0.6) {
+            // 60% HP
+            type = 'potion_hp';
+            color = '#ef4444';
+        } else if (rand < 0.9) {
+            // 30% STR
+            type = 'potion_str';
+            color = '#3b82f6';
+        } else {
+            // 10% Weapon
+            type = 'weapon';
+            color = '#10b981'; // Green
+            glow = true;
+        }
+      }
+
+      if (type === 'weapon') {
+          color = '#10b981'; // Green
+          glow = true;
+      } else if (type === 'bomb') {
+          color = '#000000'; // Black bomb
+          glow = true;
       }
 
       gameStateRef.current.items.push({
         id: getUniqueId(),
         x, y,
-        width: 15,
-        height: 15,
+        width: type === 'weapon' ? 20 : 15,
+        height: type === 'weapon' ? 20 : 15,
         color,
         type,
         value: 10,
-        life: 15 // Disappear after 15s
+        life: 15,
+        glow
       });
     };
 
     // Helper: Particles
-    const spawnParticles = (x: number, y: number, color: string, count: number) => {
+    const spawnParticles = (x: number, y: number, color: string, count: number, speedMult = 1) => {
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 100;
+        const speed = Math.random() * 100 * speedMult;
         gameStateRef.current.particles.push({
           id: getUniqueId(),
           x, y,
@@ -234,16 +299,23 @@ export default function GamePage() {
       if (newDay !== state.day) {
         state.day = newDay;
         setDay(newDay);
-        // Difficulty ramp up: Spawn faster
+        // Difficulty ramp up
         state.spawnInterval = Math.max(0.1, 1.0 - (state.day * 0.008));
 
-        // Spawn Boss at Day 100
         if (state.day === 100) {
           spawnEnemy(true);
         }
       }
 
-      // 1. Player Movement
+      // 1. Screen Shake Decay
+      if (state.screenShake > 0) {
+          state.screenShake = Math.max(0, state.screenShake - dt * 20);
+      }
+      if (state.flash > 0) {
+          state.flash = Math.max(0, state.flash - dt * 2);
+      }
+
+      // 2. Player Movement
       const keys = state.keys;
       let dx = 0, dy = 0;
       if (keys['w'] || keys['ArrowUp']) dy -= 1;
@@ -256,15 +328,13 @@ export default function GamePage() {
         state.player.x += (dx/len) * state.player.speed * dt;
         state.player.y += (dy/len) * state.player.speed * dt;
 
-        // Boundaries
         state.player.x = Math.max(10, Math.min(canvas.width - 10, state.player.x));
         state.player.y = Math.max(10, Math.min(canvas.height - 10, state.player.y));
       }
 
-      // 2. Player Shooting (Auto)
-      const fireRate = Math.max(0.1, 0.5 - (state.player.weaponLevel * 0.05));
+      // 3. Player Shooting (Multishot)
+      const fireRate = 0.5; // Fixed fire rate, weapon upgrade adds projectiles now
       if (state.time - state.lastFireTime > fireRate) {
-        // Find nearest enemy
         let nearest: Enemy | null = null;
         let minDist = Infinity;
         for (const enemy of state.enemies) {
@@ -275,41 +345,51 @@ export default function GamePage() {
           }
         }
 
-        if (nearest && minDist < 400) { // Range 400
+        if (nearest && minDist < 450) {
           state.lastFireTime = state.time;
           const angle = Math.atan2(nearest.y - state.player.y, nearest.x - state.player.x);
           const speed = 400;
-          state.projectiles.push({
-            id: getUniqueId(),
-            x: state.player.x,
-            y: state.player.y,
-            width: 8,
-            height: 8,
-            color: '#ffff00',
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            damage: state.player.str,
-            life: 2
+
+          // Multishot Logic
+          const shotCount = state.player.weaponLevel; // 1, 2, or 3
+          let angles: number[] = [];
+          if (shotCount === 1) angles = [0];
+          else if (shotCount === 2) angles = [-0.15, 0.15]; // Rads approx
+          else if (shotCount >= 3) angles = [-0.2, 0, 0.2];
+
+          angles.forEach(a => {
+             const finalAngle = angle + a;
+             state.projectiles.push({
+                id: getUniqueId(),
+                x: state.player.x,
+                y: state.player.y,
+                width: 8,
+                height: 8,
+                color: '#ffff00',
+                vx: Math.cos(finalAngle) * speed,
+                vy: Math.sin(finalAngle) * speed,
+                damage: state.player.str,
+                life: 2
+              });
           });
+          // playSound('shoot'); // Optional: too noisy for continuous fire?
         }
       }
 
-      // 3. Spawning Enemies
+      // 4. Spawning Enemies
       if (state.time - state.lastSpawnTime > state.spawnInterval) {
         state.lastSpawnTime = state.time;
-        // Spawn count increases slightly with day
         const count = 1 + Math.floor(state.day / 20);
         for(let i=0; i<count; i++) spawnEnemy();
       }
 
-      // 4. Update Projectiles
+      // 5. Update Projectiles
       for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const p = state.projectiles[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.life -= dt;
 
-        // Check collision with enemies
         let hit = false;
         for (const enemy of state.enemies) {
           if (getDistance(p, enemy) < (p.width + enemy.width)/2) {
@@ -325,22 +405,16 @@ export default function GamePage() {
         }
       }
 
-      // 5. Update Enemies
+      // 6. Update Enemies
       for (let i = state.enemies.length - 1; i >= 0; i--) {
         const enemy = state.enemies[i];
-        // Move towards player
         const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x);
         enemy.x += Math.cos(angle) * enemy.speed * dt;
         enemy.y += Math.sin(angle) * enemy.speed * dt;
 
         // Collision with Player
         if (getDistance(enemy, state.player) < (enemy.width + state.player.width)/2) {
-          // Take damage
-          state.player.hp -= enemy.damage * dt; // Damage per second roughly if overlapping?
-          // Actually let's do continuous damage but check intervals or just raw float subtraction
-          // To make it punchy, maybe knockback?
-          // Simple: continuous drain
-
+          state.player.hp -= enemy.damage * dt;
           if (state.player.hp <= 0) {
             state.playing = false;
             setGameState('gameover');
@@ -351,17 +425,16 @@ export default function GamePage() {
         if (enemy.hp <= 0) {
           state.enemies.splice(i, 1);
           state.score += 10;
-          setScore(state.score); // This triggers re-render often, careful. Maybe debounce or just show on death screen.
-          // Actually, let's only set score occasionally or just read from ref in UI
-
+          // Score update is deferred to the throttled UI sync block below
           spawnParticles(enemy.x, enemy.y, '#ffffff', 5);
 
-          // Drop item?
-          if (Math.random() < 0.2) { // 20% chance
-            spawnItem(enemy.x, enemy.y);
+          // Bomb Drop Chance (20%)
+          if (Math.random() < 0.2) {
+             spawnItem(enemy.x, enemy.y, 'bomb');
+          } else if (Math.random() < 0.2) { // 20% other items
+             spawnItem(enemy.x, enemy.y);
           }
 
-          // If boss died
           if (enemy.type === 'boss') {
             state.playing = false;
             setGameState('won');
@@ -369,12 +442,12 @@ export default function GamePage() {
         }
       }
 
-      // 6. Update Items
+      // 7. Update Items
       for (let i = state.items.length - 1; i >= 0; i--) {
         const item = state.items[i];
         item.life -= dt;
 
-        // Magnetic pull if close
+        // Magnetic pull
         const dist = getDistance(item, state.player);
         if (dist < 100) {
           item.x += (state.player.x - item.x) * 5 * dt;
@@ -382,13 +455,34 @@ export default function GamePage() {
         }
 
         if (dist < state.player.width + item.width) {
-          // Pickup
+          // Pickup Logic
           if (item.type === 'potion_hp') {
             state.player.hp = Math.min(state.player.maxHp, state.player.hp + 20);
+            playSound('powerup');
           } else if (item.type === 'potion_str') {
             state.player.str += 1;
+            playSound('powerup');
           } else if (item.type === 'weapon') {
-            state.player.weaponLevel += 1;
+            state.player.weaponLevel = Math.min(3, state.player.weaponLevel + 1);
+            playSound('powerup');
+          } else if (item.type === 'bomb') {
+            // KILL ALL ZOMBIES
+            playSound('bomb');
+            state.screenShake = 10;
+            state.flash = 1.0;
+
+            // Iterate all enemies to kill them
+            for(let k = state.enemies.length - 1; k >= 0; k--) {
+                const e = state.enemies[k];
+                if (e.type !== 'boss') {
+                    e.hp = 0; // Will be cleaned up next frame or we can just kill now?
+                    // Let's force kill now to show effect
+                    spawnParticles(e.x, e.y, '#ff0000', 8, 3);
+                } else {
+                    e.hp -= 500; // Damage boss instead of kill
+                }
+            }
+            state.enemies = state.enemies.filter(e => e.hp > 0);
           }
           state.items.splice(i, 1);
         } else if (item.life <= 0) {
@@ -396,7 +490,7 @@ export default function GamePage() {
         }
       }
 
-      // 7. Update Particles
+      // 8. Update Particles
       for (let i = state.particles.length - 1; i >= 0; i--) {
         const p = state.particles[i];
         p.x += p.vx * dt;
@@ -405,26 +499,13 @@ export default function GamePage() {
         if (p.life <= 0) state.particles.splice(i, 1);
       }
 
-      // Sync React State for HUD (Throttled to update only every 10 frames ~ 6 times per sec)
-      if (timestamp % 10 < 1) { // Simple modulo check on timestamp isn't reliable, let's use a counter or timer check
-         // Actually better: only update if changed significantly or timer
-      }
-
-      // Better approach: Update HUD state every 100ms
-      if (timestamp - lastTime > 0) { // logic tick
-         // We are already inside update loop
-      }
-
-      // Let's use a frame counter in ref to throttle UI updates
-      // Using modulo on frame ID or just a timer accumulator
-      // We don't have frame ID exposed here easily without adding to stateRef
-      // Let's just use time check
+      // Sync React State for HUD (Throttled)
       const lastUiUpdate = (state as any).lastUiUpdate || 0;
-      if (timestamp - lastUiUpdate > 100) { // 100ms
+      if (timestamp - lastUiUpdate > 100) {
         (state as any).lastUiUpdate = timestamp;
+        setScore(state.score); // Update score with throttle
         setStats(prev => {
             const newHp = Math.ceil(state.player.hp);
-            // Only trigger render if values changed
             if (prev.hp !== newHp || prev.str !== state.player.str || prev.level !== state.player.weaponLevel) {
                 return {
                     hp: newHp,
@@ -438,39 +519,67 @@ export default function GamePage() {
       }
 
       // --- RENDER ---
+      ctx.save();
+
+      // Screen Shake Apply
+      if (state.screenShake > 0) {
+          const dx = (Math.random() - 0.5) * state.screenShake * 2;
+          const dy = (Math.random() - 0.5) * state.screenShake * 2;
+          ctx.translate(dx, dy);
+      }
+
       // Clear
       ctx.fillStyle = '#111';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(-10, -10, canvas.width+20, canvas.height+20);
 
       // Grid
       ctx.strokeStyle = '#222';
       ctx.lineWidth = 2;
       const gridSize = 100;
-      // Parallax effect? Nah, just static grid
       for(let x=0; x<canvas.width; x+=gridSize) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
       for(let y=0; y<canvas.height; y+=gridSize) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
 
       // Items
       state.items.forEach(item => {
-        ctx.fillStyle = item.color;
-        ctx.beginPath();
-        ctx.arc(item.x, item.y, item.width/2, 0, Math.PI*2);
-        ctx.fill();
+        if (item.type === 'bomb') {
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, item.width, 0, Math.PI*2);
+            ctx.fill();
+            // Fuse?
+            ctx.fillStyle = '#f00';
+            ctx.beginPath();
+            ctx.arc(item.x + 5, item.y - 5, 4, 0, Math.PI*2);
+            ctx.fill();
+            // Border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, item.width, 0, Math.PI*2);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = item.color;
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, item.width/2, 0, Math.PI*2);
+            ctx.fill();
+        }
+
         // Glow
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = item.color;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        if (item.glow || item.type === 'weapon') {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = item.color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
       });
 
       // Enemies
       state.enemies.forEach(enemy => {
         ctx.fillStyle = enemy.color;
-        // Simple shape: Square for zombie
         ctx.fillRect(enemy.x - enemy.width/2, enemy.y - enemy.height/2, enemy.width, enemy.height);
 
-        // Health bar above enemy
-        const hpPct = enemy.hp / enemy.maxHp;
+        // Health bar
+        const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
         ctx.fillStyle = 'red';
         ctx.fillRect(enemy.x - enemy.width/2, enemy.y - enemy.height/2 - 8, enemy.width, 4);
         ctx.fillStyle = 'lime';
@@ -506,6 +615,13 @@ export default function GamePage() {
         ctx.globalAlpha = 1.0;
       });
 
+      // Flash Effect
+      if (state.flash > 0) {
+          ctx.fillStyle = `rgba(255, 255, 255, ${state.flash})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      ctx.restore();
       animationFrameId = requestAnimationFrame(update);
     };
 
@@ -517,7 +633,7 @@ export default function GamePage() {
       window.removeEventListener('resize', resizeCanvas);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []); // Run once on mount
+  }, []);
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black text-white font-sans select-none">
@@ -527,7 +643,7 @@ export default function GamePage() {
           <div className="text-3xl font-bold text-yellow-400 drop-shadow-md">DAY {day} <span className="text-sm text-gray-300">/ 100</span></div>
           <div className="text-xl">HP: <span className="text-red-500 font-bold">{stats.hp}</span> / {stats.maxHp}</div>
           <div className="text-lg">STR: <span className="text-blue-400 font-bold">{stats.str}</span></div>
-          <div className="text-lg">WEAPON LV: <span className="text-orange-400 font-bold">{stats.level}</span></div>
+          <div className="text-lg">SHOTS: <span className="text-green-400 font-bold">{stats.level}</span> <span className="text-xs text-gray-400">(MAX 3)</span></div>
           <div className="text-lg text-gray-400">SCORE: {score}</div>
         </div>
 

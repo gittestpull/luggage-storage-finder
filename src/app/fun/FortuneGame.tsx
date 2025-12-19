@@ -26,16 +26,13 @@ interface FortuneTier {
 }
 
 const TIERS: FortuneTier[] = [
-  { tier: 1, name: '우주를 관통하는 절대적 기적 (Absolute Miracle)', probability: 1 / 1000000000, probString: '1/1,000,000,000', color: 'text-red-600 font-extrabold' },
-  { tier: 2, name: '하늘에서 떨어진 별조각 (Star Fragment)', probability: 1 / 100000000, probString: '1/100,000,000', color: 'text-purple-600 font-bold' },
-  { tier: 3, name: '천년 묵은 산삼 (Millennium Ginseng)', probability: 1 / 10000000, probString: '1/10,000,000', color: 'text-pink-600 font-bold' },
-  { tier: 4, name: '용이 남긴 비늘 (Dragon Scale)', probability: 1 / 1000000, probString: '1/1,000,000', color: 'text-orange-600 font-bold' },
-  { tier: 5, name: '잃어버린 왕의 반지 (Lost King\'s Ring)', probability: 1 / 100000, probString: '1/100,000', color: 'text-yellow-600 font-bold' },
-  { tier: 6, name: '행운의 네잎클로버 (Four-leaf Clover)', probability: 1 / 10000, probString: '1/10,000', color: 'text-green-600 font-bold' },
-  { tier: 7, name: '오래된 은화 (Old Silver Coin)', probability: 1 / 1000, probString: '1/1,000', color: 'text-blue-600' },
-  { tier: 8, name: '반짝이는 조약돌 (Shiny Pebble)', probability: 1 / 100, probString: '1/100', color: 'text-cyan-600' },
-  { tier: 9, name: '길가에 핀 풀꽃 (Roadside Weed)', probability: 1 / 10, probString: '1/10', color: 'text-gray-600' },
-  { tier: 10, name: '지나가는 바람 (Passing Wind)', probability: 1 / 2, probString: '1/2', color: 'text-gray-400' },
+  { tier: 1, name: '우주를 관통하는 절대적 기적 (Absolute Miracle)', probability: 1 / 100000000, probString: '1/100,000,000', color: 'text-red-600 font-extrabold' },
+  { tier: 2, name: '천년 묵은 산삼 (Millennium Ginseng)', probability: 1 / 10000000, probString: '1/10,000,000', color: 'text-purple-600 font-bold' },
+  { tier: 3, name: '용이 남긴 비늘 (Dragon Scale)', probability: 1 / 1000000, probString: '1/1,000,000', color: 'text-pink-600 font-bold' },
+  { tier: 4, name: '잃어버린 왕의 반지 (Lost King\'s Ring)', probability: 1 / 100000, probString: '1/100,000', color: 'text-orange-600 font-bold' },
+  { tier: 5, name: '행운의 네잎클로버 (Four-leaf Clover)', probability: 1 / 10000, probString: '1/10,000', color: 'text-yellow-600 font-bold' },
+  { tier: 6, name: '오래된 은화 (Old Silver Coin)', probability: 1 / 1000, probString: '1/1,000', color: 'text-green-600 font-bold' },
+  { tier: 7, name: '반짝이는 조약돌 (Shiny Pebble)', probability: 1 / 100, probString: '1/100', color: 'text-blue-600' },
 ];
 
 interface Props {
@@ -314,47 +311,47 @@ export default function FortuneGame({ onBack, user }: Props) {
     // Simulate animation time
     setTimeout(async () => {
       const rand = Math.random();
-      let result = TIERS[TIERS.length - 1];
+      let result = null;
 
+      // New Strict Logic: Only return a tier if rand < tier.probability
+      // TIERS are sorted by probability (smallest to largest: 1/100M -> 1/100)
       for (const tier of TIERS) {
         if (rand < tier.probability) {
           result = tier;
-          break;
+          break; // Found the rarest matching tier
         }
       }
 
-      const finalResult = (rand > 0.5) ? null : result;
+      // If rand > largest tier prob (0.01), result is null (Fail)
+      const finalResult = result;
 
       setLastResult(finalResult);
       saveDraws(drawsLeft - 1);
       setIsAnimating(false);
 
-      if (finalResult && finalResult.tier <= 6) {
-        // Trigger effects for Tier 6 or better
-        setEffectIntensity(finalResult.tier <= 3); // Intense for tier 1-3
+      if (finalResult) {
+        // Trigger effects
+        // Tiers are 1 to 7 now.
+        // Let's say Top 3 are intense.
+        setEffectIntensity(finalResult.tier <= 3);
         setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 7000); // Stop after 7s to match Canvas
+        setTimeout(() => setShowConfetti(false), 7000);
 
-        // Logic for ranking registration
+        // Ranking Logic: All wins (<= 1/100) are ranked?
+        // User asked "100부터...". Maybe all of them?
+        // Let's allow ranking for all "Wins" since getting even 1/100 is now a "Win" vs 99% Fail.
+
         if (user) {
-          // Logged in: Auto-register
           const success = await registerRanking(user.username, finalResult.tier, finalResult.name, finalResult.probString);
           if (success) {
             setAutoRegistered(true);
             fetchRankings();
-          } else {
-            // Fallback if auto-reg fails? just ignore or alert?
-            // Alert might interrupt flow. Let's just set autoRegistered true (to show success message)
-            // but if it failed, maybe we shouldn't.
-            // But for simplicity, let's assume it works or show nothing.
-            // Let's show a small toast inside the result view.
           }
         } else {
-          // Not logged in: Show modal
           setShowRankInput(true);
         }
       }
-    }, 1500); // 1.5s animation
+    }, 1500);
   };
 
   const handleManualRegister = async () => {
@@ -405,7 +402,7 @@ export default function FortuneGame({ onBack, user }: Props) {
         </button>
         <h1 className="text-3xl font-bold text-center mt-8 mb-2 text-yellow-400">🔮 운세 가챠</h1>
         <p className="text-center text-gray-400 text-sm mb-8">
-          10억분의 1 확률에 도전하세요!
+          1억분의 1 확률에 도전하세요!
         </p>
 
         {/* Machine Visual */}

@@ -13,15 +13,22 @@ export async function GET(req: NextRequest) {
         await connectDB();
         let games = await Game.find({});
 
-        // Initial Seed if empty
-        if (games.length === 0) {
-            const seed = [
-                { gameId: 'jump', name: '짐프 (JUMP)', description: '짐가방 점프 게임', isPaid: true, cost: 10 },
-                { gameId: 'shooting', name: '비행기 슈팅', description: '비행기 슈팅 게임', isPaid: true, cost: 10 }
-            ];
-            await Game.insertMany(seed);
-            games = await Game.find({});
+        // Check and Seed Default Games
+        const seed = [
+            { gameId: 'jump', name: '짐프 (JUMP)', description: '짐가방 점프 게임', isPaid: true, cost: 10 },
+            { gameId: 'shooting', name: '비행기 슈팅', description: '비행기 슈팅 게임', isPaid: true, cost: 10 },
+            { gameId: 'fortune', name: '운세 가챠', description: '오늘의 운세 뽑기', isPaid: false, cost: 0 },
+            { gameId: 'nightmare', name: '100 Days Nightmare', description: '좀비 서바이벌', isPaid: true, cost: 50 }
+        ];
+
+        for (const game of seed) {
+            const exists = await Game.findOne({ gameId: game.gameId });
+            if (!exists) {
+                await Game.create(game);
+            }
         }
+
+        games = await Game.find({});
 
         return NextResponse.json(games);
     } catch (error) {

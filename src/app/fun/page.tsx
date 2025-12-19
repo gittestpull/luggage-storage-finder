@@ -3,19 +3,79 @@
 import { useState, useEffect } from 'react';
 import JumpGame from './JumpGame';
 import ShootingGame from './ShootingGame';
+import FarmingGame from './FarmingGame';
 import FortuneGame from './FortuneGame';
+import NightmareGame from '../game/NightmareGame';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui';
 
 interface GameConfig {
   gameId: string;
   name: string;
+  description: string;
   isPaid: boolean;
   cost: number;
 }
 
+// Registry to map gameIds to specific UI themes/components
+const GAME_REGISTRY: Record<string, {
+  component?: React.ComponentType<{ onBack: () => void }>;
+  icon: string;
+  themeColor: string;
+  gradientFrom: string;
+  textColor: string;
+  borderColor: string;
+  buttonColor: string;
+}> = {
+  fortune: {
+    component: FortuneGame,
+    icon: '🔮',
+    themeColor: 'bg-purple-900',
+    gradientFrom: 'from-purple-800',
+    textColor: 'text-purple-200',
+    borderColor: 'hover:border-purple-400',
+    buttonColor: 'bg-purple-500 hover:bg-purple-600'
+  },
+  jump: {
+    component: JumpGame,
+    icon: '🧳',
+    themeColor: 'bg-white',
+    gradientFrom: 'from-blue-50',
+    textColor: 'text-gray-500',
+    borderColor: 'hover:border-yellow-400',
+    buttonColor: 'bg-yellow-400 hover:bg-yellow-500' // Note: Original had yellow button on white bg
+  },
+  shooting: {
+    component: ShootingGame,
+    icon: '✈️',
+    themeColor: 'bg-gray-900',
+    gradientFrom: 'from-gray-800',
+    textColor: 'text-gray-400',
+    borderColor: 'hover:border-blue-400',
+    buttonColor: 'bg-blue-500 hover:bg-blue-600'
+  },
+  nightmare: {
+    component: NightmareGame,
+    icon: '🧟',
+    themeColor: 'bg-black',
+    gradientFrom: 'from-red-900',
+    textColor: 'text-red-200',
+    borderColor: 'hover:border-red-600',
+    buttonColor: 'bg-red-700 hover:bg-red-600'
+  },
+  farming: {
+    component: FarmingGame,
+    icon: '🧑‍🌾',
+    themeColor: 'bg-green-50',
+    gradientFrom: 'from-green-100',
+    textColor: 'text-green-700',
+    borderColor: 'hover:border-green-400',
+    buttonColor: 'bg-green-600 hover:bg-green-700'
+  }
+};
+
 export default function FunPage() {
-  const [activeGame, setActiveGame] = useState<'jump' | 'shooting' | 'fortune' | null>(null);
+  const [activeGame, setActiveGame] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const { user, openModal, login } = useAuth();
   const [loadingGame, setLoadingGame] = useState(false);
@@ -28,18 +88,34 @@ export default function FunPage() {
       .catch(err => console.error('Failed to load game configs', err));
   }, []);
 
-  const getGameConfig = (gameId: string) => gameConfigs.find(g => g.gameId === gameId);
+  // Scroll to top when game starts
+  useEffect(() => {
+    if (activeGame) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeGame]);
 
-  const handleStartGame = async (gameType: 'jump' | 'shooting' | 'fortune') => {
-    // Fortune Game has its own logic for cost/limits
-    if (gameType === 'fortune') {
-      setActiveGame(gameType);
+  const handleStartGame = async (gameId: string) => {
+    // Fortune Game has its own logic for cost/limits inside the component usually,
+    // but here we check typical payment flow if configured as paid in DB.
+    // However, FortuneGame component handles its own internal mechanics.
+    // For consistency, if it's "Fortune", we might just let it open and handle logic internally if it's special.
+    // The original code bypassed payment logic for fortune. Let's keep that safely or rely on DB isPaid.
+
+    // Check if registry has it
+    const registry = GAME_REGISTRY[gameId];
+    if (!registry) return; // Unknown game component
+
+    const config = gameConfigs.find(g => g.gameId === gameId);
+    if (!config) return;
+
+    // Special logic for Fortune game if it handles its own cost/ads
+    if (gameId === 'fortune') {
+      setActiveGame(gameId);
       return;
     }
 
-    const config = getGameConfig(gameType);
-    const isPaid = config?.isPaid ?? true;
-    const cost = config?.cost ?? 10;
+    const { isPaid, cost } = config;
 
     if (isPaid) {
       if (!user) {
@@ -54,6 +130,7 @@ export default function FunPage() {
         return;
       }
 
+      // Check if user confirms payment (Corrected logic: if !confirm return)
       if (!confirm(`게임 시작 시 ${cost} 포인트가 차감됩니다. 시작하시겠습니까?`)) {
         return;
       }
@@ -65,7 +142,7 @@ export default function FunPage() {
         const response = await fetch('/api/game/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameId: gameType })
+          body: JSON.stringify({ gameId })
         });
         const data = await response.json();
 
@@ -74,13 +151,13 @@ export default function FunPage() {
           if (token) {
             login(token, { ...user!, points: data.remainingPoints });
           }
-          setActiveGame(gameType);
+          setActiveGame(gameId);
         } else {
           alert(data.message || '게임 시작 오류');
         }
       } else {
         // Free game
-        setActiveGame(gameType);
+        setActiveGame(gameId);
       }
 
     } catch (error) {
@@ -101,10 +178,13 @@ export default function FunPage() {
 
   if (activeGame === 'fortune') {
     return <FortuneGame onBack={() => setActiveGame(null)} user={user} />;
+  // Render Active Game
+  if (activeGame) {
+    const Component = GAME_REGISTRY[activeGame]?.component;
+    if (Component) {
+      return <Component onBack={() => setActiveGame(null)} />;
+    }
   }
-
-  const jumpConfig = getGameConfig('jump');
-  const shootingConfig = getGameConfig('shooting');
 
   const faqItems = [
     { q: '게임 이용은 무료인가요?', a: '게임마다 다릅니다. 유료 게임은 포인트가 차감되며, 무료 게임은 자유롭게 즐기실 수 있습니다.' },
@@ -125,86 +205,69 @@ export default function FunPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4">
-        {/* Fortune Game Card (New) */}
-        <div
-          onClick={() => handleStartGame('fortune')}
-          className="group relative bg-purple-900 rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent hover:border-purple-400"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-800 to-black opacity-50 group-hover:opacity-100 transition-opacity" />
-          <div className="p-8 flex flex-col items-center text-center relative z-10">
-            <div className="text-8xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
-              🔮
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">운세 가챠</h2>
-            <p className="text-purple-200 mb-4">
-              10억분의 1 확률!<br />오늘의 행운을 뽑아보세요.
-            </p>
-            <span className="inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 bg-purple-600 text-white">
-               무료 (Free) / 하루 10회
-            </span>
-            <div>
-              <span className="inline-block px-6 py-2 bg-purple-500 text-white font-bold rounded-full shadow-lg group-hover:bg-purple-600 transition-colors">
-                운세 뽑기
-              </span>
-            </div>
-          </div>
-        </div>
+        {gameConfigs.map((config) => {
+          const registry = GAME_REGISTRY[config.gameId];
+          const isKnownGame = !!registry;
 
-        {/* Jump Game Card */}
-        <div
-          onClick={() => !loadingGame && handleStartGame('jump')}
-          className="group relative bg-white rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent hover:border-yellow-400"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-50 group-hover:opacity-100 transition-opacity" />
-          <div className="p-8 flex flex-col items-center text-center relative z-10">
-            <div className="text-8xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
-              🧳
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">짐프 (JUMP)</h2>
-            <p className="text-gray-500 mb-4">
-              짐가방을 잃어버리지 않게<br />최대한 높이 점프하세요!
-            </p>
-            {jumpConfig && (
-              <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 ${jumpConfig.isPaid ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                }`}>
-                {jumpConfig.isPaid ? `${jumpConfig.cost} Point` : '무료 (Free)'}
-              </span>
-            )}
-            <div>
-              <span className="inline-block px-6 py-2 bg-yellow-400 text-white font-bold rounded-full shadow-lg group-hover:bg-yellow-500 transition-colors">
-                플레이 하기
-              </span>
-            </div>
-          </div>
-        </div>
+          // Default fallback style for unknown games
+          const style = registry || {
+            icon: '🚧',
+            themeColor: 'bg-gray-200',
+            gradientFrom: 'from-gray-100',
+            textColor: 'text-gray-500',
+            borderColor: 'hover:border-gray-400',
+            buttonColor: 'bg-gray-400 cursor-not-allowed'
+          };
 
-        {/* Shooting Game Card */}
-        <div
-          onClick={() => !loadingGame && handleStartGame('shooting')}
-          className="group relative bg-gray-900 rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent hover:border-blue-400"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-black opacity-50 group-hover:opacity-100 transition-opacity" />
-          <div className="p-8 flex flex-col items-center text-center relative z-10">
-            <div className="text-8xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
-              ✈️
+          // Override text colors specifically for Jump Game (White bg needs dark text)
+          const isWhiteTheme = config.gameId === 'jump';
+          const titleColor = isWhiteTheme ? 'text-gray-800' : 'text-white';
+
+          return (
+            <div
+              key={config.gameId}
+              onClick={() => isKnownGame && !loadingGame && handleStartGame(config.gameId)}
+              className={`group relative ${style.themeColor} rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-4 border-transparent ${style.borderColor}`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${style.gradientFrom} to-black opacity-10 group-hover:opacity-20 transition-opacity`} />
+
+              {/* White theme needs special overlay handling or it looks too dark with 'to-black' */}
+              {isWhiteTheme && (
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-50 group-hover:opacity-100 transition-opacity" />
+              )}
+              {!isWhiteTheme && (
+                <div className={`absolute inset-0 bg-gradient-to-br ${style.gradientFrom} to-black opacity-50 group-hover:opacity-100 transition-opacity`} />
+              )}
+
+              <div className="p-8 flex flex-col items-center text-center relative z-10">
+                <div className="text-8xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                  {style.icon}
+                </div>
+                <h2 className={`text-2xl font-bold ${titleColor} mb-2`}>{config.name}</h2>
+                <p className={`${style.textColor} mb-4`}>
+                  {config.description.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
+                </p>
+
+                <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 ${config.isPaid ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {config.isPaid ? `${config.cost} Point` : '무료 (Free)'}
+                </span>
+
+                <div>
+                  <span
+                    onClick={() => {
+                      if (!isKnownGame) {
+                        alert(`Debug Info:\nGameID DB: '${config.gameId}'\nRegistry Keys: ${Object.keys(GAME_REGISTRY).join(', ')}\nMatch: ${Object.keys(GAME_REGISTRY).includes(config.gameId)}`);
+                      }
+                    }}
+                    className={`inline-block px-6 py-2 text-white font-bold rounded-full shadow-lg transition-colors ${style.buttonColor} ${!isKnownGame ? 'cursor-help' : ''}`}>
+                    {isKnownGame ? '플레이 하기' : '준비 중 (클릭하여 확인)'}
+                  </span>
+                </div>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">비행기 슈팅</h2>
-            <p className="text-gray-400 mb-4">
-              짐가방 괴물을 물리치고<br />보스를 격파하세요!
-            </p>
-            {shootingConfig && (
-              <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 ${shootingConfig.isPaid ? 'bg-yellow-400 text-black' : 'bg-green-500 text-white'
-                }`}>
-                {shootingConfig.isPaid ? `${shootingConfig.cost} Point` : '무료 (Free)'}
-              </span>
-            )}
-            <div>
-              <span className="inline-block px-6 py-2 bg-blue-500 text-white font-bold rounded-full shadow-lg group-hover:bg-blue-600 transition-colors">
-                플레이 하기
-              </span>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       <div className="mt-12 text-center text-gray-400 mb-20">

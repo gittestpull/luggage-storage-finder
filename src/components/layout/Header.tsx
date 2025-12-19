@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +9,26 @@ import { createPortal } from 'react-dom';
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { user, logout, openModal } = useAuth();
+    const [navSettings, setNavSettings] = useState({
+        showHome: true,
+        showNews: true,
+        showStocks: true,
+        showPlaces: true,
+        showFun: true,
+        showFaq: true,
+        showPush: true,
+    });
+
+    useEffect(() => {
+        fetch('/api/settings/navigation')
+            .then(res => res.json())
+            .then(data => {
+                if (data && !data.error) {
+                    setNavSettings(prev => ({ ...prev, ...data }));
+                }
+            })
+            .catch(err => console.error('Failed to load nav settings', err));
+    }, []);
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/50">
@@ -24,19 +44,28 @@ export default function Header() {
                     </Link>
 
                     <nav className="hidden md:flex items-center space-x-8">
-                        <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">홈</Link>
-                        <Link href="/news" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">뉴스</Link>
-                        <Link href="/places" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">가볼만한 곳</Link>
-                        <Link href="/fun" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
-                            <span>🎮</span> 재미
-                        </Link>
-                        <Link href="/#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>
-                        <button
-                            onClick={() => (window as any).requestPushPermission && (window as any).requestPushPermission()}
-                            className="text-gray-600 hover:text-yellow-600 transition-colors font-medium flex items-center gap-1"
-                        >
-                            <span>🔔</span> 알림 받기
-                        </button>
+                        {navSettings.showHome && <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">홈</Link>}
+                        {navSettings.showNews && <Link href="/news" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">뉴스</Link>}
+                        {navSettings.showStocks && (
+                            <Link href="/stocks" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
+                                <span>📈</span> 주식
+                            </Link>
+                        )}
+                        {navSettings.showPlaces && <Link href="/places" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">가볼만한 곳</Link>}
+                        {navSettings.showFun && (
+                            <Link href="/fun" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
+                                <span>🎮</span> 재미
+                            </Link>
+                        )}
+                        {navSettings.showFaq && <Link href="/#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>}
+                        {navSettings.showPush && (
+                            <button
+                                onClick={() => (window as any).requestPushPermission && (window as any).requestPushPermission()}
+                                className="text-gray-600 hover:text-yellow-600 transition-colors font-medium flex items-center gap-1"
+                            >
+                                <span>🔔</span> 알림 받기
+                            </button>
+                        )}
                     </nav>
 
                     <div className="hidden md:flex items-center space-x-3">
@@ -98,58 +127,80 @@ export default function Header() {
 
                             {/* Navigation Links */}
                             <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-6">
-                                <Link
-                                    href="/"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">🏠</span> 홈
-                                </Link>
+                                {navSettings.showHome && (
+                                    <Link
+                                        href="/"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <span className="w-8">🏠</span> 홈
+                                    </Link>
+                                )}
 
-                                <Link
-                                    href="/news"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">📰</span> 뉴스
-                                </Link>
+                                {navSettings.showNews && (
+                                    <Link
+                                        href="/news"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <span className="w-8">📰</span> 뉴스
+                                    </Link>
+                                )}
 
-                                <Link
-                                    href="/places"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">🗺️</span> 가볼만한 곳
-                                </Link>
+                                {navSettings.showStocks && (
+                                    <Link
+                                        href="/stocks"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <span className="w-8">📈</span> 주식
+                                    </Link>
+                                )}
 
-                                <Link
-                                    href="/fun"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">🎮</span> 재미
-                                </Link>
+                                {navSettings.showPlaces && (
+                                    <Link
+                                        href="/places"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <span className="w-8">🗺️</span> 가볼만한 곳
+                                    </Link>
+                                )}
 
-                                <Link
-                                    href="/#faq"
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                                >
-                                    <span className="w-8">❓</span> FAQ
-                                </Link>
+                                {navSettings.showFun && (
+                                    <Link
+                                        href="/fun"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <span className="w-8">🎮</span> 재미
+                                    </Link>
+                                )}
+
+                                {navSettings.showFaq && (
+                                    <Link
+                                        href="/#faq"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <span className="w-8">❓</span> FAQ
+                                    </Link>
+                                )}
                             </div>
 
                             {/* Footer Actions */}
                             <div className="pt-6 border-t border-gray-100 shrink-0">
-                                <button
-                                    onClick={() => {
-                                        (window as any).requestPushPermission && (window as any).requestPushPermission();
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 bg-yellow-400 text-black font-bold py-4 rounded-xl shadow-md mb-4 active:scale-95 transition-transform"
-                                >
-                                    <span>🔔</span> 알림 받기
-                                </button>
+                                {navSettings.showPush && (
+                                    <button
+                                        onClick={() => {
+                                            (window as any).requestPushPermission && (window as any).requestPushPermission();
+                                            setIsMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 bg-yellow-400 text-black font-bold py-4 rounded-xl shadow-md mb-4 active:scale-95 transition-transform"
+                                    >
+                                        <span>🔔</span> 알림 받기
+                                    </button>
+                                )}
 
                                 {user ? (
                                     <div className="space-y-3">

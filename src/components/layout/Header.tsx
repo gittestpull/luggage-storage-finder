@@ -20,14 +20,23 @@ export default function Header() {
     });
 
     useEffect(() => {
-        fetch('/api/settings/navigation')
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        fetch('/api/settings/navigation', { signal })
             .then(res => res.json())
             .then(data => {
-                if (data && !data.error) {
+                if (!signal.aborted && data && !data.error) {
                     setNavSettings(prev => ({ ...prev, ...data }));
                 }
             })
-            .catch(err => console.error('Failed to load nav settings', err));
+            .catch(err => {
+                if (!signal.aborted) {
+                    console.error('Failed to load nav settings', err);
+                }
+            });
+
+        return () => controller.abort();
     }, []);
 
     return (
@@ -45,16 +54,16 @@ export default function Header() {
 
                     <nav className="hidden md:flex items-center space-x-8">
                         {navSettings.showHome && <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">홈</Link>}
-                        {navSettings.showNews && <Link href="/news" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">뉴스</Link>}
+                        {navSettings.showNews && <Link href="/news" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">소식 한 짐</Link>}
                         {navSettings.showStocks && (
                             <Link href="/stocks" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
-                                <span>📈</span> 주식
+                                <span>📈</span> 떡상할 짐
                             </Link>
                         )}
-                        {navSettings.showPlaces && <Link href="/places" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">가볼만한 곳</Link>}
+                        {navSettings.showPlaces && <Link href="/places" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">어디 갈 짐</Link>}
                         {navSettings.showFun && (
                             <Link href="/fun" className="text-gray-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-1">
-                                <span>🎮</span> 재미
+                                <span>🎮</span> 완전 재미짐
                             </Link>
                         )}
                         {navSettings.showFaq && <Link href="/#faq" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">FAQ</Link>}
@@ -143,7 +152,7 @@ export default function Header() {
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
                                     >
-                                        <span className="w-8">📰</span> 뉴스
+                                        <span className="w-8">📰</span> 소식 한 짐
                                     </Link>
                                 )}
 
@@ -153,7 +162,7 @@ export default function Header() {
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
                                     >
-                                        <span className="w-8">📈</span> 주식
+                                        <span className="w-8">📈</span> 떡상할 짐
                                     </Link>
                                 )}
 
@@ -163,7 +172,7 @@ export default function Header() {
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
                                     >
-                                        <span className="w-8">🗺️</span> 가볼만한 곳
+                                        <span className="w-8">🗺️</span> 어디 갈 짐
                                     </Link>
                                 )}
 
@@ -173,7 +182,7 @@ export default function Header() {
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
                                     >
-                                        <span className="w-8">🎮</span> 재미
+                                        <span className="w-8">🎮</span> 완전 재미짐
                                     </Link>
                                 )}
 

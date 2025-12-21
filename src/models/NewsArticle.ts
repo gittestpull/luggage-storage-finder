@@ -13,7 +13,7 @@ export interface INewsArticle extends Document {
     imageUrl?: string;
     publishedAt: Date;
     source: { name?: string };
-    category: 'travel' | 'entertainment' | 'local';
+    category: 'travel' | 'entertainment' | 'local' | 'restaurant';
     locations: Array<{ name: string; lat?: number; lng?: number }>;
     relatedStocks?: IRelatedStock[];
 }
@@ -25,7 +25,7 @@ const newsArticleSchema = new Schema<INewsArticle>({
     imageUrl: { type: String },
     publishedAt: { type: Date, required: true },
     source: { name: String },
-    category: { type: String, enum: ['travel', 'entertainment', 'local'], required: true },
+    category: { type: String, enum: ['travel', 'entertainment', 'local', 'restaurant'], required: true },
     locations: [{ name: String, lat: Number, lng: Number }],
     relatedStocks: [{
         name: String,

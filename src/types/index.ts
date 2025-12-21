@@ -13,6 +13,9 @@ export interface StorageLocation {
 }
 
 export interface User {
+    _id: string;
     username: string;
+    email?: string;
     points: number;
+    isAdmin?: boolean;
 }

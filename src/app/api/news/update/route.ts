@@ -165,13 +165,14 @@ const updateNews = async () => {
 
     console.log('Fetching news...');
     // Fetch categories in parallel
-    const [entertainmentNews, travelNews, localNews] = await Promise.all([
-        fetchNews('entertainment', 'k-pop'),
-        fetchNews('travel', '경복궁'),
-        fetchNews('local', '부산 국제 영화제')
+    const [entertainmentNews, travelNews, localNews, restaurantNews] = await Promise.all([
+        fetchNews('entertainment', '연예'),
+        fetchNews('travel', '국내 여행'),
+        fetchNews('local', '지역 축제'),
+        fetchNews('restaurant', '맛집')
     ]);
 
-    const allNews = [...(entertainmentNews || []), ...(travelNews || []), ...(localNews || [])];
+    const allNews = [...(entertainmentNews || []), ...(travelNews || []), ...(localNews || []), ...(restaurantNews || [])];
 
     if (allNews.length === 0) {
         console.log('No news fetched. Update process finished.');

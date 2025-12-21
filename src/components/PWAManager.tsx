@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function PWAManager() {
     const [showIOSGuide, setShowIOSGuide] = useState(false);
+    const { user } = useAuth();
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -47,7 +49,10 @@ export default function PWAManager() {
                                     headers: {
                                         'Content-Type': 'application/json',
                                     },
-                                    body: JSON.stringify(subscription),
+                                    body: JSON.stringify({
+                                        ...subscription.toJSON(),
+                                        userId: user?._id
+                                    }),
                                 });
 
                                 if (response.status === 201) {
@@ -70,7 +75,7 @@ export default function PWAManager() {
                     console.error('Service Worker registration failed:', error);
                 });
         }
-    }, []);
+    }, [user]);
 
     if (!showIOSGuide) return null;
 

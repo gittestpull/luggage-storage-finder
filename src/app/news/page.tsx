@@ -19,7 +19,7 @@ interface NewsArticle {
     imageUrl?: string;
     publishedAt: string;
     source: { name?: string };
-    category: 'travel' | 'entertainment' | 'local';
+    category: 'travel' | 'entertainment' | 'local' | 'restaurant';
     locations: NewsLocation[];
 }
 
@@ -54,25 +54,34 @@ export default function NewsPage() {
     const [routePoints, setRoutePoints] = useState<Storage[]>([]); // Route selection state
 
     useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
         // Fetch news articles
-        fetch('/api/news')
+        fetch('/api/news', { signal })
             .then(res => res.json())
             .then(data => {
-                setArticles(data);
-                setLoading(false);
-                // Select first article by default
-                if (data.length > 0 && data[0].locations?.length > 0) {
-                    setSelectedArticle(data[0]);
-                    const firstLoc = data[0].locations[0];
-                    if (firstLoc.lat && firstLoc.lng) {
-                        setMapCenter({ lat: firstLoc.lat, lng: firstLoc.lng });
+                if (!signal.aborted) {
+                    setArticles(data);
+                    setLoading(false);
+                    // Select first article by default
+                    if (data.length > 0 && data[0].locations?.length > 0) {
+                        setSelectedArticle(data[0]);
+                        const firstLoc = data[0].locations[0];
+                        if (firstLoc.lat && firstLoc.lng) {
+                            setMapCenter({ lat: firstLoc.lat, lng: firstLoc.lng });
+                        }
                     }
                 }
             })
             .catch(err => {
-                console.error('Error fetching news:', err);
-                setLoading(false);
+                if (!signal.aborted) {
+                    console.error('Error fetching news:', err);
+                    setLoading(false);
+                }
             });
+
+        return () => controller.abort();
     }, []);
 
     const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -153,6 +162,7 @@ export default function NewsPage() {
             case 'travel': return 'bg-blue-100 text-blue-700';
             case 'entertainment': return 'bg-purple-100 text-purple-700';
             case 'local': return 'bg-green-100 text-green-700';
+            case 'restaurant': return 'bg-orange-100 text-orange-700';
             default: return 'bg-gray-100 text-gray-700';
         }
     };
@@ -162,6 +172,7 @@ export default function NewsPage() {
             case 'travel': return '여행';
             case 'entertainment': return '연예';
             case 'local': return '지역';
+            case 'restaurant': return '맛집';
             default: return category;
         }
     };

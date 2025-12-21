@@ -28,7 +28,7 @@ const GAME_REGISTRY: Record<string, {
   buttonColor: string;
 }> = {
   fortune: {
-    component: FortuneGame,
+    // component explicitly handled in render
     icon: '🔮',
     themeColor: 'bg-purple-900',
     gradientFrom: 'from-purple-800',
@@ -82,10 +82,23 @@ export default function FunPage() {
   const [gameConfigs, setGameConfigs] = useState<GameConfig[]>([]);
 
   useEffect(() => {
-    fetch('/api/games')
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    fetch('/api/games', { signal })
       .then(res => res.json())
-      .then(data => setGameConfigs(data))
-      .catch(err => console.error('Failed to load game configs', err));
+      .then(data => {
+        if (!signal.aborted) {
+          setGameConfigs(data);
+        }
+      })
+      .catch(err => {
+        if (!signal.aborted) {
+          console.error('Failed to load game configs', err);
+        }
+      });
+
+    return () => controller.abort();
   }, []);
 
   // Scroll to top when game starts
@@ -178,6 +191,8 @@ export default function FunPage() {
 
   if (activeGame === 'fortune') {
     return <FortuneGame onBack={() => setActiveGame(null)} user={user} />;
+  }
+
   // Render Active Game
   if (activeGame) {
     const Component = GAME_REGISTRY[activeGame]?.component;

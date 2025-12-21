@@ -155,6 +155,22 @@ export default function SubscriberManagement() {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+
+        try {
+            const token = localStorage.getItem('adminToken');
+            await axios.delete(`/api/admin/subscribers?id=${id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            alert('삭제되었습니다.');
+            setSubscribers(prev => prev.filter(sub => sub._id !== id));
+        } catch (error) {
+            console.error('Failed to delete subscriber', error);
+            alert('삭제에 실패했습니다.');
+        }
+    };
+
     if (loading) return <div className="p-8">로딩 중...</div>;
 
     return (
@@ -234,6 +250,12 @@ export default function SubscriberManagement() {
                                             className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded transition-colors text-xs"
                                         >
                                             🔔 알림 발송
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(sub._id)}
+                                            className="text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded transition-colors text-xs ml-2"
+                                        >
+                                            🗑️ 삭제
                                         </button>
                                     </td>
                                 </tr>

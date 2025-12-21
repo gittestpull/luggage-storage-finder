@@ -65,3 +65,34 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }
 }
+
+export async function DELETE(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        if (mongoose.connection.readyState === 0) {
+            await mongoose.connect(MONGODB_URI);
+        }
+
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
+
+        if (!id) {
+            return NextResponse.json({ message: 'Subscription ID is required' }, { status: 400 });
+        }
+
+        const deletedSubscription = await PushSubscription.findByIdAndDelete(id);
+
+        if (!deletedSubscription) {
+            return NextResponse.json({ message: 'Subscription not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ message: 'Subscription deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting subscription:', error);
+        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    }
+}

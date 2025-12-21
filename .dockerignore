@@ -1,0 +1,15 @@
+node_modules
+.git
+.next
+.vscode
+.idea
+Dockerfile
+docker-compose.yml
+README.md
+.npm
+.cache
+out
+build
+dist
+*.log
+.DS_Store

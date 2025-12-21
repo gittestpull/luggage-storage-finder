@@ -7,7 +7,8 @@ export async function POST(req: NextRequest) {
     try {
         await connectDB();
 
-        const subscription = await req.json();
+        const { userId, ...subscriptionData } = await req.json();
+        const subscription = subscriptionData;
 
         if (!subscription.endpoint || !subscription.keys) {
             return NextResponse.json(
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
             // 기존 구독 업데이트
             existingSubscription.keys = subscription.keys;
             existingSubscription.expirationTime = subscription.expirationTime;
+            if (userId) existingSubscription.userId = userId;
             await existingSubscription.save();
             console.log('기존 푸시 구독 업데이트됨:', existingSubscription.endpoint);
             return NextResponse.json({
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
                 endpoint: subscription.endpoint,
                 expirationTime: subscription.expirationTime,
                 keys: subscription.keys,
+                userId: userId || undefined,
             });
             await newSubscription.save();
             console.log('새 푸시 구독 저장됨:', newSubscription.endpoint);

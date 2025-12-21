@@ -5,6 +5,7 @@ import JumpGame from './JumpGame';
 import ShootingGame from './ShootingGame';
 import FarmingGame from './FarmingGame';
 import FortuneGame from './FortuneGame';
+import BagTetrisGame from './BagTetrisGame';
 import NightmareGame from '../game/NightmareGame';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui';
@@ -19,7 +20,7 @@ interface GameConfig {
 
 // Registry to map gameIds to specific UI themes/components
 const GAME_REGISTRY: Record<string, {
-  component?: React.ComponentType<{ onBack: () => void }>;
+  component?: React.ComponentType<any>;
   icon: string;
   themeColor: string;
   gradientFrom: string;
@@ -71,6 +72,15 @@ const GAME_REGISTRY: Record<string, {
     textColor: 'text-green-700',
     borderColor: 'hover:border-green-400',
     buttonColor: 'bg-green-600 hover:bg-green-700'
+  },
+  'bag-tetris': {
+    component: BagTetrisGame,
+    icon: '✈️',
+    themeColor: 'bg-slate-900',
+    gradientFrom: 'from-slate-800',
+    textColor: 'text-slate-400',
+    borderColor: 'hover:border-blue-500',
+    buttonColor: 'bg-blue-600 hover:bg-blue-700'
   }
 };
 
@@ -178,6 +188,8 @@ export default function FunPage() {
 
   if (activeGame === 'fortune') {
     return <FortuneGame onBack={() => setActiveGame(null)} user={user} />;
+  }
+
   // Render Active Game
   if (activeGame) {
     const Component = GAME_REGISTRY[activeGame]?.component;

@@ -45,3 +45,4 @@ mongo-data
 
 # logs
 dev_server.log
+news-update.log

@@ -130,6 +130,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )
         },
         {
+            name: '추천 주식 관리',
+            path: '/mgmt-secure/stocks',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+            )
+        },
+        {
             name: '메뉴 설정',
             path: '/mgmt-secure/navigation',
             icon: (

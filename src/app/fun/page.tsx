@@ -75,7 +75,7 @@ const GAME_REGISTRY: Record<string, {
   },
   'bag-tetris': {
     component: BagTetrisGame,
-    icon: '✈️',
+    icon: '🧳',
     themeColor: 'bg-slate-900',
     gradientFrom: 'from-slate-800',
     textColor: 'text-slate-400',
@@ -232,8 +232,9 @@ export default function FunPage() {
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-4 mx-4">
           <h3 className="font-bold text-blue-600 mb-2">📢 업데이트 소식</h3>
           <ul className="text-sm text-gray-600 space-y-1 text-left inline-block">
-            <li>• [슈팅 게임] 샷건 아이템(🔫) 추가: 드물게 등장하며 3방향 공격!</li>
-            <li>• [슈팅 게임] 샷건 아이템 최대 3개 저장 가능 (M키 또는 버튼으로 사용)</li>
+            <li>• [스카이 패커] 조이스틱 조작 추가 & 다양한 가방 비주얼로 전면 개편!</li>
+            <li>• [스카이 패커] 30초마다 난이도(속도/모양) 상승 기능 추가</li>
+            <li>• [슈팅 게임] 샷건 아이템(🔫) 추가 및 저장(M키/버튼) 기능</li>
             <li>• [슈팅 게임] 적 처치 시 아이템 드랍률 조정 및 밸런스 패치</li>
           </ul>
         </div>

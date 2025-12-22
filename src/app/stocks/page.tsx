@@ -1,324 +1,274 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { StockMarketData } from '@/lib/stockAnalysis';
 
-interface RelatedStock {
+interface RecommendedStock {
+    _id: string;
     name: string;
     code: string;
-    reason: string;
-}
-
-interface NewsArticle {
-    _id: string;
-    title: string;
     description: string;
-    url: string;
     imageUrl?: string;
-    publishedAt: string;
-    source: { name?: string };
-    category: 'travel' | 'entertainment' | 'local';
-    relatedStocks?: RelatedStock[];
-}
-
-interface StockCardProps {
-    stock: RelatedStock;
-}
-
-const StockCard = ({ stock }: StockCardProps) => {
-    const [data, setData] = useState<any>(null); // Use any to match new interface with trends
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await fetch(`/api/stocks?code=${stock.code}`);
-                if (!res.ok) throw new Error('Failed');
-                const result = await res.json();
-                setData(result);
-            } catch (err) {
-                // Ignore errors
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-        const interval = setInterval(fetchData, 10000);
-        return () => clearInterval(interval);
-    }, [stock.code]);
-
-    // Helper to format large numbers
-    const formatVolume = (val: number) => {
-        const absVal = Math.abs(val);
-        const prefix = val > 0 ? '+' : (val < 0 ? '-' : '');
-        if (absVal >= 10000) {
-            return `${prefix}${(absVal / 10000).toFixed(1)}만`;
-        }
-        return `${prefix}${absVal.toLocaleString()}`;
+    additionalInfo?: {
+        creditTrend?: string;
+        shortSellTrend?: string;
     };
+    createdAt: string;
+    isAi?: boolean; // Added for UI differentiation
+}
 
-    if (loading) return <div className="animate-pulse h-24 bg-gray-100 rounded-lg border border-gray-100 p-3">
-        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-        <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-    </div>;
-
-    if (!data) return <div className="h-24 bg-red-50 rounded-lg border border-red-100 p-3 flex items-center justify-center text-red-400 text-xs">
-        데이터 로딩 실패
-    </div>;
-
-    return (
-        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 hover:border-blue-200 transition-colors">
-            <div className="flex justify-between items-start mb-2">
-                <div>
-                    <span className="font-bold text-gray-800 text-sm">{stock.name}</span>
-                    <span className="text-xs text-gray-400 block">{stock.code}</span>
-                </div>
-                <div className={`text-right ${data.isUp ? 'text-red-500' : 'text-blue-600'}`}>
-                    <div className="font-bold text-sm">{data.price.toLocaleString()}원</div>
-                    <div className="text-xs">
-                        {data.isUp ? '▲' : '▼'} {data.change.toLocaleString()} ({data.changePercent}%)
-                    </div>
-                </div>
-            </div>
-
-            {/* Investment Trends (Supply/Demand) */}
-            {data.trends && (
-                <div className="flex gap-2 text-[10px] mb-2 bg-white p-1.5 rounded border border-gray-100">
-                    <div className="flex items-center gap-1">
-                        <span className="text-gray-500">외인</span>
-                        <span className={`font-semibold ${data.trends.foreigner > 0 ? 'text-red-500' : 'text-blue-600'}`}>
-                            {formatVolume(data.trends.foreigner)}
-                        </span>
-                    </div>
-                    <div className="w-[1px] bg-gray-200"></div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-gray-500">기관</span>
-                        <span className={`font-semibold ${data.trends.institution > 0 ? 'text-red-500' : 'text-blue-600'}`}>
-                            {formatVolume(data.trends.institution)}
-                        </span>
-                    </div>
-                </div>
-            )}
-
-            <div className="flex justify-between items-center mt-2">
-                <a
-                    href={`https://m.stock.naver.com/domestic/stock/${stock.code}/short`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-gray-400 underline hover:text-blue-500"
-                >
-                    공매도/신용 확인 ↗
-                </a>
-                <a
-                    href={`/stocks/analysis/${stock.code}`}
-                    className="text-[10px] text-blue-500 font-bold bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
-                >
-                    심층 분석 📊
-                </a>
-            </div>
-
-            <div className="mt-1 text-xs text-gray-500">
-                💡 {stock.reason}
-            </div>
-        </div>
-    );
-};
-
-const MarketIndex = ({ name, value, change, changePercent, isUp }: { name: string, value: string, change: string, changePercent: string, isUp: boolean }) => {
-    return (
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex-1 min-w-[150px]">
-            <h3 className="text-gray-500 text-sm font-medium mb-1">{name}</h3>
-            <div className="text-xl font-bold text-gray-900">{value}</div>
-            <div className={`text-sm ${isUp ? 'text-red-500' : 'text-blue-600'}`}>
-                {change} ({changePercent})
-            </div>
-        </div>
-    );
-};
-
-// Component to fetch and display indices
-const MarketIndicesTicker = () => {
+export default function RecommendedStocksPage() {
+    const [stocks, setStocks] = useState<RecommendedStock[]>([]);
     const [indices, setIndices] = useState<any[]>([]);
-
-    useEffect(() => {
-        const fetchIndices = async () => {
-            try {
-                const res = await fetch('/api/stocks/indices');
-                if (res.ok) {
-                    const data = await res.json();
-                    setIndices(data);
-                }
-            } catch (e) {
-                console.error('Failed to fetch indices', e);
-            }
-        };
-
-        fetchIndices();
-        // Refresh every 60s
-        const interval = setInterval(fetchIndices, 60000);
-        return () => clearInterval(interval);
-    }, []);
-
-    if (indices.length === 0) {
-        // Skull placeholder while loading
-        return (
-            <div className="flex gap-4 overflow-x-auto pb-2">
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="bg-white/10 animate-pulse h-24 w-40 rounded-xl"></div>
-                ))}
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex gap-4 overflow-x-auto pb-2">
-            {indices.map((idx) => (
-                <MarketIndex
-                    key={idx.name}
-                    name={idx.name}
-                    value={idx.value}
-                    change={idx.change}
-                    changePercent={idx.changePercent}
-                    isUp={idx.isUp}
-                />
-            ))}
-        </div>
-    );
-};
-
-export default function StocksPage() {
-    const [articles, setArticles] = useState<NewsArticle[]>([]);
+    const [news, setNews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'all' | 'admin' | 'ai'>('all');
+
+    // Filter stocks based on active tab
+    const showAdmin = activeTab === 'all' || activeTab === 'admin';
+    const showAi = activeTab === 'all' || activeTab === 'ai';
+    const hasAdminStocks = stocks.some(s => !s.isAi);
 
     useEffect(() => {
-        fetch('/api/news')
+        // Fetch Stocks
+        fetch('/api/stocks', { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
-                setArticles(data);
-                setLoading(false);
+                if (Array.isArray(data)) {
+                    setStocks(data);
+                } else {
+                    setStocks([]);
+                }
             })
-            .catch(err => {
-                console.error('Error fetching news:', err);
-                setLoading(false);
-            });
+            .catch(err => console.error('Failed to fetch stocks:', err));
+
+        // Fetch Indices
+        fetch('/api/indices', { cache: 'no-store' })
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setIndices(data);
+            })
+            .catch(err => console.error('Failed to fetch indices:', err));
+
+        // Fetch News
+        fetch('/api/news', { cache: 'no-store' })
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setNews(data);
+            })
+            .catch(err => console.error('Failed to fetch news:', err))
+            .finally(() => setLoading(false));
+
     }, []);
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header Banner */}
-            <div className="bg-slate-900 text-white pb-12 pt-16">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">📈 투자 인사이트</h1>
-                            <p className="text-slate-400">AI가 분석한 뉴스 기반 관련 주식 정보를 확인하세요.</p>
-                        </div>
-                        <div className="mt-4 md:mt-0 px-3 py-1 bg-blue-600 rounded-full text-xs font-bold uppercase tracking-wider">
-                            Realtime Data Active
-                        </div>
-                    </div>
-
-                    {/* Market Indices (Dynamic) */}
-                    <MarketIndicesTicker />
+            {/* Hero Banner */}
+            <section className="bg-gradient-to-r from-green-600 to-teal-700 text-white py-12">
+                <div className="max-w-7xl mx-auto px-4 text-center">
+                    <h1 className="text-4xl font-bold mb-4">관리자 추천 주식</h1>
+                    <p className="text-xl text-green-100">전문적인 분석을 바탕으로 엄선된 종목을 확인해보세요.</p>
                 </div>
-            </div>
+            </section>
 
-            <main className="max-w-7xl mx-auto px-4 py-8 -mt-8">
+            <main className="max-w-7xl mx-auto px-4 py-8">
                 {loading ? (
-                    <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-500">AI가 뉴스를 분석하여 종목을 추출하고 있습니다...</p>
+                    <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                        <p className="text-gray-500">추천 종목을 불러오는 중...</p>
+                    </div>
+                ) : stocks.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl shadow">
+                        <p className="text-gray-500">현재 등록된 추천 종목이 없습니다.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* News Feed Area */}
-                        <div className="lg:col-span-2 space-y-6">
-                            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <span>📰</span> 실시간 분석 뉴스
-                            </h2>
-
-                            {articles.map((article) => (
-                                <div key={article._id} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <span className={`px-2 py-1 rounded text-xs font-medium
-                                            ${article.category === 'travel' ? 'bg-blue-100 text-blue-700' :
-                                                article.category === 'entertainment' ? 'bg-purple-100 text-purple-700' :
-                                                    'bg-green-100 text-green-700'}`}>
-                                            {article.category === 'travel' ? '여행' :
-                                                article.category === 'entertainment' ? '연예' : '지역'}
-                                        </span>
-                                        <span className="text-xs text-gray-400">
-                                            {new Date(article.publishedAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2 hover:text-blue-600">
-                                        <a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a>
-                                    </h3>
-                                    <p className="text-gray-600 text-sm line-clamp-2 mb-4">
-                                        {article.description}
-                                    </p>
-
-                                    {/* Related Stocks Section for Mobile (Horizontal) */}
-                                    <div className="lg:hidden mt-4 pt-4 border-t border-gray-100">
-                                        <div className="text-xs font-bold text-slate-500 mb-2">🤖 AI 관련주 추천</div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            {article.relatedStocks?.map((stock, idx) => (
-                                                <StockCard key={idx} stock={stock} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Sidebar - Featured Stocks */}
-                        <div className="hidden lg:block">
-                            <div className="sticky top-24 space-y-6">
-                                <div className="bg-white rounded-2xl p-6 shadow-lg border border-indigo-100">
-                                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                        <span>🤖</span> AI 추천 종목 하이라이트
-                                    </h2>
-                                    <p className="text-xs text-gray-500 mb-6">
-                                        현재 보고 계신 뉴스 리스트에서 가장 연관성이 높은 종목들입니다.
-                                    </p>
-
-                                    {/* Iterate over first few articles to show their stocks in sidebar */}
-                                    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-                                        {articles.slice(0, 5).map((article) => (
-                                            article.relatedStocks && article.relatedStocks.length > 0 && (
-                                                <div key={`sidebar-${article._id}`} className="mb-6">
-                                                    <div className="text-xs font-semibold text-gray-400 mb-2 truncate px-1">
-                                                        ↳ {article.title}
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        {article.relatedStocks.map((stock, idx) => (
-                                                            <StockCard key={idx} stock={stock} />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="bg-blue-600 rounded-xl p-6 text-white shadow-lg">
-                                    <h3 className="font-bold text-lg mb-2">💡 투자 팁</h3>
-                                    <p className="text-sm text-blue-100 mb-4">
-                                        여행 관련 뉴스가 많을 때는 항공주와 여행사 주식에 주목해보세요.
-                                        엔터 뉴스는 신곡 발표 시기에 주가 변동성이 커질 수 있습니다.
-                                    </p>
-                                    <button className="w-full py-2 bg-white text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors">
-                                        더 알아보기
-                                    </button>
-                                </div>
+                    <>
+                        {/* Tab Navigation */}
+                        <div className="flex justify-center mb-8">
+                            <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 inline-flex">
+                                <button
+                                    onClick={() => setActiveTab('all')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === 'all'
+                                        ? 'bg-gray-900 text-white shadow-md'
+                                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    전체보기
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('admin')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-1 ${activeTab === 'admin'
+                                        ? 'bg-green-600 text-white shadow-md'
+                                        : 'text-gray-500 hover:text-green-600 hover:bg-green-50'
+                                        }`}
+                                >
+                                    <span>🌟</span> 관리자 추천
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('ai')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-1 ${activeTab === 'ai'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                        }`}
+                                >
+                                    <span>📰</span> AI 뉴스
+                                </button>
                             </div>
                         </div>
-                    </div>
+
+                        {/* 1. Admin Recommended Section */}
+                        {showAdmin && hasAdminStocks && (
+                            <section className="mb-16">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <span>🌟</span> 관리자 추천 종목
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {stocks.filter(s => !s.isAi).map((stock) => (
+                                        <div key={stock._id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full group cursor-pointer border border-green-100">
+                                            {stock.imageUrl && (
+                                                <div className="h-48 overflow-hidden bg-gray-200">
+                                                    <img
+                                                        src={stock.imageUrl}
+                                                        alt={stock.name}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="p-6 flex flex-col flex-1">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+                                                        {stock.name}
+                                                    </h3>
+                                                    <span className="text-sm font-semibold bg-green-50 text-green-700 px-2 py-1 rounded">
+                                                        {stock.code}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-gray-600 line-clamp-3 mb-6 flex-1 whitespace-pre-line">
+                                                    {stock.description}
+                                                </p>
+
+                                                <div className="border-t pt-4 space-y-3">
+                                                    {stock.additionalInfo?.creditTrend && (
+                                                        <div className="flex items-start gap-2 text-sm">
+                                                            <span className="font-semibold text-gray-700 min-w-[70px]">신용 추이:</span>
+                                                            <span className="text-gray-600">{stock.additionalInfo.creditTrend}</span>
+                                                        </div>
+                                                    )}
+                                                    {stock.additionalInfo?.shortSellTrend && (
+                                                        <div className="flex items-start gap-2 text-sm">
+                                                            <span className="font-semibold text-gray-700 min-w-[70px]">공매도 추이:</span>
+                                                            <span className="text-gray-600">{stock.additionalInfo.shortSellTrend}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="mt-4 text-right">
+                                                    <a
+                                                        href={`https://finance.naver.com/item/main.naver?code=${stock.code}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-green-600 hover:text-green-800 font-semibold"
+                                                    >
+                                                        네이버 금융 상세 ↗
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 2. AI News Analysis Section */}
+                        {showAi && (
+                            <section className="animate-fade-in-up animation-delay-200">
+                                {/* Market Indices */}
+                                <div className="mb-8">
+                                    <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                        <span>📊</span> 주요 지수
+                                    </h2>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {indices.length > 0 ? indices.map((index) => (
+                                            <div key={index.name} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                                                <span className="text-sm font-semibold text-gray-600 mb-1">{index.name}</span>
+                                                <span className="text-lg font-bold text-gray-900">{index.value}</span>
+                                                <span className={`text-sm font-medium ${index.isUp ? 'text-red-500' : 'text-blue-500'}`}>
+                                                    {index.change} ({index.changePercent})
+                                                </span>
+                                            </div>
+                                        )) : (
+                                            <div className="col-span-full text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
+                                                지수 정보를 불러오는 중...
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* News List */}
+                                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <span>📰</span> 실시간 AI 뉴스 분석
+                                    <span className="text-sm font-normal text-gray-500 ml-2 bg-gray-100 px-2 py-1 rounded-full">뉴스 기반 자동 추천</span>
+                                </h2>
+
+                                <div className="space-y-6">
+                                    {news.map((article: any) => (
+                                        <div key={article._id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                            <div className="flex flex-col md:flex-row gap-6">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded">뉴스</span>
+                                                        <span className="text-sm text-gray-500">
+                                                            {new Date(article.publishedAt).toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                    <a
+                                                        href={article.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors mb-3 block"
+                                                    >
+                                                        {article.title}
+                                                    </a>
+                                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                                        {article.description}
+                                                    </p>
+
+                                                    {/* Related Stocks Badges */}
+                                                    {article.relatedStocks && article.relatedStocks.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2 mt-3">
+                                                            {article.relatedStocks.map((stock: any) => (
+                                                                <a
+                                                                    key={stock.code}
+                                                                    href={`https://finance.naver.com/item/main.naver?code=${stock.code}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg active:scale-95 transition-all cursor-pointer border border-red-100"
+                                                                >
+                                                                    <span className="font-bold text-sm">{stock.name}</span>
+                                                                    <span className="text-xs opacity-75">{stock.code}</span>
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                    </>
                 )}
+
+                {/* Investment Disclaimer */}
+                <div className="mt-12 p-6 bg-yellow-50 border border-yellow-200 rounded-xl text-center">
+                    <p className="text-yellow-800 font-semibold mb-2">⚠️ 투자 유의사항</p>
+                    <p className="text-sm text-yellow-700">
+                        본 서비스에서 제공하는 정보는 투자 참고용이며, 실제 투자의 책임은 전적으로 투자자 본인에게 있습니다.
+                        <br />
+                        해당 정보의 정확성이나 완전성을 보장하지 않으며, 이를 근거로 한 투자 결과에 대해 어떠한 법적 책임도 지지 않습니다.
+                    </p>
+                </div>
             </main>
-        </div >
+        </div>
     );
 }

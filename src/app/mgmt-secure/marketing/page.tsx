@@ -57,11 +57,9 @@ export default function MarketingPage() {
                     pip install requests beautifulsoup4 pyautogui pyperclip
                   </div>
                 </li>
-                <li>봇을 실행하고 키워드를 입력하면 자동으로 홍보가 시작됩니다.
-                  <div className="mt-1 p-2 bg-black rounded text-green-400 font-mono text-xs select-all cursor-pointer">
-                    python marketing_bot.py
-                  </div>
-                </li>
+                <li>봇을 실행합니다. (<code>python marketing_bot.py</code>)</li>
+                <li>프로그램의 안내에 따라 <strong>[키워드 검색]</strong> 또는 <strong>[특정 방 전송]</strong> 모드를 선택하세요.</li>
+                <li>주기적인 홍보를 원하면 <strong>[반복 설정]</strong>에서 분 단위 시간을 입력하세요. (0 입력 시 1회만 전송)</li>
               </ol>
             </div>
 
